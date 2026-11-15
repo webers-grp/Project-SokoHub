@@ -1,0 +1,24 @@
+# Local configuration & secrets (keep InfinityFree/XAMPP passwords out of GitHub!)
+.env
+config/db.local.php
+
+# Runtime / uploads / temporary files
+assets/img/uploads/*
+!assets/img/uploads/.gitkeep
+*.log
+tmp/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*~
+.~lock.*
+
+# OS metadata
+.directory
