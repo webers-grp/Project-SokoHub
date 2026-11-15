@@ -1,0 +1,13 @@
+<?php
+/**
+ * Copy this file to config/db.local.php on live hosting (InfinityFree / 000webhost / XAMPP)
+ * and fill in your host database credentials. Keep db.local.php out of Git!
+ */
+return [
+    'host'   => 'sql123.infinityfree.com', // Replace with your host MySQL hostname
+    'port'   => '3306',
+    'dbname' => 'if0_12345678_sokohub',    // Replace with your host database name
+    'user'   => 'if0_12345678',            // Replace with your host MySQL username
+    'pass'   => 'YOUR_HOST_DB_PASSWORD',   // Replace with your vPanel/host password
+    'socket' => '',
+];
