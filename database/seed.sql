@@ -4,6 +4,7 @@
 -- ============================================================================
 
 SET NAMES utf8mb4;
+USE sokohub_db;
 
 -- Password hash generated via PHP password_hash('SokoHub@2026', PASSWORD_BCRYPT, ['cost' => 10])
 INSERT INTO users (id, full_name, email, phone, password_hash, role, status) VALUES
