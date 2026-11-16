@@ -2,6 +2,7 @@
 /**
  * SokoHub Shared Header & Responsive Navigation Bar
  */
+require_once __DIR__ . '/notifications.php';
 if (!isset($pageTitle)) {
     $pageTitle = 'SokoHub | Local Digital Marketplace';
 }
@@ -51,6 +52,17 @@ $flash = get_flash();
                         <span>Cart</span>
                         <span class="cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </a>
+
+                    <?php if ($authUser !== null): 
+                        $notifUnread = Notifications::getUnreadCount((int) $authUser['id']);
+                    ?>
+                        <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="cart-pill" title="Marketplace Alerts &amp; Restocks" style="padding: 0.35rem 0.65rem;">
+                            <span>🔔</span>
+                            <?php if ($notifUnread > 0): ?>
+                                <span class="cart-badge" style="background: #ef4444;"><?= $notifUnread ?></span>
+                            <?php endif; ?>
+                        </a>
+                    <?php endif; ?>
 
                     <?php if ($authUser !== null): ?>
                         <div class="user-pill">

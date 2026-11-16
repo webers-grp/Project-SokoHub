@@ -203,6 +203,10 @@ function get_nav_items(?array $user): array
 
         $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php']];
 
+        if ($user['role'] === 'buyer') {
+            $items[] = ['label' => 'Alerts', 'href' => 'pages/buyer/notifications.php', 'match' => ['notifications.php']];
+        }
+
         if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
             $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php']];
         }

@@ -3,6 +3,7 @@
  * SokoHub Dynamic Home Page
  */
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/notifications.php';
 init_session();
 track_visit_cookie();
 
@@ -32,6 +33,8 @@ $metrics = [
     'riders'   => (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'delivery' AND status = 'active'")->fetchColumn(),
     'orders'   => (int) $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn(),
 ];
+
+$recentAlerts = Notifications::getRecentAnnouncements(3);
 
 $pageTitle = 'SokoHub | Modern Local Digital Marketplace';
 require_once __DIR__ . '/includes/header.php';
@@ -74,6 +77,20 @@ require_once __DIR__ . '/includes/header.php';
 </section>
 
 <main class="container section-space">
+    <?php if (!empty($recentAlerts)): ?>
+        <div style="margin-bottom: 2rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span class="badge badge-success" style="font-size: 0.75rem; text-transform: uppercase;">🔔 Marketplace Live</span>
+                <span style="font-size: 0.9rem; color: #166534;">
+                    <strong><?= e($recentAlerts[0]['title']) ?></strong> &mdash; <?= e($recentAlerts[0]['message']) ?>
+                </span>
+            </div>
+            <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-outline btn-sm" style="font-size: 0.75rem; border-color: #16a34a; color: #166534;">
+                View All Alerts &rarr;
+            </a>
+        </div>
+    <?php endif; ?>
+
     <section>
         <div class="section-heading">
             <h2>Browse by Category</h2>

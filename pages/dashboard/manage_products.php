@@ -204,7 +204,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     'threshold' => (int) $form['low_stock_threshold'],
                 ]);
                 Inventory::checkProductLowStock($newId, 'Initial listing creation');
-                set_flash('success', 'Product "' . $form['name'] . '" published successfully.');
+
+                // Notify all buyers of new arrival / new stock
+                require_once __DIR__ . '/../../includes/notifications.php';
+                $sellerName = $user['full_name'] ?? 'Local Vendor';
+                $sProf = Kyc::getSellerProfile($userId);
+                if (!empty($sProf['business_name'])) {
+                    $sellerName = $sProf['business_name'];
+                }
+                Notifications::notifyNewStock($newId, $form['name'], (float) $form['price'], $sellerName);
+
+                set_flash('success', 'Product "' . $form['name'] . '" published successfully and buyers notified!');
             }
 
             redirect('pages/dashboard/manage_products.php');

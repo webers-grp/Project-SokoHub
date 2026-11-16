@@ -9,6 +9,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/notifications.php';
 
 class Kyc
 {
@@ -544,6 +545,14 @@ class Kyc
                         SET review_status = "accepted", reviewed_by = :by, reviewed_at = NOW()
                         WHERE seller_user_id = :uid AND review_status = "pending"
                     ')->execute([':by' => $adminId, ':uid' => $targetUserId]);
+
+                    // Broadcast notification to buyers when a new seller is approved
+                    if ($role === 'seller') {
+                        $prof = self::getSellerProfile($targetUserId);
+                        $bName = $prof['business_name'] ?? 'Local Merchant';
+                        $bTown = $prof['town'] ?? 'Kirinyaga';
+                        Notifications::notifyNewSeller($targetUserId, $bName, $bTown);
+                    }
                 } elseif ($newStatus === 'rejected') {
                     $pdo->prepare('
                         UPDATE seller_documents

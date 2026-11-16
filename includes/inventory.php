@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/notifications.php';
 
 class Inventory
 {
@@ -229,6 +230,19 @@ class Inventory
                 'threshold'    => $threshold,
                 'alert_cleared'=> $clearedAlert,
             ], $actorUserId, $actorRole);
+
+            // Notify buyers if stock was increased
+            if ($newQuantity > $oldStock) {
+                $sStmt = $pdo->prepare('
+                    SELECT COALESCE(sp.business_name, u.full_name) AS seller_name
+                    FROM users u
+                    LEFT JOIN seller_profiles sp ON sp.user_id = u.id
+                    WHERE u.id = :sid LIMIT 1
+                ');
+                $sStmt->execute([':sid' => $prod['seller_id']]);
+                $sellerName = $sStmt->fetchColumn() ?: 'Local Vendor';
+                Notifications::notifyRestock($productId, $prod['name'], $newQuantity, (string) $sellerName);
+            }
 
             return [
                 'ok'            => true,

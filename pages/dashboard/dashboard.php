@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
 require_once __DIR__ . '/../../includes/inventory.php';
+require_once __DIR__ . '/../../includes/notifications.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -25,6 +26,8 @@ if ($role === 'buyer') {
          WHERE o.buyer_id = :id AND d.delivery_status IN ('pending','assigned','picked_up','in_transit')"
     );
     $activeDelStmt->execute([':id' => $userId]);
+
+    $buyerAlerts = Notifications::getBuyerNotifications($userId, null, 4);
 
     $kpis = [
         ['label' => 'My Orders', 'value' => (int) $agg['cnt']],
@@ -151,6 +154,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php if ($role === 'buyer'): ?>
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">Browse Products</a>
                 <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="btn btn-outline">My Orders</a>
+                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-amber">🔔 Restock &amp; Store Alerts</a>
             <?php elseif ($role === 'seller'): ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Products (CRUD)</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">View Sales &amp; Stock Reports</a>
@@ -218,6 +222,33 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($role === 'buyer' && !empty($buyerAlerts)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 5px solid #6366f1;">
+            <div class="section-heading" style="margin-bottom: 0.75rem;">
+                <h2>🔔 Live Marketplace Updates &amp; Restock Alerts</h2>
+                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-outline btn-sm">View All Alerts &rarr;</a>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <?php foreach ($buyerAlerts as $ba): ?>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; flex-wrap: wrap; gap: 0.5rem; border: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.2rem;">
+                                <?= e(date('M d, Y H:i', strtotime($ba['created_at']))) ?>
+                            </div>
+                            <strong style="color: #0f172a; font-size: 0.95rem;"><?= e($ba['title']) ?></strong>
+                            <p style="margin: 0.2rem 0 0 0; color: #475569; font-size: 0.85rem;"><?= e($ba['message']) ?></p>
+                        </div>
+                        <?php if (!empty($ba['link_url'])): ?>
+                            <a href="<?= e(url($ba['link_url'])) ?>" class="btn btn-primary btn-sm" style="font-size: 0.8rem; padding: 0.25rem 0.65rem;">
+                                View Details &rarr;
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="card">
         <div class="section-heading">

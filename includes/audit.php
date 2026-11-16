@@ -96,6 +96,9 @@ class Audit
                 }
             }
 
+            // Ensure valid actor ID or NULL for foreign key constraint
+            $actorUserId = ($actorUserId !== null && $actorUserId > 0) ? (int) $actorUserId : null;
+
             $ip = self::resolveClientIp();
             $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI/Unknown', 0, 255);
             $detailsJson = ($details !== null && !empty($details))

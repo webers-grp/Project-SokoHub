@@ -11,6 +11,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../includes/kyc.php';
 require_once __DIR__ . '/../includes/inventory.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 $passed = 0;
 $failed = 0;
@@ -246,6 +247,63 @@ $badThreshErrors = validate_product_fields([
     'condition_type'      => 'New',
 ]);
 assert_true(in_array('Low-stock alert threshold must be a number of at least 1 unit.', $badThreshErrors, true), 'TC-10j: validate_product_fields() validates low_stock_threshold >= 1');
+
+// 11. Buyer Notifications & Restock Alerts
+Notifications::ensureSchema();
+
+// 11a. Schema verification
+$notifCols = $pdo->query("SHOW TABLES LIKE 'notifications'")->fetch();
+assert_true(!empty($notifCols), 'TC-11a: Notifications::ensureSchema() creates notifications table');
+
+// 11b. New seller notification
+$newSellerNotifId = Notifications::notifyNewSeller(2, 'Kirinyaga Highlands Tea Emporium', 'Kerugoya');
+assert_true($newSellerNotifId > 0, 'TC-11b: Notifications::notifyNewSeller() broadcasts alert to buyers');
+
+// 11c. New stock notification
+$newStockNotifId = Notifications::notifyNewStock(1, 'Kirinyaga Organic Honey 500g', 850.00, 'Kirinyaga Highlands');
+assert_true($newStockNotifId > 0, 'TC-11c: Notifications::notifyNewStock() broadcasts new arrival alert');
+
+// 11d. Restock notification
+$restockNotifId = Notifications::notifyRestock(1, 'Kirinyaga Organic Honey 500g', 50, 'Kirinyaga Highlands');
+assert_true($restockNotifId > 0, 'TC-11d: Notifications::notifyRestock() broadcasts back-in-stock alert');
+
+// 11e. Buyer notifications retrieval
+$buyerId = 4; // Seed buyer user ID (Mercy Wangari)
+$buyerFeed = Notifications::getBuyerNotifications($buyerId, null, 10);
+assert_true(!empty($buyerFeed) && isset($buyerFeed[0]['is_read']), 'TC-11e: Notifications::getBuyerNotifications() retrieves buyer feed with is_read status');
+
+// 11f. Unread count check
+$unreadBefore = Notifications::getUnreadCount($buyerId);
+assert_true($unreadBefore > 0, 'TC-11f: Notifications::getUnreadCount() reflects unread alerts');
+
+// 11g. Mark single as read
+Notifications::markAsRead($newSellerNotifId, $buyerId);
+$feedAfter = Notifications::getBuyerNotifications($buyerId, null, 10);
+$foundRead = false;
+foreach ($feedAfter as $fa) {
+    if ((int) $fa['id'] === $newSellerNotifId && (bool) $fa['is_read'] === true) {
+        $foundRead = true;
+        break;
+    }
+}
+assert_true($foundRead === true, 'TC-11g: Notifications::markAsRead() marks individual notification as read');
+
+// 11h. Mark all as read
+Notifications::markAllAsRead($buyerId);
+$unreadAfter = Notifications::getUnreadCount($buyerId);
+assert_true($unreadAfter === 0, 'TC-11h: Notifications::markAllAsRead() clears all unread alerts for buyer');
+
+// 11i. Public storefront announcements
+$publicAlerts = Notifications::getRecentAnnouncements(3);
+assert_true(is_array($publicAlerts) && count($publicAlerts) >= 1, 'TC-11i: Notifications::getRecentAnnouncements() returns public marketplace alerts for ticker');
+
+// Clean up temporary test notifications & audit logs
+$pdo->prepare("DELETE FROM notifications WHERE id IN (:n1, :n2, :n3)")->execute([
+    ':n1' => $newSellerNotifId,
+    ':n2' => $newStockNotifId,
+    ':n3' => $restockNotifId,
+]);
+$pdo->prepare("DELETE FROM audit_logs WHERE action IN ('notification.new_seller_broadcast', 'notification.new_stock_broadcast', 'notification.restock_broadcast')")->execute();
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
