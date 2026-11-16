@@ -48,12 +48,18 @@ $lastVisitCookie = $_COOKIE['sokohub_last_visit'] ?? null;
     </div>
 </footer>
 
-<script src="<?= e(url('assets/js/lucide.min.js')) ?>"></script>
+<script src="<?= e(url('assets/js/lucide.min.js?v=' . filemtime(__DIR__ . '/../assets/js/lucide.min.js'))) ?>"></script>
 <script>
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        lucide.createIcons({
+            attrs: {
+                width: '13',
+                height: '13',
+                'stroke-width': '1.85'
+            }
+        });
     }
 </script>
-<script src="<?= e(url('assets/js/app.js')) ?>"></script>
+<script src="<?= e(url('assets/js/app.js?v=' . filemtime(__DIR__ . '/../assets/js/app.js'))) ?>"></script>
 </body>
 </html>

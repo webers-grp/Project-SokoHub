@@ -80,9 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBarChart(canvas);
     });
 
-    // 7. Initialize Lucide Vector Icons
+    // 7. Initialize Lucide Vector Icons (Strict Compact Default)
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-        lucide.createIcons();
+        lucide.createIcons({
+            attrs: {
+                width: '13',
+                height: '13',
+                'stroke-width': '1.85'
+            }
+        });
     }
 });
 
