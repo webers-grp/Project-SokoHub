@@ -169,7 +169,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Confirm delivery location and payment preference.</p>
         </div>
         <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline">
-            <?= icon('arrow-left', 'lucide-sm') ?>
+            <?= icon('arrow-left', 'lucide-xs', 'blue') ?>
             <span>Back to Cart</span>
         </a>
     </div>
@@ -177,7 +177,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="split-grid" style="align-items: start;">
         <div class="card">
             <h2 style="color: var(--green-dark); margin-bottom: 1rem;">
-                <?= icon('truck', 'lucide-sm') ?>
+                <?= icon('truck', 'lucide-sm', 'amber') ?>
                 <span>Delivery &amp; Payment Details</span>
             </h2>
 
@@ -219,7 +219,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <button type="submit" class="btn btn-amber btn-block">
-                    <?= icon('check-circle') ?>
+                    <?= icon('check-circle', 'lucide-sm', 'white') ?>
                     <span>Confirm &amp; Place Order</span>
                 </button>
             </form>
@@ -227,7 +227,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="card">
             <h2 style="margin-bottom: 1rem;">
-                <?= icon('receipt', 'lucide-sm') ?>
+                <?= icon('receipt', 'lucide-sm', 'purple') ?>
                 <span>Order Summary</span>
             </h2>
             <ul style="list-style:none;">

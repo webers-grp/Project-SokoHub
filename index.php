@@ -132,7 +132,7 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                             <div class="product-actions">
                                 <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
-                                    <?= icon('eye', 'lucide-sm') ?>
+                                    <?= icon('eye', 'lucide-xs', 'blue') ?>
                                     <span>Details</span>
                                 </a>
                                 <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="flex:1;">
@@ -141,7 +141,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                                     <input type="hidden" name="quantity" value="1">
                                     <button type="submit" class="btn btn-primary btn-sm btn-block">
-                                        <?= icon('shopping-cart', 'lucide-sm') ?>
+                                        <?= icon('shopping-cart', 'lucide-xs', 'gold') ?>
                                         <span>Add to Cart</span>
                                     </button>
                                 </form>
@@ -159,17 +159,17 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="prop-grid">
             <div class="prop-item">
-                <div style="margin-bottom: 0.6rem; color: var(--green-primary);"><?= icon('truck', 'lucide-lg') ?></div>
+                <div class="prop-icon-wrap prop-icon-amber"><?= icon('truck', 'lucide-sm') ?></div>
                 <h3>Instant Local Delivery</h3>
                 <p>Dedicated motorbike, bicycle, and van riders pick up directly from local merchants and update real-time order statuses.</p>
             </div>
             <div class="prop-item">
-                <div style="margin-bottom: 0.6rem; color: var(--amber-primary);"><?= icon('credit-card', 'lucide-lg') ?></div>
+                <div class="prop-icon-wrap prop-icon-blue"><?= icon('credit-card', 'lucide-sm') ?></div>
                 <h3>Flexible Payments</h3>
                 <p>Checkout smoothly using M-Pesa, Cash on Delivery, or Bank Card with clear order receipts and tracking codes.</p>
             </div>
             <div class="prop-item">
-                <div style="margin-bottom: 0.6rem; color: var(--green-primary);"><?= icon('store', 'lucide-lg') ?></div>
+                <div class="prop-icon-wrap prop-icon-green"><?= icon('store', 'lucide-sm') ?></div>
                 <h3>Empowered Local MSMEs</h3>
                 <p>Vendors manage inventory, pricing, stock alerts, and revenue reports from one clean web dashboard.</p>
             </div>

@@ -105,18 +105,20 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Review items before proceeding to secure checkout.</p>
         </div>
         <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline">
-            <?= icon('arrow-left', 'lucide-sm') ?>
+            <?= icon('arrow-left', 'lucide-xs', 'blue') ?>
             <span>Continue Shopping</span>
         </a>
     </div>
 
     <?php if (empty($cartItems)): ?>
         <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
-            <div style="color: var(--amber-primary); margin-bottom: 0.75rem;"><?= icon('shopping-bag', 'lucide-xl') ?></div>
+            <div class="stat-icon-wrap stat-icon-amber" style="width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 0.75rem;">
+                <?= icon('shopping-bag', 'lucide-lg') ?>
+            </div>
             <h2>Your cart is currently empty</h2>
             <p class="muted" style="margin: 0.6rem 0 1.4rem;">Explore fresh food, cooking gas, electronics, and clothing from local Kirinyaga vendors.</p>
             <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
-                <?= icon('shopping-bag') ?>
+                <?= icon('shopping-bag', 'lucide-sm', 'white') ?>
                 <span>Browse Marketplace</span>
             </a>
         </div>
@@ -152,7 +154,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
                                     <input type="number" name="quantity" class="form-control" value="<?= (int) $item['cart_qty'] ?>" min="1" max="<?= (int) $item['stock_qty'] ?>" style="width:76px;">
                                     <button type="submit" class="btn btn-outline btn-sm">
-                                        <?= icon('refresh-cw', 'lucide-sm') ?>
+                                        <?= icon('refresh-cw', 'lucide-xs', 'blue') ?>
                                         <span>Update</span>
                                     </button>
                                 </form>
@@ -164,7 +166,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
                                     <button type="submit" class="btn btn-danger btn-sm">
-                                        <?= icon('trash-2', 'lucide-sm') ?>
+                                        <?= icon('trash-2', 'lucide-xs', 'white') ?>
                                         <span>Remove</span>
                                     </button>
                                 </form>
@@ -180,7 +182,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="clear">
                     <button type="submit" class="btn btn-outline btn-sm" data-confirm="Clear all items from your cart?">
-                        <?= icon('trash', 'lucide-sm') ?>
+                        <?= icon('trash', 'lucide-xs', 'rose') ?>
                         <span>Clear Cart</span>
                     </button>
                 </form>
@@ -193,7 +195,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </p>
                     <a href="<?= e(url('pages/buyer/checkout.php')) ?>" class="btn btn-amber">
                         <span>Proceed to Checkout</span>
-                        <?= icon('arrow-right', 'lucide-sm') ?>
+                        <?= icon('arrow-right', 'lucide-xs', 'white') ?>
                     </a>
                 </div>
             </div>

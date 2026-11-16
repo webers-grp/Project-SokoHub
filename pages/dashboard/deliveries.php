@@ -122,7 +122,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
         <?php if (in_array($role, ['delivery', 'admin'], true)): ?>
             <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
-                <?= icon('file-text') ?>
+                <?= icon('file-text', 'lucide-xs', 'white') ?>
                 <span>Delivery Performance Report</span>
             </a>
         <?php endif; ?>
@@ -172,7 +172,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <input type="hidden" name="action" value="claim">
                                             <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
                                             <button type="submit" class="btn btn-primary btn-sm">
-                                                <?= icon('hand', 'lucide-sm') ?>
+                                                <?= icon('hand', 'lucide-xs', 'white') ?>
                                                 <span>Claim Task</span>
                                             </button>
                                         </form>
@@ -190,7 +190,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                             </select>
                                             <input type="text" name="tracking_notes" class="form-control" style="padding:0.28rem 0.45rem; font-size:0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Update note...">
                                             <button type="submit" class="btn btn-amber btn-sm">
-                                                <?= icon('check', 'lucide-sm') ?>
+                                                <?= icon('check', 'lucide-xs', 'white') ?>
                                                 <span>Update</span>
                                             </button>
                                         </form>

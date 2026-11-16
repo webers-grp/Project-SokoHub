@@ -22,31 +22,31 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <div class="role-grid">
         <div class="role-card">
-            <div class="role-icon"><?= icon('shopping-bag', 'lucide-lg') ?></div>
+            <div class="role-icon role-icon-buyer"><?= icon('shopping-bag', 'lucide-md') ?></div>
             <h2>Buyer / Customer</h2>
             <p class="muted">Browse verified local listings, compare prices, checkout securely, and track your deliveries in real time.</p>
             <a href="<?= e(url('pages/auth/register_buyer.php')) ?>" class="btn btn-primary" style="margin-top: auto;">
-                <?= icon('shopping-bag') ?>
+                <?= icon('shopping-bag', 'lucide-sm') ?>
                 <span>Register as Buyer</span>
             </a>
         </div>
 
         <div class="role-card">
-            <div class="role-icon"><?= icon('store', 'lucide-lg') ?></div>
+            <div class="role-icon role-icon-seller"><?= icon('store', 'lucide-md') ?></div>
             <h2>Seller / Vendor</h2>
             <p class="muted">List products with stock tracking, manage customer orders, and analyze sales &amp; inventory reports.</p>
             <a href="<?= e(url('pages/auth/register_seller.php')) ?>" class="btn btn-amber" style="margin-top: auto;">
-                <?= icon('store') ?>
+                <?= icon('store', 'lucide-sm') ?>
                 <span>Register as Seller</span>
             </a>
         </div>
 
         <div class="role-card">
-            <div class="role-icon"><?= icon('truck', 'lucide-lg') ?></div>
+            <div class="role-icon role-icon-delivery"><?= icon('truck', 'lucide-md') ?></div>
             <h2>Delivery Personnel</h2>
             <p class="muted">Claim local delivery requests across Kutus and Kerugoya, update transit status, and track fulfillment.</p>
             <a href="<?= e(url('pages/auth/register_delivery.php')) ?>" class="btn btn-primary" style="margin-top: auto;">
-                <?= icon('truck') ?>
+                <?= icon('truck', 'lucide-sm') ?>
                 <span>Join Delivery Team</span>
             </a>
         </div>

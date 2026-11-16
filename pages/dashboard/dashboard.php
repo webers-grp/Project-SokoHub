@@ -25,10 +25,10 @@ if ($role === 'buyer') {
     $activeDelStmt->execute([':id' => $userId]);
 
     $kpis = [
-        ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag'],
-        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet'],
-        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck'],
-        ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart'],
+        ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag', 'color' => 'purple'],
+        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet', 'color' => 'emerald'],
+        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck', 'color' => 'amber'],
+        ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart', 'color' => 'blue'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -58,10 +58,10 @@ if ($role === 'buyer') {
     $rev = $revStmt->fetch();
 
     $kpis = [
-        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package'],
-        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn(), 'icon' => 'alert-triangle'],
-        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag'],
-        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up'],
+        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
+        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn(), 'icon' => 'alert-triangle', 'color' => 'rose'],
+        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag', 'color' => 'purple'],
+        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up', 'color' => 'emerald'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -86,10 +86,10 @@ if ($role === 'buyer') {
     $done = $mineDone->fetch();
 
     $kpis = [
-        ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock'],
-        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation'],
-        ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle-2'],
-        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet'],
+        ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock', 'color' => 'amber'],
+        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation', 'color' => 'blue'],
+        ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle-2', 'color' => 'emerald'],
+        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet', 'color' => 'teal'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -104,10 +104,10 @@ if ($role === 'buyer') {
     $recentRows = $recStmt->fetchAll();
 } else { // admin
     $kpis = [
-        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users'],
-        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package'],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up'],
-        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail'],
+        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users', 'color' => 'cyan'],
+        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
+        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail', 'color' => 'pink'],
     ];
 
     $recentRows = $pdo->query(
@@ -179,11 +179,14 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <div class="stats-grid">
         <?php foreach ($kpis as $kpi): ?>
+            <?php $color = $kpi['color'] ?? 'emerald'; ?>
             <div class="stat-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                     <span class="stat-label"><?= e($kpi['label']) ?></span>
                     <?php if (!empty($kpi['icon'])): ?>
-                        <span style="color: var(--green-primary); opacity: 0.85;"><?= icon($kpi['icon'], 'lucide-lg') ?></span>
+                        <div class="stat-icon-wrap stat-icon-<?= e($color) ?>">
+                            <?= icon($kpi['icon'], 'lucide-sm') ?>
+                        </div>
                     <?php endif; ?>
                 </div>
                 <strong class="stat-value"><?= e($kpi['value']) ?></strong>

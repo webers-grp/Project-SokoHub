@@ -1148,43 +1148,201 @@ table.data-table {
     }
 }
 
-/* ---------------- Lucide Vector Icons ---------------- */
+/* ---------------- Lucide Vector Icons (Compact & Colorful) ---------------- */
 .lucide, [data-lucide] {
     display: inline-block;
     vertical-align: -0.15em;
-    stroke-width: 2;
+    stroke-width: 1.85;
     stroke: currentColor;
     fill: none;
     flex-shrink: 0;
+    transition: transform 0.15s ease, stroke 0.2s ease;
 }
 
+/* Base compact icon size (approx 15px) */
 svg.lucide {
-    width: 1.15em;
-    height: 1.15em;
+    width: 0.92em;
+    height: 0.92em;
 }
 
+/* Extra small (approx 11px-12px) */
+.lucide-xs, svg.lucide-xs {
+    width: 0.72em;
+    height: 0.72em;
+    stroke-width: 1.9;
+}
+
+/* Small (approx 12.5px-13.5px) */
 .lucide-sm, svg.lucide-sm {
-    width: 0.95em;
-    height: 0.95em;
+    width: 0.82em;
+    height: 0.82em;
+    stroke-width: 1.85;
 }
 
+/* Medium / in cards & headers (approx 16px-17px) */
+.lucide-md, svg.lucide-md {
+    width: 1.05em;
+    height: 1.05em;
+}
+
+/* Large (approx 18px-20px) */
 .lucide-lg, svg.lucide-lg {
-    width: 1.5em;
-    height: 1.5em;
+    width: 1.18em;
+    height: 1.18em;
 }
 
+/* Extra Large in hero or empty states (approx 26px) */
 .lucide-xl, svg.lucide-xl {
-    width: 2.2rem;
-    height: 2.2rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    stroke-width: 1.75;
 }
 
-.btn .lucide,
-.cart-pill .lucide,
-.user-pill .lucide,
+/* Sizing inside buttons & interactive controls */
+.btn .lucide {
+    width: 0.88em;
+    height: 0.88em;
+    margin-right: 0.28rem;
+}
+
+.btn-sm .lucide {
+    width: 0.78em;
+    height: 0.78em;
+    margin-right: 0.22rem;
+}
+
+.cart-pill .lucide {
+    width: 0.92em;
+    height: 0.92em;
+    margin-right: 0.25rem;
+}
+
+.user-pill .lucide {
+    width: 0.85em;
+    height: 0.85em;
+    margin-right: 0.22rem;
+}
+
 .badge .lucide {
+    width: 0.78em;
+    height: 0.78em;
+    margin-right: 0.2rem;
+    vertical-align: -0.1em;
+}
+
+/* ---------------- Vibrant Color System for Lucide Icons ---------------- */
+.icon-emerald, svg.icon-emerald { stroke: #10b981 !important; }
+.icon-green,   svg.icon-green   { stroke: #16a34a !important; }
+.icon-lime,    svg.icon-lime    { stroke: #84cc16 !important; }
+.icon-amber,   svg.icon-amber   { stroke: #f59e0b !important; }
+.icon-orange,  svg.icon-orange  { stroke: #f97316 !important; }
+.icon-blue,    svg.icon-blue    { stroke: #2563eb !important; }
+.icon-sky,     svg.icon-sky     { stroke: #0284c7 !important; }
+.icon-cyan,    svg.icon-cyan    { stroke: #06b6d4 !important; }
+.icon-teal,    svg.icon-teal    { stroke: #0d9488 !important; }
+.icon-indigo,  svg.icon-indigo  { stroke: #6366f1 !important; }
+.icon-purple,  svg.icon-purple  { stroke: #9333ea !important; }
+.icon-violet,  svg.icon-violet  { stroke: #8b5cf6 !important; }
+.icon-pink,    svg.icon-pink    { stroke: #ec4899 !important; }
+.icon-rose,    svg.icon-rose    { stroke: #f43f5e !important; }
+.icon-red,     svg.icon-red     { stroke: #ef4444 !important; }
+.icon-yellow,  svg.icon-yellow  { stroke: #eab308 !important; }
+.icon-gold,    svg.icon-gold    { stroke: #fbbf24 !important; }
+.icon-white,   svg.icon-white   { stroke: #ffffff !important; }
+.icon-slate,   svg.icon-slate   { stroke: #64748b !important; }
+
+/* In Header Navbar Links: distinctive colorful icons */
+.nav-links a .lucide {
     display: inline-block;
+    transition: transform 0.15s ease;
+}
+.nav-links a:hover .lucide {
+    transform: scale(1.15);
+}
+
+.nav-links a[href*="index.php"] .lucide           { stroke: #fef08a; } /* Warm Yellow */
+.nav-links a[href*="products.php"] .lucide        { stroke: #a7f3d0; } /* Mint Emerald */
+.nav-links a[href*="about.php"] .lucide           { stroke: #bae6fd; } /* Ice Sky Blue */
+.nav-links a[href*="contact.php"] .lucide         { stroke: #fbcfe8; } /* Soft Rose Pink */
+.nav-links a[href*="dashboard.php"] .lucide       { stroke: #fde047; } /* Warm Amber Gold */
+.nav-links a[href*="manage_products.php"] .lucide { stroke: #fed7aa; } /* Light Peach Orange */
+.nav-links a[href*="orders.php"] .lucide          { stroke: #c7d2fe; } /* Lavender Blue */
+.nav-links a[href*="deliveries.php"] .lucide      { stroke: #a5f3fc; } /* Cyan Teal */
+.nav-links a[href*="reports.php"] .lucide         { stroke: #e9d5ff; } /* Lilac Violet */
+
+.cart-pill .lucide {
+    stroke: #fef08a;
+}
+.user-pill .lucide {
+    stroke: #67e8f9;
+}
+
+/* Circular Icon Badges for Dashboard KPIs & Stats */
+.stat-icon-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
+.stat-icon-wrap .lucide {
+    width: 17px;
+    height: 17px;
+}
+.stat-icon-emerald { background: #ecfdf5; color: #059669; }
+.stat-icon-emerald .lucide { stroke: #059669; }
+
+.stat-icon-blue    { background: #eff6ff; color: #2563eb; }
+.stat-icon-blue .lucide { stroke: #2563eb; }
+
+.stat-icon-purple  { background: #f5f3ff; color: #7c3aed; }
+.stat-icon-purple .lucide { stroke: #7c3aed; }
+
+.stat-icon-amber   { background: #fffbeb; color: #d97706; }
+.stat-icon-amber .lucide { stroke: #d97706; }
+
+.stat-icon-rose    { background: #fff1f2; color: #e11d48; }
+.stat-icon-rose .lucide { stroke: #e11d48; }
+
+.stat-icon-cyan    { background: #ecfeff; color: #0891b2; }
+.stat-icon-cyan .lucide { stroke: #0891b2; }
+
+.stat-icon-teal    { background: #f0fdf4; color: #0d9488; }
+.stat-icon-teal .lucide { stroke: #0d9488; }
+
+.stat-icon-pink    { background: #fdf2f8; color: #db2777; }
+.stat-icon-pink .lucide { stroke: #db2777; }
+
+/* Tinted Icon Badges for Value Propositions on Home */
+.prop-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+}
+.prop-icon-amber { background: #fff7ed; color: #ea580c; }
+.prop-icon-amber .lucide { stroke: #ea580c; width: 18px; height: 18px; }
+
+.prop-icon-blue  { background: #eff6ff; color: #0284c7; }
+.prop-icon-blue .lucide { stroke: #0284c7; width: 18px; height: 18px; }
+
+.prop-icon-green { background: #ecfdf5; color: #16a34a; }
+.prop-icon-green .lucide { stroke: #16a34a; width: 18px; height: 18px; }
+
+/* Tinted Role Icons on Registration Page */
+.role-icon-buyer    { background: #eff6ff !important; color: #2563eb !important; }
+.role-icon-buyer .lucide { stroke: #2563eb; width: 22px; height: 22px; }
+
+.role-icon-seller   { background: #fffbeb !important; color: #d97706 !important; }
+.role-icon-seller .lucide { stroke: #d97706; width: 22px; height: 22px; }
+
+.role-icon-delivery { background: #ecfdf5 !important; color: #059669 !important; }
+.role-icon-delivery .lucide { stroke: #059669; width: 22px; height: 22px; }
 
 @media print {
     .site-header,

@@ -145,6 +145,8 @@ assert_true(count($catRevenue) >= 3, 'TC-07: Sales report returns category reven
 $iconMarkup = icon('shopping-cart', 'lucide-sm');
 assert_true(str_contains($iconMarkup, 'data-lucide="shopping-cart"') && str_contains($iconMarkup, 'class="lucide lucide-sm"'), 'TC-08a: Lucide icon helper generates data-lucide markup');
 assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__DIR__ . '/../assets/js/lucide.min.js') > 100000, 'TC-08b: Local Lucide bundle vendored at assets/js/lucide.min.js');
+$coloredIcon = icon('package', 'lucide-xs', 'emerald');
+assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-08c: Lucide icon helper applies compact size and color classes');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

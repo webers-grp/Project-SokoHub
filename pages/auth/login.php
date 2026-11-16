@@ -98,22 +98,22 @@ require_once __DIR__ . '/../../includes/header.php';
             </p>
 
             <div class="demo-box">
-                <strong class="small"><?= icon('key', 'lucide-sm') ?> Quick Demo Accounts (Password: <code>SokoHub@2026</code>)</strong>
+                <strong class="small"><?= icon('key', 'lucide-sm', 'amber') ?> Quick Demo Accounts (Password: <code>SokoHub@2026</code>)</strong>
                 <div class="demo-btns">
                     <button type="button" class="btn btn-outline btn-sm" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('shopping-bag', 'lucide-sm') ?>
+                        <?= icon('shopping-bag', 'lucide-xs', 'blue') ?>
                         <span>Buyer</span>
                     </button>
                     <button type="button" class="btn btn-outline btn-sm" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('store', 'lucide-sm') ?>
+                        <?= icon('store', 'lucide-xs', 'amber') ?>
                         <span>Seller</span>
                     </button>
                     <button type="button" class="btn btn-outline btn-sm" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('truck', 'lucide-sm') ?>
+                        <?= icon('truck', 'lucide-xs', 'emerald') ?>
                         <span>Delivery</span>
                     </button>
                     <button type="button" class="btn btn-outline btn-sm" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('shield-check', 'lucide-sm') ?>
+                        <?= icon('shield-check', 'lucide-xs', 'purple') ?>
                         <span>Admin</span>
                     </button>
                 </div>

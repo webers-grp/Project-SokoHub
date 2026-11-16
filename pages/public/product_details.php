@@ -63,10 +63,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 <p style="margin-bottom: 1.25rem;"><?= e($product['description']) ?></p>
 
                 <div class="card" style="background: #f8fafc; margin-bottom: 1.25rem;">
-                    <strong><?= icon('store', 'lucide-sm') ?> Seller Information</strong>
+                    <strong><?= icon('store', 'lucide-xs', 'emerald') ?> Seller Information</strong>
                     <p class="small muted" style="margin-top: 0.35rem;">
                         Vendor: <strong><?= e($product['business_name'] ?: $product['owner_name']) ?></strong><br>
-                        Location: <?= icon('map-pin', 'lucide-sm') ?> <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?><br>
+                        Location: <?= icon('map-pin', 'lucide-xs', 'rose') ?> <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?><br>
                         Availability:
                         <?php if ((int) $product['stock_qty'] > 0): ?>
                             <span class="badge badge-success"><?= (int) $product['stock_qty'] ?> units available</span>
@@ -88,7 +88,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
 
                         <button type="submit" class="btn btn-primary">
-                            <?= icon('shopping-cart') ?>
+                            <?= icon('shopping-cart', 'lucide-sm', 'white') ?>
                             <span>Add to Shopping Cart</span>
                         </button>
                     </form>

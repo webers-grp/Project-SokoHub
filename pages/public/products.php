@@ -140,11 +140,11 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    <?= icon('filter') ?>
+                    <?= icon('filter', 'lucide-xs', 'white') ?>
                     <span>Apply Filters</span>
                 </button>
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-block" style="margin-top: 0.5rem;">
-                    <?= icon('rotate-ccw') ?>
+                    <?= icon('rotate-ccw', 'lucide-xs', 'slate') ?>
                     <span>Reset</span>
                 </a>
             </form>
@@ -189,7 +189,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </div>
                                 <div class="product-actions">
                                     <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
-                                        <?= icon('eye', 'lucide-sm') ?>
+                                        <?= icon('eye', 'lucide-xs', 'blue') ?>
                                         <span>View</span>
                                     </a>
                                     <?php if ((int) $product['stock_qty'] > 0): ?>
@@ -199,7 +199,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                                             <input type="hidden" name="quantity" value="1">
                                             <button type="submit" class="btn btn-primary btn-sm btn-block">
-                                                <?= icon('shopping-cart', 'lucide-sm') ?>
+                                                <?= icon('shopping-cart', 'lucide-xs', 'gold') ?>
                                                 <span>Add</span>
                                             </button>
                                         </form>

@@ -107,10 +107,10 @@ require_once __DIR__ . '/../../includes/header.php';
         <div>
             <div class="card">
                 <h2 style="color: var(--amber-primary); margin-bottom: 0.75rem;">Direct Contact Desk</h2>
-                <p style="margin-top: 0.5rem;"><?= icon('mail', 'lucide-sm') ?> <strong>Email:</strong> support@sokohub.co.ke</p>
-                <p style="margin-top: 0.4rem;"><?= icon('phone', 'lucide-sm') ?> <strong>Phone:</strong> +254 700 123 456</p>
-                <p style="margin-top: 0.4rem;"><?= icon('map-pin', 'lucide-sm') ?> <strong>Office:</strong> 123 Market Street, Kutus, Kirinyaga County, Kenya</p>
-                <p style="margin-top: 0.4rem;"><?= icon('clock', 'lucide-sm') ?> <strong>Support Hours:</strong> Mon - Sat, 8:00 AM - 6:00 PM EAT</p>
+                <p style="margin-top: 0.5rem;"><?= icon('mail', 'lucide-xs', 'blue') ?> <strong>Email:</strong> support@sokohub.co.ke</p>
+                <p style="margin-top: 0.4rem;"><?= icon('phone', 'lucide-xs', 'emerald') ?> <strong>Phone:</strong> +254 700 123 456</p>
+                <p style="margin-top: 0.4rem;"><?= icon('map-pin', 'lucide-xs', 'rose') ?> <strong>Office:</strong> 123 Market Street, Kutus, Kirinyaga County, Kenya</p>
+                <p style="margin-top: 0.4rem;"><?= icon('clock', 'lucide-xs', 'amber') ?> <strong>Support Hours:</strong> Mon - Sat, 8:00 AM - 6:00 PM EAT</p>
             </div>
 
             <div class="card">

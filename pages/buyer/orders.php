@@ -141,7 +141,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Track marketplace purchases, payment states, and seller processing statuses.</p>
         </div>
         <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
-            <?= icon('shopping-bag') ?>
+            <?= icon('shopping-bag', 'lucide-sm', 'white') ?>
             <span>Shop More Products</span>
         </a>
     </div>
@@ -207,7 +207,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="action" value="cancel">
                                         <input type="hidden" name="order_id" value="<?= (int) $ord['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel order <?= e($ord['order_code']) ?>?">
-                                            <?= icon('x-circle', 'lucide-sm') ?>
+                                            <?= icon('x-circle', 'lucide-xs', 'white') ?>
                                             <span>Cancel</span>
                                         </button>
                                     </form>
@@ -224,7 +224,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?php endforeach; ?>
                                         </select>
                                         <button type="submit" class="btn btn-outline btn-sm">
-                                            <?= icon('check', 'lucide-sm') ?>
+                                            <?= icon('check', 'lucide-xs', 'emerald') ?>
                                             <span>Set</span>
                                         </button>
                                     </form>

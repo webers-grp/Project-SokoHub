@@ -41,7 +41,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Review and resolve messages submitted through the Contact Us page.</p>
         </div>
         <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">
-            <?= icon('arrow-left', 'lucide-sm') ?>
+            <?= icon('arrow-left', 'lucide-xs', 'blue') ?>
             <span>Back to Dashboard</span>
         </a>
     </div>
@@ -86,7 +86,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <option value="resolved" <?= $m['status'] === 'resolved' ? 'selected' : '' ?>>Resolved</option>
                                     </select>
                                     <button type="submit" class="btn btn-outline btn-sm">
-                                        <?= icon('check', 'lucide-sm') ?>
+                                        <?= icon('check', 'lucide-xs', 'emerald') ?>
                                         <span>Save</span>
                                     </button>
                                 </form>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
                                     <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete this inquiry?">
-                                        <?= icon('trash-2', 'lucide-sm') ?>
+                                        <?= icon('trash-2', 'lucide-xs', 'white') ?>
                                         <span>Delete</span>
                                     </button>
                                 </form>

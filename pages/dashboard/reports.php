@@ -273,11 +273,11 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
         <div class="hero-cta no-print">
             <a href="<?= e(url('pages/dashboard/reports.php?' . http_build_query(['type' => $reportType, 'start_date' => $startDate, 'end_date' => $endDate, 'category_id' => $categoryFilter, 'export' => 'csv']))) ?>" class="btn btn-amber">
-                <?= icon('download') ?>
+                <?= icon('download', 'lucide-sm', 'white') ?>
                 <span>Export CSV</span>
             </a>
             <button type="button" onclick="window.print()" class="btn btn-outline">
-                <?= icon('printer') ?>
+                <?= icon('printer', 'lucide-sm', 'blue') ?>
                 <span>Print Report</span>
             </button>
         </div>
@@ -285,19 +285,19 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <div class="report-tabs no-print">
         <a href="<?= e(url('pages/dashboard/reports.php?type=sales')) ?>" class="report-tab <?= $reportType === 'sales' ? 'active' : '' ?>">
-            <?= icon('trending-up', 'lucide-sm') ?>
+            <?= icon('trending-up', 'lucide-xs', 'emerald') ?>
             <span>1. Sales &amp; Revenue</span>
         </a>
         <a href="<?= e(url('pages/dashboard/reports.php?type=inventory')) ?>" class="report-tab <?= $reportType === 'inventory' ? 'active' : '' ?>">
-            <?= icon('package', 'lucide-sm') ?>
+            <?= icon('package', 'lucide-xs', 'amber') ?>
             <span>2. Inventory &amp; Stock Alerts</span>
         </a>
         <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="report-tab <?= $reportType === 'deliveries' ? 'active' : '' ?>">
-            <?= icon('truck', 'lucide-sm') ?>
+            <?= icon('truck', 'lucide-xs', 'cyan') ?>
             <span>3. Delivery Performance</span>
         </a>
         <a href="<?= e(url('pages/dashboard/reports.php?type=vendors')) ?>" class="report-tab <?= $reportType === 'vendors' ? 'active' : '' ?>">
-            <?= icon('users', 'lucide-sm') ?>
+            <?= icon('users', 'lucide-xs', 'purple') ?>
             <span>4. Users &amp; Top Vendors</span>
         </a>
     </div>

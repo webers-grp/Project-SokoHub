@@ -18,7 +18,7 @@ require_once __DIR__ . '/includes/header.php';
             <p class="muted">Early-deployment diagnostic verifying PHP runtime, sessions, cookies, and MySQL PDO connectivity.</p>
         </div>
         <a href="<?= e(url('index.php')) ?>" class="btn btn-primary">
-            <?= icon('arrow-left', 'lucide-sm') ?>
+            <?= icon('arrow-left', 'lucide-xs', 'white') ?>
             <span>Back to Marketplace</span>
         </a>
     </div>
@@ -27,20 +27,20 @@ require_once __DIR__ . '/includes/header.php';
         <div class="stat-card">
             <span class="stat-label">PHP Runtime</span>
             <strong class="stat-value">PHP <?= e(PHP_VERSION) ?></strong>
-            <span class="badge badge-success"><?= icon('check-circle', 'lucide-sm') ?> Active</span>
+            <span class="badge badge-success"><?= icon('check-circle', 'lucide-xs', 'emerald') ?> Active</span>
         </div>
 
         <div class="stat-card">
             <span class="stat-label">Session Engine</span>
             <strong class="stat-value"><?= session_status() === PHP_SESSION_ACTIVE ? 'Running' : 'Inactive' ?></strong>
-            <span class="badge badge-success"><?= icon('check-circle', 'lucide-sm') ?> session_start() OK</span>
+            <span class="badge badge-success"><?= icon('check-circle', 'lucide-xs', 'emerald') ?> session_start() OK</span>
         </div>
 
         <div class="stat-card">
             <span class="stat-label">MySQL / MariaDB (PDO)</span>
             <strong class="stat-value"><?= $dbStatus['ok'] ? 'Connected' : 'Error' ?></strong>
             <span class="badge <?= $dbStatus['ok'] ? 'badge-success' : 'badge-danger' ?>">
-                <?= icon($dbStatus['ok'] ? 'check-circle' : 'alert-circle', 'lucide-sm') ?>
+                <?= icon($dbStatus['ok'] ? 'check-circle' : 'alert-circle', 'lucide-xs', $dbStatus['ok'] ? 'emerald' : 'rose') ?>
                 <?= $dbStatus['ok'] ? e($dbStatus['version']) : 'Check config/db.local.php' ?>
             </span>
         </div>
@@ -49,7 +49,7 @@ require_once __DIR__ . '/includes/header.php';
             <span class="stat-label">Database Tables</span>
             <strong class="stat-value"><?= count($dbStatus['tables']) ?> / 9</strong>
             <span class="badge <?= count($dbStatus['tables']) >= 9 ? 'badge-success' : 'badge-warning' ?>">
-                <?= icon(count($dbStatus['tables']) >= 9 ? 'check-circle' : 'alert-triangle', 'lucide-sm') ?>
+                <?= icon(count($dbStatus['tables']) >= 9 ? 'check-circle' : 'alert-triangle', 'lucide-xs', count($dbStatus['tables']) >= 9 ? 'emerald' : 'amber') ?>
                 <?= count($dbStatus['tables']) >= 9 ? 'Schema Ready' : 'Import schema.sql' ?>
             </span>
         </div>

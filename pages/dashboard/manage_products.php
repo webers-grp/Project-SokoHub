@@ -293,7 +293,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <?= icon($editingProduct ? 'save' : 'plus-circle') ?>
+                <?= icon($editingProduct ? 'save' : 'plus-circle', 'lucide-sm', 'white') ?>
                 <span><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></span>
             </button>
         </form>
@@ -305,7 +305,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
                 <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:220px;">
                 <button type="submit" class="btn btn-outline btn-sm">
-                    <?= icon('search', 'lucide-sm') ?>
+                    <?= icon('search', 'lucide-xs', 'blue') ?>
                     <span>Search</span>
                 </button>
             </form>
@@ -352,7 +352,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td>
                                 <div style="display:flex; gap:0.4rem;">
                                     <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm">
-                                        <?= icon('edit-3', 'lucide-sm') ?>
+                                        <?= icon('edit-3', 'lucide-xs', 'blue') ?>
                                         <span>Edit</span>
                                     </a>
                                     <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="display:inline;">
@@ -360,7 +360,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete product '<?= e($prod['name']) ?>'?">
-                                            <?= icon('trash-2', 'lucide-sm') ?>
+                                            <?= icon('trash-2', 'lucide-xs', 'white') ?>
                                             <span>Delete</span>
                                         </button>
                                     </form>

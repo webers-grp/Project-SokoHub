@@ -16,12 +16,17 @@ function e(mixed $value): string
 /**
  * Render a Lucide vector icon element with data-lucide attribute.
  * Automatically instantiated into crisp inline SVG icons by Lucide.
+ * Supports size modifier classes (.lucide-sm, .lucide-xs, .lucide-lg) and
+ * color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
  */
-function icon(string $name, string $class = '', string $extraAttrs = ''): string
+function icon(string $name, string $class = '', string $color = '', string $extraAttrs = ''): string
 {
     $classes = 'lucide';
     if ($class !== '') {
         $classes .= ' ' . $class;
+    }
+    if ($color !== '') {
+        $classes .= ' ' . (str_starts_with($color, 'icon-') ? $color : 'icon-' . $color);
     }
     $attrs = $extraAttrs !== '' ? ' ' . $extraAttrs : '';
     return '<i data-lucide="' . e($name) . '" class="' . e($classes) . '"' . $attrs . '></i>';
