@@ -1,7 +1,7 @@
 <?php
 /**
- * SokoHub Seller KYC Document Upload
- * Allows registered sellers to submit National ID and Business Permit documents for merchant verification.
+ * SokoHub Seller & Delivery Rider KYC Verification
+ * Allows merchants and riders to submit their National ID, M-Pesa payment line, and credentials.
  * Authored by Kennedy Kalawa.
  */
 
@@ -9,47 +9,70 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
 
 init_session();
-$sellerUser = require_role(['seller']);
-$userId = (int) $sellerUser['id'];
+$user = require_role(['seller', 'delivery']);
+$userId = (int) $user['id'];
+$role = (string) $user['role'];
 
-$sellerProfile = Kyc::getSellerProfile($userId);
-$currentStatus = $sellerProfile['verification_status'] ?? 'pending';
-$rejectionReason = $sellerProfile['rejection_reason'] ?? null;
+$profile = Kyc::getUserKycProfile($userId, $role);
+$currentStatus = $profile['verification_status'] ?? 'pending';
+$rejectionReason = $profile['rejection_reason'] ?? null;
+$savedMpesa = $profile['mpesa_phone'] ?? '';
+$savedNid = $profile['national_id_no'] ?? '';
 
 $errors = [];
+$successMessage = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_doc') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Security token mismatch. Please refresh and try again.';
     } else {
-        $docType = (string) ($_POST['doc_type'] ?? '');
-        $file = $_FILES['document_file'] ?? null;
+        $action = (string) ($_POST['action'] ?? '');
 
-        if (!$file || empty($file['name'])) {
-            $errors[] = 'Please select a document file to upload.';
-        } else {
-            $uploadResult = Kyc::uploadDocument($userId, $docType, $file);
-            if ($uploadResult['ok']) {
-                set_flash('success', 'Document submitted successfully! An administrator will review your credentials.');
-                redirect('pages/dashboard/kyc_upload.php');
+        // 1. Update Profile M-Pesa & National ID
+        if ($action === 'save_credentials' || $action === 'upload_doc') {
+            $nidInput = trim((string) ($_POST['national_id_no'] ?? $savedNid));
+            $mpesaInput = trim((string) ($_POST['mpesa_phone'] ?? $savedMpesa));
+
+            $credResult = Kyc::updateKycDetails($userId, $role, $nidInput, $mpesaInput);
+            if (!$credResult['ok']) {
+                $errors[] = $credResult['error'];
             } else {
-                $errors[] = $uploadResult['error'] ?? 'Upload failed.';
+                $savedNid = $credResult['national_id_no'];
+                $savedMpesa = $credResult['mpesa_phone'];
+            }
+        }
+
+        // 2. Upload Document
+        if ($action === 'upload_doc' && empty($errors)) {
+            $docType = (string) ($_POST['doc_type'] ?? '');
+            $file = $_FILES['document_file'] ?? null;
+
+            if (!$file || empty($file['name'])) {
+                $errors[] = 'Please select a document file to upload.';
+            } else {
+                $uploadResult = Kyc::uploadDocument($userId, $role, $docType, $file);
+                if ($uploadResult['ok']) {
+                    set_flash('success', 'Document "' . htmlspecialchars($uploadResult['file_name']) . '" uploaded successfully! Your verification credentials are in review.');
+                    redirect('pages/dashboard/kyc_upload.php');
+                } else {
+                    $errors[] = $uploadResult['error'];
+                }
             }
         }
     }
 }
 
-$documents = Kyc::getSellerDocuments($userId);
+$documents = Kyc::getUserDocuments($userId);
 
-$pageTitle = 'SokoHub | Seller Verification & KYC';
+$pageTitle = 'SokoHub | Identity & KYC Verification';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <main class="container section-space">
     <div class="page-head">
         <div>
-            <h1>Seller Compliance &amp; Verification (KYC)</h1>
-            <p class="muted">Upload your merchant credentials to verify your account and publish products on SokoHub.</p>
+            <h1><?= $role === 'delivery' ? 'Rider Compliance &amp; Verification' : 'Merchant Compliance &amp; Verification (KYC)' ?></h1>
+            <p class="muted">Upload your official National ID and M-Pesa payment details to verify your account.</p>
         </div>
         <div class="header-actions">
             <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">&larr; Back to Dashboard</a>
@@ -60,26 +83,32 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="card" style="margin-bottom: 2rem; border-left: 6px solid <?= $currentStatus === 'approved' ? '#10b981' : ($currentStatus === 'rejected' ? '#ef4444' : '#f59e0b') ?>;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <span class="muted" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Current Verification Status</span>
+                <span class="muted" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Account Verification Status</span>
                 <div style="margin-top: 0.25rem; display: flex; align-items: center; gap: 0.75rem;">
                     <?php if ($currentStatus === 'approved'): ?>
-                        <span class="badge badge-success" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Verified Merchant &check;</span>
-                        <span style="font-size: 0.95rem; color: #10b981; font-weight: 600;">Your store is active and approved to sell!</span>
+                        <span class="badge badge-success" style="font-size: 1rem; padding: 0.4rem 0.8rem;">
+                            <?= $role === 'delivery' ? 'Verified Delivery Rider &check;' : 'Verified Merchant &check;' ?>
+                        </span>
+                        <span style="font-size: 0.95rem; color: #10b981; font-weight: 600;">
+                            Your account is fully verified! You can publish products and process orders.
+                        </span>
                     <?php elseif ($currentStatus === 'rejected'): ?>
                         <span class="badge badge-danger" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Verification Rejected &cross;</span>
-                        <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Please review the administrator notes below and resubmit.</span>
+                        <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Please review the administrator notes below and resubmit clear documents.</span>
                     <?php elseif ($currentStatus === 'suspended'): ?>
                         <span class="badge badge-danger" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Account Suspended</span>
-                        <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Contact platform administration for compliance review.</span>
+                        <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Contact platform administration for compliance reactivation.</span>
                     <?php else: ?>
                         <span class="badge badge-amber" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Pending Admin Review &bull;</span>
-                        <span style="font-size: 0.95rem; color: #b45309; font-weight: 600;">Your submitted documents are currently in the review queue.</span>
+                        <span style="font-size: 0.95rem; color: #b45309; font-weight: 600;">Your credentials and documents are currently in the administrator review queue.</span>
                     <?php endif; ?>
                 </div>
             </div>
 
             <?php if ($currentStatus === 'approved'): ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Go to Product Catalog &rarr;</a>
+                <a href="<?= e(url($role === 'delivery' ? 'pages/dashboard/deliveries.php' : 'pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                    <?= $role === 'delivery' ? 'Go to Delivery Queue &rarr;' : 'Go to Product Catalog &rarr;' ?>
+                </a>
             <?php endif; ?>
         </div>
 
@@ -90,55 +119,78 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
     </div>
 
+    <?php if (!empty($errors)): ?>
+        <div class="alert alert-error" style="margin-bottom: 2rem;">
+            <div>
+                <?php foreach ($errors as $err): ?>
+                    <div><?= e($err) ?></div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-        <!-- Left: Upload Form -->
+        <!-- Left: Upload & Credentials Form -->
         <div class="card">
-            <h2 style="margin-bottom: 0.5rem;">Submit New Document</h2>
+            <h2 style="margin-bottom: 0.5rem;">Mandatory Identity Details</h2>
             <p class="muted" style="margin-bottom: 1.5rem; font-size: 0.9rem;">
-                Please upload a clear copy of your National ID card, Passport, or County Business Permit (max 5 MB).
+                All <?= $role === 'delivery' ? 'delivery riders' : 'sellers' ?> must provide an official National ID and a registered Safaricom M-Pesa line for payout dispatches.
             </p>
 
-            <?php if (!empty($errors)): ?>
-                <div class="alert alert-error" style="margin-bottom: 1.25rem;">
-                    <div>
-                        <?php foreach ($errors as $err): ?>
-                            <div><?= e($err) ?></div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <form action="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" method="POST" enctype="multipart/form-data">
+            <form action="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" method="POST" enctype="multipart/form-data" id="kycForm">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="upload_doc">
 
                 <div class="form-group" style="margin-bottom: 1.25rem;">
-                    <label for="doc_type" class="form-label" style="font-weight: 600;">Document Type *</label>
+                    <label for="national_id_no" class="form-label" style="font-weight: 600;">Kenyan National ID / Passport Number *</label>
+                    <input type="text" name="national_id_no" id="national_id_no" class="form-control" placeholder="e.g. 12345678" value="<?= e($savedNid) ?>" required>
+                    <small class="muted">Enter your 7 or 8-digit National ID number as printed on your ID card.</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="mpesa_phone" class="form-label" style="font-weight: 600;">Safaricom M-Pesa Phone Number *</label>
+                    <input type="tel" name="mpesa_phone" id="mpesa_phone" class="form-control" placeholder="e.g. 0712345678 or 0112345678" value="<?= e($savedMpesa) ?>" required>
+                    <small class="muted">Payouts will be sent directly to this M-Pesa number. Must be a valid Kenyan mobile line.</small>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
+
+                <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem;">Upload Verification Document</h3>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="doc_type" class="form-label" style="font-weight: 600;">Document Category *</label>
                     <select name="doc_type" id="doc_type" class="form-control" required>
-                        <option value="national_id">National ID / Passport</option>
-                        <option value="business_registration">County Business Permit / Registration</option>
-                        <option value="other">KRA PIN / Tax Certificate / Other</option>
+                        <option value="national_id">National ID Card (Front or Both Sides)</option>
+                        <?php if ($role === 'delivery'): ?>
+                            <option value="rider_license">Driving License / Transport Permit</option>
+                        <?php else: ?>
+                            <option value="business_registration">County Business Permit / Store Registration</option>
+                        <?php endif; ?>
+                        <option value="other">KRA Tax Certificate / Proof of Address</option>
                     </select>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label for="document_file" class="form-label" style="font-weight: 600;">Select Document File *</label>
                     <input type="file" name="document_file" id="document_file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" required>
-                    <small class="muted" style="display: block; margin-top: 0.35rem;">Accepted formats: PDF, PNG, JPG, JPEG (Max: 5 MB)</small>
+                    <small class="muted" style="display: block; margin-top: 0.35rem;">
+                        <strong>Supported Formats:</strong> PDF documents (<code>.pdf</code>) or Images (<code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>). Max: 5 MB.
+                    </small>
+                    <div id="fileTypeWarning" style="display: none; color: #ef4444; font-size: 0.85rem; margin-top: 0.35rem; font-weight: 600;"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Document for Verification</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">Save Details &amp; Upload Document</button>
             </form>
         </div>
 
-        <!-- Right: Requirements Guide -->
-        <div class="card" style="background: #f8fafc;">
-            <h2 style="margin-bottom: 0.75rem;">Verification Requirements</h2>
-            <ul style="padding-left: 1.25rem; line-height: 1.7; color: #475569; font-size: 0.9rem;">
-                <li><strong>Government ID:</strong> A scanned or well-lit smartphone photo of your Kenyan National ID (front &amp; back) or Passport.</li>
-                <li><strong>Legibility:</strong> Ensure your full name, ID number, and photo are completely legible without flash glare or blur.</li>
-                <li><strong>Business Merchants:</strong> If you are selling agricultural produce or packaged goods in Kirinyaga County, upload your single business permit to receive the "Verified Merchant" badge.</li>
-                <li><strong>Fast Approval:</strong> Documents are reviewed by platform administrators within 24 hours.</li>
+        <!-- Right: Requirements Guide & Benefits -->
+        <div class="card" style="background: #f8fafc; height: fit-content;">
+            <h2 style="margin-bottom: 0.75rem;">Verification Guidelines</h2>
+            <ul style="padding-left: 1.25rem; line-height: 1.8; color: #475569; font-size: 0.9rem;">
+                <li><strong>Why KYC is Mandatory:</strong> SokoHub enforces strict trust and safety. Both sellers and delivery riders must have a verified government identity to prevent scams and ensure accountability.</li>
+                <li><strong>M-Pesa Verification:</strong> Double-check your phone number. All customer order earnings and delivery commissions are disbursed to your registered M-Pesa line.</li>
+                <li><strong>Clear Image Quality:</strong> Ensure your document photo has no blur, glare, or cut-off corners. Your full name, photo, and ID number must match your account.</li>
+                <li><strong>Accepted Formats Only:</strong> Upload only <code>.pdf</code>, <code>.png</code>, or <code>.jpg</code> files. Word documents (<code>.docx</code>) and text files are not accepted.</li>
             </ul>
         </div>
     </div>
@@ -147,12 +199,12 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="card" style="margin-top: 2rem;">
         <div class="section-heading" style="margin-bottom: 1rem;">
             <h2>Submitted Documents History</h2>
-            <span class="muted"><?= count($documents) ?> document(s) on file</span>
+            <span class="muted"><?= count($documents) ?> document(s) uploaded</span>
         </div>
 
         <?php if (empty($documents)): ?>
-            <div style="text-align: center; padding: 2rem; color: #64748b;">
-                <p>No documents uploaded yet. Use the form above to submit your credentials.</p>
+            <div style="text-align: center; padding: 2.5rem; color: #64748b;">
+                <p>No documents uploaded yet. Submit your National ID and business credentials above.</p>
             </div>
         <?php else: ?>
             <div class="table-responsive">
@@ -160,27 +212,39 @@ require_once __DIR__ . '/../../includes/header.php';
                     <thead>
                         <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
                             <th style="padding: 0.75rem;">Document Type</th>
-                            <th style="padding: 0.75rem;">File Preview</th>
+                            <th style="padding: 0.75rem;">Original File Name</th>
+                            <th style="padding: 0.75rem;">File Size</th>
+                            <th style="padding: 0.75rem;">Preview</th>
                             <th style="padding: 0.75rem;">Uploaded Date</th>
                             <th style="padding: 0.75rem;">Review Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($documents as $doc): ?>
+                        <?php foreach ($documents as $doc): 
+                            $sizeKB = $doc['file_size'] ? round($doc['file_size'] / 1024, 1) . ' KB' : 'N/A';
+                            $isPdf = strtolower(pathinfo($doc['file_path'], PATHINFO_EXTENSION)) === 'pdf';
+                        ?>
                             <tr style="border-bottom: 1px solid #edf2f7;">
                                 <td style="padding: 0.75rem; font-weight: 600;">
                                     <?php
                                     $typeLabels = [
-                                        'national_id' => 'National ID / Passport',
-                                        'business_registration' => 'Business Permit / Reg',
+                                        'national_id' => 'National ID Card',
+                                        'business_registration' => 'Business Permit / Registration',
+                                        'rider_license' => 'Rider Driving License',
                                         'other' => 'Tax / Other Credential',
                                     ];
                                     echo e($typeLabels[$doc['doc_type']] ?? $doc['doc_type']);
                                     ?>
                                 </td>
+                                <td style="padding: 0.75rem; font-size: 0.85rem;" class="muted">
+                                    <?= e($doc['file_name'] ?: basename($doc['file_path'])) ?>
+                                </td>
+                                <td style="padding: 0.75rem; font-size: 0.85rem;" class="muted">
+                                    <?= e($sizeKB) ?>
+                                </td>
                                 <td style="padding: 0.75rem;">
-                                    <a href="<?= e(url($doc['file_path'])) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.8rem;">
-                                        &boxbox; View File
+                                    <a href="<?= e(url($doc['file_path'])) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                        &boxbox; View <?= $isPdf ? 'PDF' : 'Image' ?>
                                     </a>
                                 </td>
                                 <td style="padding: 0.75rem; font-size: 0.85rem;" class="muted">
@@ -203,5 +267,31 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
     </div>
 </main>
+
+<script>
+// Client-side file extension check to immediately notify if wrong format is picked
+document.getElementById('document_file').addEventListener('change', function(e) {
+    var file = this.files[0];
+    var warning = document.getElementById('fileTypeWarning');
+    var submitBtn = document.getElementById('submitBtn');
+    if (!file) return;
+
+    var validExts = ['pdf', 'png', 'jpg', 'jpeg'];
+    var ext = file.name.split('.').pop().toLowerCase();
+
+    if (validExts.indexOf(ext) === -1) {
+        warning.innerHTML = '⚠️ Unsupported file format (.' + ext + '). SokoHub only accepts PDF documents (.pdf) or image files (.png, .jpg, .jpeg). Please upload a supported format.';
+        warning.style.display = 'block';
+        submitBtn.disabled = true;
+    } else if (file.size > 5 * 1024 * 1024) {
+        warning.innerHTML = '⚠️ File size (' + (file.size / (1024*1024)).toFixed(1) + ' MB) exceeds the 5 MB limit.';
+        warning.style.display = 'block';
+        submitBtn.disabled = true;
+    } else {
+        warning.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

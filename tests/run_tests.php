@@ -150,12 +150,44 @@ $auditLogs = Audit::getLogs(['action' => 'test.audit_event'], 5);
 assert_true(!empty($auditLogs) && (int) $auditLogs[0]['entity_id'] === 9999, 'TC-08b: Audit::getLogs() retrieves recorded event and details');
 $pdo->prepare("DELETE FROM audit_logs WHERE action = 'test.audit_event'")->execute();
 
-// 9. Seller KYC & Verification (Kennedy's Feature 2)
+// 9. Seller & Delivery KYC Verification (Kennedy's Feature 2)
 Kyc::ensureSchema();
 $kycSellerId = 2; // Seed seller user ID
 $approveOk = Kyc::updateSellerStatus($kycSellerId, 'approved', 1);
 assert_true($approveOk === true, 'TC-09a: Kyc::updateSellerStatus() approves merchant and logs audit');
 assert_true(Kyc::isSellerApproved($kycSellerId) === true, 'TC-09b: Kyc::isSellerApproved() validates verified merchant');
+
+// 9c. M-Pesa phone normalization
+$p1 = Kyc::cleanMpesaPhone('0712345678');
+$p2 = Kyc::cleanMpesaPhone('+254712345678');
+$p3 = Kyc::cleanMpesaPhone('0112345678');
+assert_true($p1 === '254712345678' && $p2 === '254712345678' && $p3 === '254112345678', 'TC-09c: Kyc::cleanMpesaPhone() normalizes Safaricom lines');
+assert_true(Kyc::cleanMpesaPhone('12345') === null && Kyc::cleanMpesaPhone('abcdef') === null, 'TC-09d: Kyc::cleanMpesaPhone() rejects invalid numbers');
+
+// 9e. National ID & M-Pesa update
+$credUpdate = Kyc::updateKycDetails($kycSellerId, 'seller', '12345678', '0712345678');
+assert_true($credUpdate['ok'] === true, 'TC-09e: Kyc::updateKycDetails() saves National ID and M-Pesa line');
+
+// 9f. Delivery rider verification
+$kycRiderId = $riderId; // Seed delivery rider user ID (Brian Kiprop)
+$riderApproveOk = Kyc::updateStatus($kycRiderId, 'delivery', 'approved', 1);
+assert_true($riderApproveOk === true, 'TC-09f: Kyc::updateStatus() approves delivery rider and records audit');
+assert_true(Kyc::isUserApproved($kycRiderId, 'delivery') === true, 'TC-09g: Kyc::isUserApproved() validates verified rider');
+
+// 9h. Admin review queue
+$adminQueue = Kyc::getAdminQueue();
+assert_true(!empty($adminQueue), 'TC-09h: Kyc::getAdminQueue() retrieves pending and approved accounts with KYC metadata');
+
+// 9i. Document upload format validation
+$fakeFileBadExt = [
+    'name'     => 'malicious_script.exe',
+    'type'     => 'application/x-msdownload',
+    'tmp_name' => '/tmp/fake_upload.exe',
+    'error'    => UPLOAD_ERR_OK,
+    'size'     => 1024,
+];
+$uploadBad = Kyc::uploadDocument($kycSellerId, 'seller', 'national_id', $fakeFileBadExt);
+assert_true($uploadBad['ok'] === false && str_contains($uploadBad['error'], 'Unsupported file type'), 'TC-09i: Kyc::uploadDocument() rejects unsupported file types with helpful error');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

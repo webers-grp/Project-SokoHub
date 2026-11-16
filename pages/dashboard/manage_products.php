@@ -12,6 +12,7 @@ $pdo = get_db_connection();
 
 $isAdmin = ($user['role'] === 'admin');
 $userId = (int) $user['id'];
+$isVerifiedSeller = $isAdmin || Kyc::isSellerApproved($userId);
 
 $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
 $presetImages = get_preset_product_images();
@@ -83,6 +84,8 @@ $form = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Security token mismatch. Please try again.';
+    } elseif (!$isVerifiedSeller) {
+        $errors[] = 'KYC Compliance Required: You must submit your Kenyan National ID, Safaricom M-Pesa line, and verification documents and obtain admin approval before publishing products. Please visit the KYC Verification page to complete your submission.';
     } else {
         $form['name'] = trim((string) ($_POST['name'] ?? ''));
         $form['category_id'] = (int) ($_POST['category_id'] ?? 0);
@@ -216,9 +219,9 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <strong style="color: #92400e; font-size: 1rem;">⚠️ Merchant Verification Required</strong>
+                        <strong style="color: #92400e; font-size: 1rem;">⚠️ Merchant KYC Verification Required</strong>
                         <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
-                            Your store is currently <strong><?= e(ucfirst($sellerKycStatus)) ?></strong>. Upload your National ID or Business Permit to activate your store and display your items to buyers.
+                            Your merchant account is currently <strong><?= e(ucfirst($sellerKycStatus)) ?></strong>. You must submit your Kenyan National ID and Safaricom M-Pesa line and receive admin approval before publishing active listings to the marketplace.
                         </p>
                     </div>
                     <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">Complete KYC Verification &rarr;</a>
@@ -325,7 +328,18 @@ require_once __DIR__ . '/../../includes/header.php';
                 <label for="is_featured" style="margin: 0;">Feature this product on the SokoHub Home Page</label>
             </div>
 
-            <button type="submit" class="btn btn-primary"><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></button>
+            <?php if ($isVerifiedSeller): ?>
+                <button type="submit" class="btn btn-primary"><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></button>
+            <?php else: ?>
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;" title="Admin verification required">
+                        <?= $editingProduct ? 'Save Changes (KYC Required)' : 'Create Product (KYC Required)' ?>
+                    </button>
+                    <span style="color: #ef4444; font-size: 0.85rem; font-weight: 600;">
+                        ⚠️ Verification required to publish listings. <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" style="text-decoration: underline; color: #b45309;">Complete KYC &rarr;</a>
+                    </span>
+                </div>
+            <?php endif; ?>
         </form>
     </div>
 

@@ -3,6 +3,7 @@
  * SokoHub Role-Aware User Dashboard
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/kyc.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -120,6 +121,19 @@ if ($role === 'buyer') {
 }
 
 $roleLabels = get_role_labels();
+
+$needsKycBanner = false;
+$kycBannerRole = '';
+$kycCurrentStatus = '';
+if ($role === 'seller' || $role === 'delivery') {
+    $kycProf = Kyc::getUserKycProfile($userId, $role);
+    $kycCurrentStatus = $kycProf['verification_status'] ?? 'pending';
+    if ($kycCurrentStatus !== 'approved') {
+        $needsKycBanner = true;
+        $kycBannerRole = ($role === 'seller') ? 'Merchant / Seller' : 'Delivery Rider';
+    }
+}
+
 $pageTitle = 'SokoHub | Dashboard';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -142,15 +156,30 @@ require_once __DIR__ . '/../../includes/header.php';
                 <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">Verification &amp; KYC</a>
             <?php elseif ($role === 'delivery'): ?>
                 <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">Delivery Queue</a>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">Rider KYC &amp; Verification</a>
                 <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">Delivery Report</a>
             <?php else: ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Catalog</a>
-                <a href="<?= e(url('pages/dashboard/seller_verification.php')) ?>" class="btn btn-amber">Seller KYC Queue</a>
+                <a href="<?= e(url('pages/dashboard/seller_verification.php')) ?>" class="btn btn-amber">KYC Review Queue</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-outline">System Reports</a>
                 <a href="<?= e(url('pages/dashboard/audit_logs.php')) ?>" class="btn btn-outline" style="border-color: #6366f1; color: #6366f1;">Audit Logs</a>
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($needsKycBanner): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #92400e; font-size: 1rem;">⚠️ <?= e($kycBannerRole) ?> Compliance Verification Required</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
+                        Your account status is currently <strong><?= e(ucfirst($kycCurrentStatus)) ?></strong>. Submit your Kenyan National ID and Safaricom M-Pesa line to unlock full marketplace permissions (publishing products or claiming delivery jobs).
+                    </p>
+                </div>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">Complete KYC Verification &rarr;</a>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="stats-grid">
         <?php foreach ($kpis as $kpi): ?>

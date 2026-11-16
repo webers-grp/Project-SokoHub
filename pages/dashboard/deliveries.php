@@ -3,12 +3,14 @@
  * SokoHub Delivery Dispatch & Tracking Module (CRUD)
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/kyc.php';
 init_session();
 $user = require_role(['delivery', 'buyer', 'admin']);
 $pdo = get_db_connection();
 
 $role = $user['role'];
 $userId = (int) $user['id'];
+$isVerifiedRider = ($role === 'delivery') ? Kyc::isUserApproved($userId, 'delivery') : true;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['delivery', 'admin'], true)) {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -20,6 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['delivery', 'admin
     $action = (string) ($_POST['action'] ?? '');
 
     if ($action === 'claim') {
+        if ($role === 'delivery' && !$isVerifiedRider) {
+            set_flash('error', 'KYC Compliance Required: You must be verified with an approved National ID and M-Pesa line before you can claim delivery orders.');
+            redirect('pages/dashboard/deliveries.php');
+        }
+
         $claim = $pdo->prepare(
             "UPDATE deliveries
              SET delivery_person_id = :rider, delivery_status = 'assigned',
@@ -125,6 +132,23 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
     </div>
 
+    <?php if ($role === 'delivery' && !$isVerifiedRider): 
+        $riderKyc = Kyc::getUserKycProfile($userId, 'delivery');
+        $riderStatus = $riderKyc['verification_status'] ?? 'pending';
+    ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #92400e; font-size: 1rem;">⚠️ Delivery Rider KYC Verification Required</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
+                        Your rider account is currently <strong><?= e(ucfirst($riderStatus)) ?></strong>. You must submit your Kenyan National ID and Safaricom M-Pesa line before you can claim customer delivery tasks.
+                    </p>
+                </div>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">Complete Rider Verification &rarr;</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="card">
         <?php if (empty($deliveries)): ?>
             <p class="muted">No delivery tasks found.</p>
@@ -164,12 +188,18 @@ require_once __DIR__ . '/../../includes/header.php';
                             <?php if (in_array($role, ['delivery', 'admin'], true)): ?>
                                 <td>
                                     <?php if ($del['delivery_person_id'] === null && $del['delivery_status'] === 'pending' && $role === 'delivery'): ?>
-                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="claim">
-                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
-                                            <button type="submit" class="btn btn-primary btn-sm">Claim Task</button>
-                                        </form>
+                                        <?php if ($isVerifiedRider): ?>
+                                            <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="action" value="claim">
+                                                <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
+                                                <button type="submit" class="btn btn-primary btn-sm">Claim Task</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline btn-sm" style="color: #b45309; border-color: #f59e0b; font-size: 0.75rem;" title="Upload National ID and M-Pesa to claim orders">
+                                                KYC Required &rarr;
+                                            </a>
+                                        <?php endif; ?>
                                     <?php elseif ($role === 'admin' || (int) $del['delivery_person_id'] === $userId): ?>
                                         <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display:flex; flex-direction:column; gap:0.35rem; min-width:190px;">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">

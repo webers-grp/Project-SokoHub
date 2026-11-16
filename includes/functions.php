@@ -197,10 +197,19 @@ function get_nav_items(?array $user): array
             $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php']];
         }
 
+        if (in_array($user['role'], ['seller', 'delivery'], true)) {
+            $items[] = ['label' => 'KYC Verification', 'href' => 'pages/dashboard/kyc_upload.php', 'match' => ['kyc_upload.php']];
+        }
+
         $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php']];
 
         if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
             $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php']];
+        }
+
+        if ($user['role'] === 'admin') {
+            $items[] = ['label' => 'KYC Queue', 'href' => 'pages/dashboard/seller_verification.php', 'match' => ['seller_verification.php']];
+            $items[] = ['label' => 'Audit Logs', 'href' => 'pages/dashboard/audit_logs.php', 'match' => ['audit_logs.php']];
         }
 
         if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
