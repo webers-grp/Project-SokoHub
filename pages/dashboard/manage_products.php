@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/audit.php';
 require_once __DIR__ . '/../../includes/kyc.php';
+require_once __DIR__ . '/../../includes/inventory.php';
 init_session();
 $user = require_role(['seller', 'admin']);
 $pdo = get_db_connection();
@@ -17,6 +18,34 @@ $isVerifiedSeller = $isAdmin || Kyc::isSellerApproved($userId);
 $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
 $presetImages = get_preset_product_images();
 $errors = [];
+
+// Handle Quick Restock Action (POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'quick_restock') {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        set_flash('error', 'Security token mismatch. Please try again.');
+        redirect('pages/dashboard/manage_products.php');
+    }
+
+    $prodId = (int) ($_POST['product_id'] ?? 0);
+    $addUnits = max(1, (int) ($_POST['add_stock'] ?? 0));
+
+    $check = $pdo->prepare('SELECT id, seller_id, stock_qty, name FROM products WHERE id = :id LIMIT 1');
+    $check->execute([':id' => $prodId]);
+    $target = $check->fetch();
+
+    if ($target && ($isAdmin || (int) $target['seller_id'] === $userId)) {
+        $newTotal = (int) $target['stock_qty'] + $addUnits;
+        $res = Inventory::replenishStock($prodId, $newTotal, $userId, $user['role']);
+        if ($res['ok']) {
+            set_flash('success', 'Replenished "' . $target['name'] . '" by +' . $addUnits . ' units! Current stock: ' . $newTotal . '.');
+        } else {
+            set_flash('error', $res['error']);
+        }
+    } else {
+        set_flash('error', 'Product not found or you do not have permission to restock it.');
+    }
+    redirect('pages/dashboard/manage_products.php');
+}
 
 // Handle Delete Action (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
@@ -70,15 +99,16 @@ if ($editId > 0) {
 }
 
 $form = [
-    'name'           => $editingProduct['name'] ?? '',
-    'category_id'    => $editingProduct['category_id'] ?? ($categories[0]['id'] ?? 1),
-    'description'    => $editingProduct['description'] ?? '',
-    'price'          => $editingProduct['price'] ?? '',
-    'original_price' => $editingProduct['original_price'] ?? '',
-    'stock_qty'      => $editingProduct['stock_qty'] ?? '10',
-    'condition_type' => $editingProduct['condition_type'] ?? 'New',
-    'image_path'     => $editingProduct['image_path'] ?? 'assets/img/cart-icon.jpg',
-    'is_featured'    => $editingProduct['is_featured'] ?? 0,
+    'name'                => $editingProduct['name'] ?? '',
+    'category_id'         => $editingProduct['category_id'] ?? ($categories[0]['id'] ?? 1),
+    'description'         => $editingProduct['description'] ?? '',
+    'price'               => $editingProduct['price'] ?? '',
+    'original_price'      => $editingProduct['original_price'] ?? '',
+    'stock_qty'           => $editingProduct['stock_qty'] ?? '10',
+    'low_stock_threshold' => $editingProduct['low_stock_threshold'] ?? '5',
+    'condition_type'      => $editingProduct['condition_type'] ?? 'New',
+    'image_path'          => $editingProduct['image_path'] ?? 'assets/img/cart-icon.jpg',
+    'is_featured'         => $editingProduct['is_featured'] ?? 0,
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save') {
@@ -93,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
         $form['price'] = trim((string) ($_POST['price'] ?? ''));
         $form['original_price'] = trim((string) ($_POST['original_price'] ?? ''));
         $form['stock_qty'] = trim((string) ($_POST['stock_qty'] ?? '0'));
+        $form['low_stock_threshold'] = max(1, (int) ($_POST['low_stock_threshold'] ?? 5));
         $form['condition_type'] = (string) ($_POST['condition_type'] ?? 'New');
         $form['is_featured'] = !empty($_POST['is_featured']) ? 1 : 0;
 
@@ -121,52 +152,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     'UPDATE products
                      SET category_id = :cat, name = :name, description = :descr,
                          price = :price, original_price = :orig, stock_qty = :stock,
+                         low_stock_threshold = :threshold,
                          condition_type = :cond, image_path = :img, is_featured = :feat
                      WHERE id = :id'
                 );
                 $upd->execute([
-                    ':cat'   => $form['category_id'],
-                    ':name'  => $form['name'],
-                    ':descr' => $form['description'],
-                    ':price' => (float) $form['price'],
-                    ':orig'  => $origVal,
-                    ':stock' => (int) $form['stock_qty'],
-                    ':cond'  => $form['condition_type'],
-                    ':img'   => $form['image_path'],
-                    ':feat'  => $form['is_featured'],
-                    ':id'    => (int) $editingProduct['id'],
+                    ':cat'       => $form['category_id'],
+                    ':name'      => $form['name'],
+                    ':descr'     => $form['description'],
+                    ':price'     => (float) $form['price'],
+                    ':orig'      => $origVal,
+                    ':stock'     => (int) $form['stock_qty'],
+                    ':threshold' => (int) $form['low_stock_threshold'],
+                    ':cond'      => $form['condition_type'],
+                    ':img'       => $form['image_path'],
+                    ':feat'      => $form['is_featured'],
+                    ':id'        => (int) $editingProduct['id'],
                 ]);
                 Audit::record('product.updated', 'product', (int) $editingProduct['id'], [
-                    'name'  => $form['name'],
-                    'price' => (float) $form['price'],
-                    'stock' => (int) $form['stock_qty'],
+                    'name'      => $form['name'],
+                    'price'     => (float) $form['price'],
+                    'stock'     => (int) $form['stock_qty'],
+                    'threshold' => (int) $form['low_stock_threshold'],
                 ]);
+                Inventory::checkProductLowStock((int) $editingProduct['id'], 'Product manual update');
                 set_flash('success', 'Product "' . $form['name'] . '" updated successfully.');
             } else {
                 $ins = $pdo->prepare(
                     "INSERT INTO products
-                     (seller_id, category_id, name, description, price, original_price, stock_qty, condition_type, image_path, is_featured, status)
-                     VALUES (:seller, :cat, :name, :descr, :price, :orig, :stock, :cond, :img, :feat, 'active')"
+                     (seller_id, category_id, name, description, price, original_price, stock_qty, low_stock_threshold, condition_type, image_path, is_featured, status)
+                     VALUES (:seller, :cat, :name, :descr, :price, :orig, :stock, :threshold, :cond, :img, :feat, 'active')"
                 );
                 $ins->execute([
-                    ':seller' => $userId,
-                    ':cat'    => $form['category_id'],
-                    ':name'   => $form['name'],
-                    ':descr'  => $form['description'],
-                    ':price'  => (float) $form['price'],
-                    ':orig'   => $origVal,
-                    ':stock'  => (int) $form['stock_qty'],
-                    ':cond'   => $form['condition_type'],
-                    ':img'    => $form['image_path'],
-                    ':feat'   => $form['is_featured'],
+                    ':seller'    => $userId,
+                    ':cat'       => $form['category_id'],
+                    ':name'      => $form['name'],
+                    ':descr'     => $form['description'],
+                    ':price'     => (float) $form['price'],
+                    ':orig'      => $origVal,
+                    ':stock'     => (int) $form['stock_qty'],
+                    ':threshold' => (int) $form['low_stock_threshold'],
+                    ':cond'      => $form['condition_type'],
+                    ':img'       => $form['image_path'],
+                    ':feat'      => $form['is_featured'],
                 ]);
                 $newId = (int) $pdo->lastInsertId();
                 Audit::record('product.created', 'product', $newId, [
-                    'name'  => $form['name'],
-                    'price' => (float) $form['price'],
-                    'stock' => (int) $form['stock_qty'],
+                    'name'      => $form['name'],
+                    'price'     => (float) $form['price'],
+                    'stock'     => (int) $form['stock_qty'],
+                    'threshold' => (int) $form['low_stock_threshold'],
                 ]);
-                set_flash('success', 'New product "' . $form['name'] . '" created and published!');
+                Inventory::checkProductLowStock($newId, 'Initial listing creation');
+                set_flash('success', 'Product "' . $form['name'] . '" published successfully.');
             }
 
             redirect('pages/dashboard/manage_products.php');
@@ -176,6 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
 
 // Read products list for table
 $search = trim((string) ($_GET['search'] ?? ''));
+$filter = trim((string) ($_GET['filter'] ?? ''));
+
 $sql = "SELECT p.*, c.name AS category_name, u.full_name AS seller_name
         FROM products p
         INNER JOIN categories c ON c.id = p.category_id
@@ -187,15 +227,20 @@ if (!$isAdmin) {
     $sql .= ' AND p.seller_id = :seller_id';
     $params[':seller_id'] = $userId;
 }
+if ($filter === 'low_stock') {
+    $sql .= ' AND p.stock_qty <= p.low_stock_threshold';
+}
 if ($search !== '') {
     $sql .= ' AND p.name LIKE :q';
     $params[':q'] = '%' . $search . '%';
 }
-$sql .= ' ORDER BY p.created_at DESC';
+$sql .= ' ORDER BY (p.stock_qty <= p.low_stock_threshold) DESC, (p.stock_qty <= 0) DESC, p.created_at DESC';
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $myProducts = $stmt->fetchAll();
+
+$lowStockCount = Inventory::getLowStockCount($isAdmin ? null : $userId);
 
 $pageTitle = 'SokoHub | Manage Products (CRUD)';
 require_once __DIR__ . '/../../includes/header.php';
@@ -228,6 +273,24 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
         <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($lowStockCount > 0 && empty($editingProduct)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1rem;">⚠️ Low Stock Inventory Warning: <?= (int) $lowStockCount ?> listing(s) at or below critical threshold!</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: #b91c1c; font-size: 0.9rem;">
+                        Products reaching their alert threshold risk running out of stock for marketplace shoppers.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="<?= e(url('pages/dashboard/manage_products.php' . ($filter === 'low_stock' ? '' : '?filter=low_stock'))) ?>" class="btn <?= $filter === 'low_stock' ? 'btn-primary' : 'btn-outline' ?> btn-sm" style="<?= $filter === 'low_stock' ? '' : 'color: #991b1b; border-color: #ef4444;' ?>">
+                        <?= $filter === 'low_stock' ? 'Show All Products' : 'Filter Low Stock (' . $lowStockCount . ')' ?>
+                    </a>
+                </div>
+            </div>
+        </div>
     <?php endif; ?>
 
     <div class="card">
@@ -284,17 +347,23 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <div class="form-grid-2">
                 <div class="form-group">
-                    <label for="stock_qty">Stock Quantity</label>
+                    <label for="stock_qty">Current Available Stock Units *</label>
                     <input type="number" min="0" id="stock_qty" name="stock_qty" class="form-control" value="<?= e($form['stock_qty']) ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="condition_type">Condition</label>
-                    <select id="condition_type" name="condition_type" class="form-control" required>
-                        <option value="New" <?= $form['condition_type'] === 'New' ? 'selected' : '' ?>>New</option>
-                        <option value="Second Hand" <?= $form['condition_type'] === 'Second Hand' ? 'selected' : '' ?>>Second Hand</option>
-                    </select>
+                    <label for="low_stock_threshold">Low-Stock Alert Threshold *</label>
+                    <input type="number" min="1" id="low_stock_threshold" name="low_stock_threshold" class="form-control" value="<?= e($form['low_stock_threshold']) ?>" required>
+                    <small class="muted" style="font-size:0.75rem;">Triggers automated warning when stock is &le; this number (Default: 5).</small>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="condition_type">Condition</label>
+                <select id="condition_type" name="condition_type" class="form-control" required>
+                    <option value="New" <?= $form['condition_type'] === 'New' ? 'selected' : '' ?>>New</option>
+                    <option value="Second Hand" <?= $form['condition_type'] === 'Second Hand' ? 'selected' : '' ?>>Second Hand</option>
+                </select>
             </div>
 
             <div class="form-grid-2">
@@ -344,16 +413,31 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 
     <div class="card">
-        <div class="section-heading">
-            <h2>Current Listings (<?= count($myProducts) ?>)</h2>
-            <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
-                <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:220px;">
-                <button type="submit" class="btn btn-outline btn-sm">Search</button>
-            </form>
+        <div class="section-heading" style="flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h2>Current Listings (<?= count($myProducts) ?>)</h2>
+                <?php if ($filter === 'low_stock'): ?>
+                    <span class="badge badge-danger">Filtered: Critical &amp; Low Stock Only</span>
+                <?php endif; ?>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <?php if ($lowStockCount > 0): ?>
+                    <a href="<?= e(url('pages/dashboard/manage_products.php' . ($filter === 'low_stock' ? '' : '?filter=low_stock'))) ?>" class="btn <?= $filter === 'low_stock' ? 'btn-primary' : 'btn-outline' ?> btn-sm" style="<?= $filter === 'low_stock' ? '' : 'color: #b91c1c; border-color: #ef4444;' ?>">
+                        <?= $filter === 'low_stock' ? 'Show All Products' : '⚠️ Low Stock Alerts (' . $lowStockCount . ')' ?>
+                    </a>
+                <?php endif; ?>
+                <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
+                    <?php if ($filter !== ''): ?>
+                        <input type="hidden" name="filter" value="<?= e($filter) ?>">
+                    <?php endif; ?>
+                    <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:200px;">
+                    <button type="submit" class="btn btn-outline btn-sm">Search</button>
+                </form>
+            </div>
         </div>
 
         <?php if (empty($myProducts)): ?>
-            <p class="muted">No active products found. Use the form above to add your first listing!</p>
+            <p class="muted">No active products found matching the criteria. Use the form above to add your first listing!</p>
         <?php else: ?>
             <div class="table-wrap">
                 <table class="data-table">
@@ -364,13 +448,16 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Category</th>
                             <?php if ($isAdmin): ?><th>Seller</th><?php endif; ?>
                             <th>Price</th>
-                            <th>Stock</th>
+                            <th>Stock &amp; Alert Level</th>
                             <th>Condition</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($myProducts as $prod): ?>
+                    <?php foreach ($myProducts as $prod): 
+                        $sq = (int) $prod['stock_qty'];
+                        $th = (int) ($prod['low_stock_threshold'] ?? 5);
+                    ?>
                         <tr>
                             <td><img src="<?= e(url($prod['image_path'])) ?>" alt="" class="table-thumb"></td>
                             <td>
@@ -383,21 +470,47 @@ require_once __DIR__ . '/../../includes/header.php';
                             <?php if ($isAdmin): ?><td><?= e($prod['seller_name']) ?></td><?php endif; ?>
                             <td><?= format_ksh($prod['price']) ?></td>
                             <td>
-                                <?php if ((int) $prod['stock_qty'] <= 5): ?>
-                                    <span class="badge badge-danger"><?= (int) $prod['stock_qty'] ?> Low</span>
+                                <?php if ($sq <= 0): ?>
+                                    <span class="badge badge-danger" style="font-size:0.75rem;">Out of Stock (0)</span>
+                                    <div class="small muted" style="font-size:0.7rem; margin-top:2px;">Threshold: <?= $th ?></div>
+                                <?php elseif ($sq <= $th): ?>
+                                    <span class="badge badge-amber" style="background:#fef3c7; color:#92400e; border:1px solid #f59e0b; font-size:0.75rem;">
+                                        ⚠️ Low: <?= $sq ?> left
+                                    </span>
+                                    <div class="small muted" style="font-size:0.7rem; margin-top:2px;">Alert &le; <?= $th ?></div>
                                 <?php else: ?>
-                                    <span class="badge badge-success"><?= (int) $prod['stock_qty'] ?></span>
+                                    <span class="badge badge-success" style="font-size:0.75rem;"><?= $sq ?> units</span>
+                                    <div class="small muted" style="font-size:0.7rem; margin-top:2px;">Alert &le; <?= $th ?></div>
                                 <?php endif; ?>
                             </td>
                             <td><?= e($prod['condition_type']) ?></td>
                             <td>
-                                <div style="display:flex; gap:0.4rem;">
-                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm">Edit</a>
-                                    <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="display:inline;">
+                                <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
+                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.8rem;">Edit</a>
+
+                                    <?php if ($sq <= $th): ?>
+                                        <details style="position: relative; display: inline-block;">
+                                            <summary class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.45rem; color: #16a34a; border-color: #16a34a; cursor: pointer;">
+                                                + Restock
+                                            </summary>
+                                            <div style="position: absolute; right: 0; z-index: 50; background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.6rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15); min-width: 150px; text-align: left;">
+                                                <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="margin: 0;">
+                                                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                    <input type="hidden" name="action" value="quick_restock">
+                                                    <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
+                                                    <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Add Units:</label>
+                                                    <input type="number" name="add_stock" value="10" min="1" max="1000" class="form-control" style="font-size: 0.8rem; padding: 0.2rem 0.4rem; margin-bottom: 0.4rem;" required>
+                                                    <button type="submit" class="btn btn-primary btn-sm" style="font-size: 0.75rem; width: 100%; padding: 0.25rem;">Confirm Restock</button>
+                                                </form>
+                                            </div>
+                                        </details>
+                                    <?php endif; ?>
+
+                                    <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="display:inline; margin:0;">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete product '<?= e($prod['name']) ?>'?">Delete</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" style="padding:0.25rem 0.45rem; font-size:0.8rem;" data-confirm="Delete product '<?= e($prod['name']) ?>'?">Delete</button>
                                     </form>
                                 </div>
                             </td>

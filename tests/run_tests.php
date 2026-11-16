@@ -10,6 +10,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../includes/kyc.php';
+require_once __DIR__ . '/../includes/inventory.php';
 
 $passed = 0;
 $failed = 0;
@@ -188,6 +189,63 @@ $fakeFileBadExt = [
 ];
 $uploadBad = Kyc::uploadDocument($kycSellerId, 'seller', 'national_id', $fakeFileBadExt);
 assert_true($uploadBad['ok'] === false && str_contains($uploadBad['error'], 'Unsupported file type'), 'TC-09i: Kyc::uploadDocument() rejects unsupported file types with helpful error');
+
+// 10. Low-Stock Automated Alerts Engine (Kennedy's Feature 3)
+Inventory::ensureSchema();
+
+// 10a. Schema verification
+$cols = $pdo->query("SHOW COLUMNS FROM products LIKE 'low_stock_threshold'")->fetch();
+assert_true(!empty($cols), 'TC-10a: Inventory::ensureSchema() creates low_stock_threshold on products');
+
+// 10b. Low stock detection
+$lowStockItems = Inventory::getLowStockProducts();
+assert_true(is_array($lowStockItems) && count($lowStockItems) >= 2, 'TC-10b: Inventory::getLowStockProducts() finds seeded items at/below threshold');
+
+// 10c. Low stock count
+$lowCount = Inventory::getLowStockCount();
+assert_true($lowCount === count($lowStockItems), 'TC-10c: Inventory::getLowStockCount() matches item list count');
+
+// 10d. Automated check & alert trigger
+// Create a temporary product with stock = 3, threshold = 5
+$pdo->prepare("
+    INSERT INTO products (id, seller_id, category_id, name, description, price, stock_qty, low_stock_threshold, condition_type, image_path, is_featured, status)
+    VALUES (9999, 2, 1, 'Temporary Low Stock Test SKU', 'Testing automated threshold breach detection', 250.00, 3, 5, 'New', 'assets/img/cart-icon.jpg', 0, 'active')
+")->execute();
+
+$alertResult = Inventory::checkProductLowStock(9999, 'Test unit trigger');
+assert_true($alertResult !== null && $alertResult['stock_qty'] === 3 && $alertResult['threshold'] === 5, 'TC-10d: Inventory::checkProductLowStock() detects breach and flags alert');
+
+// Verify alerted_at was recorded
+$checkAlerted = (string) $pdo->query("SELECT low_stock_alerted_at FROM products WHERE id = 9999")->fetchColumn();
+assert_true(!empty($checkAlerted), 'TC-10e: low_stock_alerted_at timestamp recorded on alert');
+
+// 10f. Stock replenishment clears alert
+$replenishRes = Inventory::replenishStock(9999, 20, 2, 'seller');
+assert_true($replenishRes['ok'] === true && $replenishRes['alert_cleared'] === true && $replenishRes['new_qty'] === 20, 'TC-10f: Inventory::replenishStock() replenishes units and clears alert timestamp');
+$checkCleared = $pdo->query("SELECT low_stock_alerted_at FROM products WHERE id = 9999")->fetchColumn();
+assert_true(empty($checkCleared), 'TC-10g: low_stock_alerted_at timestamp reset to NULL after restocking');
+
+// 10h. Update threshold
+$threshRes = Inventory::updateThreshold(9999, 25, 2, 'seller');
+assert_true($threshRes['ok'] === true && $threshRes['new_threshold'] === 25, 'TC-10h: Inventory::updateThreshold() updates per-product threshold');
+$recheck = Inventory::checkProductLowStock(9999, 'Re-evaluation');
+assert_true($recheck !== null, 'TC-10i: Higher threshold triggers automated alert on existing stock');
+
+// Clean up temporary test product & test audit logs
+$pdo->prepare("DELETE FROM products WHERE id = 9999")->execute();
+$pdo->prepare("DELETE FROM audit_logs WHERE action IN ('inventory.low_stock_alert', 'inventory.replenished', 'inventory.threshold_changed')")->execute();
+
+// 10j. Validator rejects negative threshold
+$badThreshErrors = validate_product_fields([
+    'name'                => 'Test Product',
+    'description'         => 'Test description exceeding 10 characters',
+    'category_id'         => 1,
+    'price'               => 100,
+    'stock_qty'           => 10,
+    'low_stock_threshold' => 0,
+    'condition_type'      => 'New',
+]);
+assert_true(in_array('Low-stock alert threshold must be a number of at least 1 unit.', $badThreshErrors, true), 'TC-10j: validate_product_fields() validates low_stock_threshold >= 1');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

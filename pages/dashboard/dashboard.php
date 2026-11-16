@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
+require_once __DIR__ . '/../../includes/inventory.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -46,8 +47,8 @@ if ($role === 'buyer') {
     $prodCount = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active'");
     $prodCount->execute([':id' => $userId]);
 
-    $lowStock = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active' AND stock_qty <= 5");
-    $lowStock->execute([':id' => $userId]);
+    $lowStockCount = Inventory::getLowStockCount($userId);
+    $myLowStockItems = Inventory::getLowStockProducts($userId);
 
     $revStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(oi.line_total), 0) AS rev, COALESCE(SUM(oi.quantity), 0) AS units
@@ -60,7 +61,7 @@ if ($role === 'buyer') {
 
     $kpis = [
         ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn()],
-        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn()],
+        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount],
         ['label' => 'Units Sold', 'value' => (int) $rev['units']],
         ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev'])],
     ];
@@ -181,6 +182,34 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="stats-grid">
         <?php foreach ($kpis as $kpi): ?>
             <div class="stat-card">
@@ -236,6 +265,34 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Date</th>
                         </tr>
                     <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
                     </thead>
                     <tbody>
                     <?php foreach ($recentRows as $row): ?>
@@ -278,11 +335,67 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td><?= e(date('d M Y, H:i', strtotime($row['created_at']))) ?></td>
                             </tr>
                         <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
     </div>
 </main>
 

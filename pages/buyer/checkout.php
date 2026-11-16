@@ -4,6 +4,7 @@
  * Creates order, order_items, delivery dispatch record, and decrements product stock.
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/inventory.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -134,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':qty' => $vi['qty'],
                         ':pid' => $vi['id'],
                     ]);
+                    Inventory::checkProductLowStock((int) $vi['id'], 'Order: ' . $orderCode);
                 }
 
                 $delStmt = $pdo->prepare(

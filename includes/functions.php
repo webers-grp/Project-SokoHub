@@ -313,6 +313,11 @@ function validate_product_fields(array $input): array
         $errors[] = 'Stock quantity cannot be negative.';
     }
 
+    $threshold = $input['low_stock_threshold'] ?? '';
+    if ($threshold !== '' && (!is_numeric($threshold) || (int) $threshold < 1)) {
+        $errors[] = 'Low-stock alert threshold must be a number of at least 1 unit.';
+    }
+
     if (!in_array($condition, ['New', 'Second Hand'], true)) {
         $errors[] = 'Product condition must be New or Second Hand.';
     }

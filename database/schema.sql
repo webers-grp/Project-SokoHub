@@ -73,6 +73,8 @@ CREATE TABLE products (
     price DECIMAL(10, 2) NOT NULL,
     original_price DECIMAL(10, 2) NULL,
     stock_qty INT NOT NULL DEFAULT 10,
+    low_stock_threshold INT NOT NULL DEFAULT 5,
+    low_stock_alerted_at DATETIME NULL,
     condition_type ENUM('New', 'Second Hand') NOT NULL DEFAULT 'New',
     image_path VARCHAR(255) NOT NULL DEFAULT 'assets/img/cart-icon.jpg',
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
