@@ -610,5 +610,67 @@ assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__D
 $coloredIcon = icon('package', 'lucide-xs', 'emerald');
 assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-14c: Lucide icon helper applies compact size and color classes');
 
+// 15. Simplified Percentage-Only Discount Engine
+$pricing15 = calculate_discount_pricing(1000.0, 15.0);
+assert_true(
+    abs($pricing15['price'] - 850.0) < 0.01 && abs($pricing15['original_price'] - 1000.0) < 0.01 && $pricing15['discount_percent'] === 15,
+    'TC-15a: calculate_discount_pricing computes 15% discount as KSh 850 with original KSh 1000'
+);
+
+$pricingZero = calculate_discount_pricing(1200.0, 0.0);
+$pricingNull = calculate_discount_pricing(1200.0, null);
+assert_true(
+    abs($pricingZero['price'] - 1200.0) < 0.01 && $pricingZero['original_price'] === null && $pricingNull['original_price'] === null,
+    'TC-15b: calculate_discount_pricing with 0% or null retains standard price without original_price strikethrough'
+);
+
+$invalidDiscErrors = validate_product_fields([
+    'name'             => 'Discount Test Item',
+    'description'      => 'A valid product description for unit testing.',
+    'category_id'      => 1,
+    'price'            => 100,
+    'discount_percent' => 150,
+    'stock_qty'        => 5,
+    'condition_type'   => 'New',
+]);
+assert_true(
+    in_array('Discount percentage must be a number between 0% and 99%.', $invalidDiscErrors, true),
+    'TC-15c: validate_product_fields rejects out-of-bounds discount percentage (>= 100%)'
+);
+
+$validDiscErrors = validate_product_fields([
+    'name'             => 'Valid 20 Percent Item',
+    'description'      => 'A valid product description for unit testing.',
+    'category_id'      => 1,
+    'price'            => 500,
+    'discount_percent' => 20,
+    'stock_qty'        => 5,
+    'condition_type'   => 'New',
+]);
+assert_true(empty($validDiscErrors), 'TC-15d: validate_product_fields accepts valid discount percentage (20%)');
+
+// BulkImport test with discount_percent
+$bulkDiscRes = BulkImport::processManualBulkRows($sellerId, [
+    [
+        'name'             => 'Bulk Discount Test Bananas',
+        'category_id'      => 3,
+        'description'      => 'Freshly harvested sweet ripe bananas from Kutus farmers.',
+        'price'            => '200.00',
+        'discount_percent' => '25',
+        'stock_qty'        => '30',
+        'condition_type'   => 'New',
+    ]
+], $sellerId, 'seller');
+assert_true(!empty($bulkDiscRes['ok']) && $bulkDiscRes['success_rows'] === 1, 'TC-15e: BulkImport successfully processes discount_percent row');
+$createdBananaId = (int) ($bulkDiscRes['rows'][0]['product_id'] ?? 0);
+$bCheck = $pdo->query("SELECT price, original_price FROM products WHERE id = {$createdBananaId}")->fetch();
+assert_true(
+    $bCheck && abs((float) $bCheck['price'] - 150.00) < 0.01 && abs((float) $bCheck['original_price'] - 200.00) < 0.01,
+    'TC-15f: Product created with 25% discount stores sale price 150.00 and original price 200.00 in database'
+);
+if ($createdBananaId) {
+    $pdo->exec("DELETE FROM products WHERE id = {$createdBananaId}");
+}
+
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

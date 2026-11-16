@@ -60,6 +60,30 @@ function discount_percent(float $price, ?float $originalPrice): int
 }
 
 /**
+ * Calculate final selling price and original price from regular price and optional discount percentage.
+ * Returns ['price' => float, 'original_price' => ?float, 'discount_percent' => int].
+ */
+function calculate_discount_pricing(float $regularPrice, ?float $discountPercent): array
+{
+    if ($discountPercent === null || $discountPercent <= 0) {
+        return [
+            'price'            => round($regularPrice, 2),
+            'original_price'   => null,
+            'discount_percent' => 0,
+        ];
+    }
+
+    $discountPercent = min(99.0, max(0.0, (float) $discountPercent));
+    $salePrice = round($regularPrice * (1.0 - ($discountPercent / 100.0)), 2);
+
+    return [
+        'price'            => $salePrice,
+        'original_price'   => round($regularPrice, 2),
+        'discount_percent' => (int) round($discountPercent),
+    ];
+}
+
+/**
  * Generate or return the active CSRF token stored in the PHP session.
  */
 function csrf_token(): string
@@ -312,6 +336,7 @@ function validate_product_fields(array $input): array
     $categoryId = (int) ($input['category_id'] ?? 0);
     $price = $input['price'] ?? '';
     $originalPrice = $input['original_price'] ?? '';
+    $discountPercent = $input['discount_percent'] ?? ($input['discount'] ?? '');
     $stockQty = $input['stock_qty'] ?? '';
     $condition = (string) ($input['condition_type'] ?? '');
 
@@ -333,6 +358,12 @@ function validate_product_fields(array $input): array
 
     if ($originalPrice !== '' && (!is_numeric($originalPrice) || (float) $originalPrice < (float) $price)) {
         $errors[] = 'Original price (if set) must be greater than or equal to the selling price.';
+    }
+
+    if ($discountPercent !== '' && $discountPercent !== null) {
+        if (!is_numeric($discountPercent) || (float) $discountPercent < 0 || (float) $discountPercent >= 100) {
+            $errors[] = 'Discount percentage must be a number between 0% and 99%.';
+        }
     }
 
     if (!is_numeric($stockQty) || (int) $stockQty < 0) {

@@ -91,6 +91,9 @@ class BulkImport
         if (in_array($h, ['original_price', 'was_price', 'regular_price', 'list_price'], true)) {
             return 'original_price';
         }
+        if (in_array($h, ['discount_percent', 'discount_pct', 'discount', 'discount_percentage', 'disc_pct', 'disc'], true)) {
+            return 'discount_percent';
+        }
         if (in_array($h, ['stock_qty', 'stock', 'quantity', 'qty', 'units'], true)) {
             return 'stock_qty';
         }
@@ -363,6 +366,16 @@ class BulkImport
                 $description = $rowMap['description'] ?? '';
                 $price       = $rowMap['price'] ?? '';
                 $origPrice   = $rowMap['original_price'] ?? '';
+                $discPercent = trim((string) ($rowMap['discount_percent'] ?? ($rowMap['discount_pct'] ?? ($rowMap['discount'] ?? ''))));
+                if ($discPercent !== '') {
+                    if (!is_numeric($discPercent) || (float) $discPercent < 0 || (float) $discPercent >= 100) {
+                        $rowErrors[] = 'Discount percentage must be a number between 0% and 99%.';
+                    } elseif (is_numeric($price) && (float) $price > 0) {
+                        $pricing = calculate_discount_pricing((float) $price, (float) $discPercent);
+                        $price = (string) $pricing['price'];
+                        $origPrice = $pricing['original_price'] !== null ? (string) $pricing['original_price'] : '';
+                    }
+                }
                 $stockQty    = isset($rowMap['stock_qty']) && $rowMap['stock_qty'] !== '' ? $rowMap['stock_qty'] : '10';
                 $threshold   = isset($rowMap['low_stock_threshold']) && $rowMap['low_stock_threshold'] !== '' ? $rowMap['low_stock_threshold'] : '5';
                 $condition   = $rowMap['condition_type'] ?? 'New';
@@ -785,6 +798,16 @@ class BulkImport
                 $description = trim($row['description'] ?? '');
                 $price       = trim((string) ($row['price'] ?? ''));
                 $origPrice   = trim((string) ($row['original_price'] ?? ''));
+                $discPercent = trim((string) ($row['discount_percent'] ?? ($row['discount_pct'] ?? ($row['discount'] ?? ''))));
+                if ($discPercent !== '') {
+                    if (!is_numeric($discPercent) || (float) $discPercent < 0 || (float) $discPercent >= 100) {
+                        $rowErrors[] = 'Discount percentage must be a number between 0% and 99%.';
+                    } elseif (is_numeric($price) && (float) $price > 0) {
+                        $pricing = calculate_discount_pricing((float) $price, (float) $discPercent);
+                        $price = (string) $pricing['price'];
+                        $origPrice = $pricing['original_price'] !== null ? (string) $pricing['original_price'] : '';
+                    }
+                }
                 $stockQty    = isset($row['stock_qty']) && $row['stock_qty'] !== '' ? $row['stock_qty'] : '10';
                 $threshold   = isset($row['low_stock_threshold']) && $row['low_stock_threshold'] !== '' ? $row['low_stock_threshold'] : '5';
                 $condition   = trim($row['condition_type'] ?? 'New');

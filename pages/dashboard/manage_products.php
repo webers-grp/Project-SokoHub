@@ -98,12 +98,25 @@ if ($editId > 0) {
     }
 }
 
+$initialRegularPrice = '';
+$initialDiscountPercent = '';
+
+if ($editingProduct !== null) {
+    if ($editingProduct['original_price'] !== null && (float) $editingProduct['original_price'] > (float) $editingProduct['price']) {
+        $initialRegularPrice = (string) $editingProduct['original_price'];
+        $initialDiscountPercent = (string) discount_percent((float) $editingProduct['price'], (float) $editingProduct['original_price']);
+    } else {
+        $initialRegularPrice = (string) $editingProduct['price'];
+        $initialDiscountPercent = '';
+    }
+}
+
 $form = [
     'name'                => $editingProduct['name'] ?? '',
     'category_id'         => $editingProduct['category_id'] ?? ($categories[0]['id'] ?? 1),
     'description'         => $editingProduct['description'] ?? '',
-    'price'               => $editingProduct['price'] ?? '',
-    'original_price'      => $editingProduct['original_price'] ?? '',
+    'regular_price'       => $initialRegularPrice,
+    'discount_percent'    => $initialDiscountPercent,
     'stock_qty'           => $editingProduct['stock_qty'] ?? '10',
     'low_stock_threshold' => $editingProduct['low_stock_threshold'] ?? '5',
     'condition_type'      => $editingProduct['condition_type'] ?? 'New',
@@ -120,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
         $form['name'] = trim((string) ($_POST['name'] ?? ''));
         $form['category_id'] = (int) ($_POST['category_id'] ?? 0);
         $form['description'] = trim((string) ($_POST['description'] ?? ''));
-        $form['price'] = trim((string) ($_POST['price'] ?? ''));
-        $form['original_price'] = trim((string) ($_POST['original_price'] ?? ''));
+        $form['regular_price'] = trim((string) ($_POST['regular_price'] ?? ($_POST['price'] ?? '')));
+        $form['discount_percent'] = trim((string) ($_POST['discount_percent'] ?? ''));
         $form['stock_qty'] = trim((string) ($_POST['stock_qty'] ?? '0'));
         $form['low_stock_threshold'] = max(1, (int) ($_POST['low_stock_threshold'] ?? 5));
         $form['condition_type'] = (string) ($_POST['condition_type'] ?? 'New');
@@ -133,7 +146,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
         }
         $form['image_path'] = $chosenPreset;
 
-        $errors = validate_product_fields($_POST);
+        $validationPayload = $_POST;
+        $validationPayload['price'] = $form['regular_price'];
+        $validationPayload['discount_percent'] = $form['discount_percent'];
+        $errors = validate_product_fields($validationPayload);
 
         if (empty($errors) && isset($_FILES['image_file'])) {
             [$uploadedPath, $uploadErr] = handle_product_image_upload($_FILES['image_file'], $form['image_path']);
@@ -145,7 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
         }
 
         if (empty($errors)) {
-            $origVal = $form['original_price'] !== '' ? (float) $form['original_price'] : null;
+            $regPrice = (float) $form['regular_price'];
+            $discPct = $form['discount_percent'] !== '' ? (float) $form['discount_percent'] : null;
+            $pricing = calculate_discount_pricing($regPrice, $discPct);
+            $finalPrice = $pricing['price'];
+            $origVal = $pricing['original_price'];
 
             if ($editingProduct !== null) {
                 $upd = $pdo->prepare(
@@ -160,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     ':cat'       => $form['category_id'],
                     ':name'      => $form['name'],
                     ':descr'     => $form['description'],
-                    ':price'     => (float) $form['price'],
+                    ':price'     => $finalPrice,
                     ':orig'      => $origVal,
                     ':stock'     => (int) $form['stock_qty'],
                     ':threshold' => (int) $form['low_stock_threshold'],
@@ -171,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                 ]);
                 Audit::record('product.updated', 'product', (int) $editingProduct['id'], [
                     'name'      => $form['name'],
-                    'price'     => (float) $form['price'],
+                    'price'     => $finalPrice,
                     'stock'     => (int) $form['stock_qty'],
                     'threshold' => (int) $form['low_stock_threshold'],
                 ]);
@@ -188,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     ':cat'       => $form['category_id'],
                     ':name'      => $form['name'],
                     ':descr'     => $form['description'],
-                    ':price'     => (float) $form['price'],
+                    ':price'     => $finalPrice,
                     ':orig'      => $origVal,
                     ':stock'     => (int) $form['stock_qty'],
                     ':threshold' => (int) $form['low_stock_threshold'],
@@ -199,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                 $newId = (int) $pdo->lastInsertId();
                 Audit::record('product.created', 'product', $newId, [
                     'name'      => $form['name'],
-                    'price'     => (float) $form['price'],
+                    'price'     => $finalPrice,
                     'stock'     => (int) $form['stock_qty'],
                     'threshold' => (int) $form['low_stock_threshold'],
                 ]);
@@ -212,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                 if (!empty($sProf['business_name'])) {
                     $sellerName = $sProf['business_name'];
                 }
-                Notifications::notifyNewStock($newId, $form['name'], (float) $form['price'], $sellerName);
+                Notifications::notifyNewStock($newId, $form['name'], $finalPrice, $sellerName);
 
                 set_flash('success', 'Product "' . $form['name'] . '" published successfully and buyers notified!');
             }
@@ -354,14 +374,29 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <div class="form-grid-2">
                 <div class="form-group">
-                    <label for="price">Selling Price (KSh)</label>
-                    <input type="number" step="0.01" min="1" id="price" name="price" class="form-control" value="<?= e($form['price']) ?>" required placeholder="1200">
+                    <label for="regular_price">Regular Price (KSh) *</label>
+                    <input type="number" step="0.01" min="1" id="regular_price" name="regular_price" class="form-control" value="<?= e($form['regular_price']) ?>" required placeholder="e.g. 1200.00">
+                    <small class="muted" style="font-size:0.75rem;">Standard non-discounted selling price.</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="original_price">Original Price (Optional, KSh)</label>
-                    <input type="number" step="0.01" min="1" id="original_price" name="original_price" class="form-control" value="<?= e($form['original_price']) ?>" placeholder="1800">
+                    <label for="discount_percent">Discount Percentage (Optional, % Off)</label>
+                    <input type="number" step="1" min="0" max="90" id="discount_percent" name="discount_percent" class="form-control" value="<?= e($form['discount_percent']) ?>" placeholder="e.g. 15 for 15% off">
+                    <small class="muted" style="font-size:0.75rem;">Optional: 0–90% off. Leave blank if selling at regular price.</small>
                 </div>
+            </div>
+
+            <!-- Dynamic Live Price Calculation Preview -->
+            <div id="priceCalculationPreview" style="margin-top: -0.5rem; margin-bottom: 1.25rem; padding: 0.75rem 1rem; border-radius: 8px; background: var(--green-light); border: 1px solid rgba(39, 179, 39, 0.25); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.88rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <?= icon('tag', 'lucide-xs', 'emerald') ?>
+                    <span id="priceCalcSummary" style="font-weight: 600; color: var(--text-main);">
+                        Enter regular price above to view final sale price.
+                    </span>
+                </div>
+                <span id="priceCalcSavings" class="badge badge-success" style="display: none;">
+                    0% Off
+                </span>
             </div>
 
             <div class="form-grid-2">
@@ -556,5 +591,64 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
     </div>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regularInput = document.getElementById('regular_price');
+    const discountInput = document.getElementById('discount_percent');
+    const summaryEl = document.getElementById('priceCalcSummary');
+    const savingsEl = document.getElementById('priceCalcSavings');
+    const previewBox = document.getElementById('priceCalculationPreview');
+
+    function updatePricePreview() {
+        if (!regularInput || !summaryEl) return;
+
+        const regular = parseFloat(regularInput.value) || 0;
+        let discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
+
+        if (discount < 0) discount = 0;
+        if (discount > 99) discount = 99;
+
+        if (regular <= 0) {
+            summaryEl.innerHTML = 'Enter regular price above to calculate final sale price.';
+            savingsEl.style.display = 'none';
+            if (previewBox) {
+                previewBox.style.background = 'var(--bg-surface)';
+                previewBox.style.borderColor = 'var(--border-color)';
+            }
+            return;
+        }
+
+        if (discount > 0) {
+            const finalPrice = Math.round((regular * (1 - discount / 100)) * 100) / 100;
+            const savedAmount = Math.round((regular - finalPrice) * 100) / 100;
+            summaryEl.innerHTML = `Final Selling Price: <strong style="color: var(--green-dark); font-size: 1.05rem;">KSh ${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> <span style="color: var(--text-muted); text-decoration: line-through; margin-left: 6px; font-size: 0.9rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+            savingsEl.textContent = `${Math.round(discount)}% OFF (Save KSh ${savedAmount.toLocaleString('en-US')})`;
+            savingsEl.style.display = 'inline-block';
+            if (previewBox) {
+                previewBox.style.background = 'var(--green-light)';
+                previewBox.style.borderColor = 'rgba(39, 179, 39, 0.35)';
+            }
+        } else {
+            summaryEl.innerHTML = `Standard Selling Price: <strong style="color: var(--text-main); font-size: 1.05rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> (No discount applied)`;
+            savingsEl.style.display = 'none';
+            if (previewBox) {
+                previewBox.style.background = 'var(--bg-surface)';
+                previewBox.style.borderColor = 'var(--border-color)';
+            }
+        }
+    }
+
+    if (regularInput) {
+        regularInput.addEventListener('input', updatePricePreview);
+    }
+    if (discountInput) {
+        discountInput.addEventListener('input', updatePricePreview);
+    }
+
+    // Run baseline calculation on page load
+    updatePricePreview();
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

@@ -466,7 +466,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <th style="padding: 0.6rem; width: 220px;">Product Name *</th>
                                 <th style="padding: 0.6rem; width: 140px;">Category *</th>
                                 <th style="padding: 0.6rem; width: 110px;">Price (KES) *</th>
-                                <th style="padding: 0.6rem; width: 110px;">Was Price</th>
+                                <th style="padding: 0.6rem; width: 100px;">Discount %</th>
                                 <th style="padding: 0.6rem; width: 80px; text-align: center;">Stock</th>
                                 <th style="padding: 0.6rem; width: 80px; text-align: center;">Alert &le;</th>
                                 <th style="padding: 0.6rem; width: 120px;">Condition</th>
@@ -780,7 +780,7 @@ function createRowHtml(index, data = {}) {
                 <input type="number" step="0.01" min="1" name="products[${index}][price]" value="${data.price || ''}" placeholder="1200.00" required>
             </td>
             <td style="padding: 0.5rem;">
-                <input type="number" step="0.01" min="1" name="products[${index}][original_price]" value="${data.original_price || ''}" placeholder="1400.00">
+                <input type="number" min="0" max="90" name="products[${index}][discount_percent]" value="${data.discount_percent !== undefined ? data.discount_percent : (data.original_price ? Math.round(((data.original_price - data.price)/data.original_price)*100) : '')}" placeholder="e.g. 15">
             </td>
             <td style="padding: 0.5rem;">
                 <input type="number" min="0" name="products[${index}][stock_qty]" value="${data.stock_qty || '10'}">
