@@ -11,13 +11,24 @@ $authUser = current_user();
 $navItems = get_nav_items($authUser);
 $cartItemsCount = cart_count();
 $flash = get_flash();
+$savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?= e($savedTheme) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('sokohub_theme');
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var theme = stored || (document.cookie.match(/sokohub_theme=([^;]+)/) || [])[1] || (prefersDark ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch(e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
 </head>
 <body>
@@ -51,6 +62,11 @@ $flash = get_flash();
                 </ul>
 
                 <div class="nav-actions">
+                    <button type="button" class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark/Light Mode" title="Toggle Dark/Light Mode">
+                        <span class="theme-icon-light"><?= icon('sun', 'lucide-sm', 'amber') ?></span>
+                        <span class="theme-icon-dark"><?= icon('moon', 'lucide-sm', 'cyan') ?></span>
+                    </button>
+
                     <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="cart-pill" title="Shopping Cart">
                         <?= icon('shopping-cart', 'lucide-sm') ?>
                         <span>Cart</span>
