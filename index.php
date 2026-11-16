@@ -44,8 +44,8 @@ require_once __DIR__ . '/includes/header.php';
             <h1>Shop Local, Sell Smarter &amp; Deliver Faster with SokoHub</h1>
             <p>SokoHub connects small and medium local vendors, customers, and verified delivery riders in one secure marketplace — from fresh organic produce and cooking gas to electronics and apparel.</p>
             <div class="hero-cta">
-                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber">Explore Marketplace</a>
-                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light">Create Free Account</a>
+                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber"><?= icon('shopping-bag') ?> <span>Explore Marketplace</span></a>
+                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light"><?= icon('user-plus') ?> <span>Create Free Account</span></a>
             </div>
         </div>
 
@@ -77,7 +77,10 @@ require_once __DIR__ . '/includes/header.php';
     <section>
         <div class="section-heading">
             <h2>Browse by Category</h2>
-            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-sm">View Full Catalog &rarr;</a>
+            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-sm">
+                <span>View Full Catalog</span>
+                <?= icon('arrow-right', 'lucide-sm') ?>
+            </a>
         </div>
         <div class="category-strip">
             <a href="<?= e(url('pages/public/products.php')) ?>" class="cat-chip active">All Categories</a>
@@ -128,13 +131,19 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php endif; ?>
                             </div>
                             <div class="product-actions">
-                                <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">Details</a>
+                                <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
+                                    <?= icon('eye', 'lucide-sm') ?>
+                                    <span>Details</span>
+                                </a>
                                 <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="flex:1;">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="add">
                                     <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                                     <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn-primary btn-sm btn-block">Add to Cart</button>
+                                    <button type="submit" class="btn btn-primary btn-sm btn-block">
+                                        <?= icon('shopping-cart', 'lucide-sm') ?>
+                                        <span>Add to Cart</span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -150,14 +159,17 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="prop-grid">
             <div class="prop-item">
+                <div style="margin-bottom: 0.6rem; color: var(--green-primary);"><?= icon('truck', 'lucide-lg') ?></div>
                 <h3>Instant Local Delivery</h3>
                 <p>Dedicated motorbike, bicycle, and van riders pick up directly from local merchants and update real-time order statuses.</p>
             </div>
             <div class="prop-item">
+                <div style="margin-bottom: 0.6rem; color: var(--amber-primary);"><?= icon('credit-card', 'lucide-lg') ?></div>
                 <h3>Flexible Payments</h3>
                 <p>Checkout smoothly using M-Pesa, Cash on Delivery, or Bank Card with clear order receipts and tracking codes.</p>
             </div>
             <div class="prop-item">
+                <div style="margin-bottom: 0.6rem; color: var(--green-primary);"><?= icon('store', 'lucide-lg') ?></div>
                 <h3>Empowered Local MSMEs</h3>
                 <p>Vendors manage inventory, pricing, stock alerts, and revenue reports from one clean web dashboard.</p>
             </div>

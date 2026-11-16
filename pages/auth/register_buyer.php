@@ -106,7 +106,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Create Buyer Account</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <?= icon('user-plus') ?>
+                    <span>Create Buyer Account</span>
+                </button>
             </form>
 
             <p class="small muted" style="margin-top: 1rem;">

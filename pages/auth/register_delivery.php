@@ -169,7 +169,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Register as Delivery Personnel</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <?= icon('truck') ?>
+                    <span>Register as Delivery Personnel</span>
+                </button>
             </form>
 
             <p class="small muted" style="margin-top: 1rem;">

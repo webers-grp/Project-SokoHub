@@ -97,17 +97,20 @@ require_once __DIR__ . '/../../includes/header.php';
                     <textarea id="message" name="message" class="form-control" rows="5" required data-minlength="10" placeholder="Type your detailed message here..."><?= e($old['message']) ?></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Send Message</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <?= icon('send') ?>
+                    <span>Send Message</span>
+                </button>
             </form>
         </div>
 
         <div>
             <div class="card">
-                <h2 style="color: var(--amber-primary);">Direct Contact Desk</h2>
-                <p style="margin-top: 0.75rem;"><strong>Email:</strong> support@sokohub.co.ke</p>
-                <p style="margin-top: 0.4rem;"><strong>Phone:</strong> +254 700 123 456</p>
-                <p style="margin-top: 0.4rem;"><strong>Office:</strong> 123 Market Street, Kutus, Kirinyaga County, Kenya</p>
-                <p style="margin-top: 0.4rem;"><strong>Support Hours:</strong> Mon - Sat, 8:00 AM - 6:00 PM EAT</p>
+                <h2 style="color: var(--amber-primary); margin-bottom: 0.75rem;">Direct Contact Desk</h2>
+                <p style="margin-top: 0.5rem;"><?= icon('mail', 'lucide-sm') ?> <strong>Email:</strong> support@sokohub.co.ke</p>
+                <p style="margin-top: 0.4rem;"><?= icon('phone', 'lucide-sm') ?> <strong>Phone:</strong> +254 700 123 456</p>
+                <p style="margin-top: 0.4rem;"><?= icon('map-pin', 'lucide-sm') ?> <strong>Office:</strong> 123 Market Street, Kutus, Kirinyaga County, Kenya</p>
+                <p style="margin-top: 0.4rem;"><?= icon('clock', 'lucide-sm') ?> <strong>Support Hours:</strong> Mon - Sat, 8:00 AM - 6:00 PM EAT</p>
             </div>
 
             <div class="card">

@@ -168,12 +168,18 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1>Order Checkout</h1>
             <p class="muted">Confirm delivery location and payment preference.</p>
         </div>
-        <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline">Back to Cart</a>
+        <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline">
+            <?= icon('arrow-left', 'lucide-sm') ?>
+            <span>Back to Cart</span>
+        </a>
     </div>
 
     <div class="split-grid" style="align-items: start;">
         <div class="card">
-            <h2 style="color: var(--green-dark); margin-bottom: 1rem;">Delivery &amp; Payment Details</h2>
+            <h2 style="color: var(--green-dark); margin-bottom: 1rem;">
+                <?= icon('truck', 'lucide-sm') ?>
+                <span>Delivery &amp; Payment Details</span>
+            </h2>
 
             <?php if (!empty($errors)): ?>
                 <div class="alert alert-error">
@@ -212,12 +218,18 @@ require_once __DIR__ . '/../../includes/header.php';
                     <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="Call on arrival, landmark, etc."><?= e($old['notes']) ?></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-amber btn-block">Confirm &amp; Place Order</button>
+                <button type="submit" class="btn btn-amber btn-block">
+                    <?= icon('check-circle') ?>
+                    <span>Confirm &amp; Place Order</span>
+                </button>
             </form>
         </div>
 
         <div class="card">
-            <h2 style="margin-bottom: 1rem;">Order Summary</h2>
+            <h2 style="margin-bottom: 1rem;">
+                <?= icon('receipt', 'lucide-sm') ?>
+                <span>Order Summary</span>
+            </h2>
             <ul style="list-style:none;">
                 <?php foreach ($items as $it): ?>
                     <li style="display:flex; justify-content:space-between; padding:0.55rem 0; border-bottom:1px solid var(--border-color);">

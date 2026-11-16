@@ -40,7 +40,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1>Customer Support Inquiries</h1>
             <p class="muted">Review and resolve messages submitted through the Contact Us page.</p>
         </div>
-        <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">Back to Dashboard</a>
+        <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">
+            <?= icon('arrow-left', 'lucide-sm') ?>
+            <span>Back to Dashboard</span>
+        </a>
     </div>
 
     <div class="card">
@@ -82,13 +85,19 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <option value="read" <?= $m['status'] === 'read' ? 'selected' : '' ?>>Read</option>
                                         <option value="resolved" <?= $m['status'] === 'resolved' ? 'selected' : '' ?>>Resolved</option>
                                     </select>
-                                    <button type="submit" class="btn btn-outline btn-sm">Save</button>
+                                    <button type="submit" class="btn btn-outline btn-sm">
+                                        <?= icon('check', 'lucide-sm') ?>
+                                        <span>Save</span>
+                                    </button>
                                 </form>
                                 <form action="<?= e(url('pages/dashboard/inquiries.php')) ?>" method="POST">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete this inquiry?">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete this inquiry?">
+                                        <?= icon('trash-2', 'lucide-sm') ?>
+                                        <span>Delete</span>
+                                    </button>
                                 </form>
                             </td>
                         </tr>

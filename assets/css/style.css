@@ -158,6 +158,9 @@ a:hover {
     border-radius: 8px;
     transition: background-color 0.2s ease;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .nav-links a:hover,
@@ -1048,6 +1051,9 @@ table.data-table {
 
 .footer-col a {
     color: #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .footer-col a:hover {
@@ -1140,6 +1146,44 @@ table.data-table {
     .hero-banner {
         padding: 3rem 0;
     }
+}
+
+/* ---------------- Lucide Vector Icons ---------------- */
+.lucide, [data-lucide] {
+    display: inline-block;
+    vertical-align: -0.15em;
+    stroke-width: 2;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+}
+
+svg.lucide {
+    width: 1.15em;
+    height: 1.15em;
+}
+
+.lucide-sm, svg.lucide-sm {
+    width: 0.95em;
+    height: 0.95em;
+}
+
+.lucide-lg, svg.lucide-lg {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+.lucide-xl, svg.lucide-xl {
+    width: 2.2rem;
+    height: 2.2rem;
+}
+
+.btn .lucide,
+.cart-pill .lucide,
+.user-pill .lucide,
+.badge .lucide {
+    display: inline-block;
+    flex-shrink: 0;
 }
 
 @media print {

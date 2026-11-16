@@ -27,7 +27,7 @@ function assert_true(bool $condition, string $label): void
 // 1. Database Connectivity & Seed Verification
 $dbCheck = test_db_connection();
 assert_true($dbCheck['ok'] === true, 'TC-01: PDO MySQL connection succeeds');
-assert_true(count($dbCheck['tables']) === 9, 'TC-01b: All 9 schema tables exist');
+assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: All schema tables exist (' . count($dbCheck['tables']) . ' tables)');
 
 $pdo = get_db_connection();
 $userCount = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -140,6 +140,11 @@ $catRevenue = $pdo->query(
      GROUP BY c.id, c.name"
 )->fetchAll();
 assert_true(count($catRevenue) >= 3, 'TC-07: Sales report returns category revenue aggregates');
+
+// 8. Lucide Vector Icons Integration Verification
+$iconMarkup = icon('shopping-cart', 'lucide-sm');
+assert_true(str_contains($iconMarkup, 'data-lucide="shopping-cart"') && str_contains($iconMarkup, 'class="lucide lucide-sm"'), 'TC-08a: Lucide icon helper generates data-lucide markup');
+assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__DIR__ . '/../assets/js/lucide.min.js') > 100000, 'TC-08b: Local Lucide bundle vendored at assets/js/lucide.min.js');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

@@ -92,13 +92,16 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Showing <strong><?= $totalItems ?></strong> matching item(s) across Kirinyaga vendors.</p>
         </div>
         <?php if (is_logged_in() && in_array(current_user()['role'], ['seller', 'admin'], true)): ?>
-            <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">+ Manage My Products</a>
+            <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                <?= icon('package') ?>
+                <span>Manage My Products</span>
+            </a>
         <?php endif; ?>
     </div>
 
     <div class="shop-layout">
         <aside class="filter-panel">
-            <h3>Filter &amp; Sort</h3>
+            <h3><?= icon('filter', 'lucide-sm') ?> Filter &amp; Sort</h3>
             <form action="<?= e(url('pages/public/products.php')) ?>" method="GET">
                 <div class="form-group">
                     <label for="q">Search Keyword</label>
@@ -136,8 +139,14 @@ require_once __DIR__ . '/../../includes/header.php';
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Apply Filters</button>
-                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-block" style="margin-top: 0.5rem;">Reset</a>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <?= icon('filter') ?>
+                    <span>Apply Filters</span>
+                </button>
+                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-block" style="margin-top: 0.5rem;">
+                    <?= icon('rotate-ccw') ?>
+                    <span>Reset</span>
+                </a>
             </form>
         </aside>
 
@@ -179,14 +188,20 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php endif; ?>
                                 </div>
                                 <div class="product-actions">
-                                    <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">View</a>
+                                    <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
+                                        <?= icon('eye', 'lucide-sm') ?>
+                                        <span>View</span>
+                                    </a>
                                     <?php if ((int) $product['stock_qty'] > 0): ?>
                                         <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="flex:1;">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="add">
                                             <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                                             <input type="hidden" name="quantity" value="1">
-                                            <button type="submit" class="btn btn-primary btn-sm btn-block">Add</button>
+                                            <button type="submit" class="btn btn-primary btn-sm btn-block">
+                                                <?= icon('shopping-cart', 'lucide-sm') ?>
+                                                <span>Add</span>
+                                            </button>
                                         </form>
                                     <?php endif; ?>
                                 </div>

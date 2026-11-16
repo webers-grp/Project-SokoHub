@@ -22,29 +22,38 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <div class="role-grid">
         <div class="role-card">
-            <div class="role-icon">B</div>
+            <div class="role-icon"><?= icon('shopping-bag', 'lucide-lg') ?></div>
             <h2>Buyer / Customer</h2>
             <p class="muted">Browse verified local listings, compare prices, checkout securely, and track your deliveries in real time.</p>
-            <a href="<?= e(url('pages/auth/register_buyer.php')) ?>" class="btn btn-primary" style="margin-top: auto;">Register as Buyer</a>
+            <a href="<?= e(url('pages/auth/register_buyer.php')) ?>" class="btn btn-primary" style="margin-top: auto;">
+                <?= icon('shopping-bag') ?>
+                <span>Register as Buyer</span>
+            </a>
         </div>
 
         <div class="role-card">
-            <div class="role-icon">S</div>
+            <div class="role-icon"><?= icon('store', 'lucide-lg') ?></div>
             <h2>Seller / Vendor</h2>
             <p class="muted">List products with stock tracking, manage customer orders, and analyze sales &amp; inventory reports.</p>
-            <a href="<?= e(url('pages/auth/register_seller.php')) ?>" class="btn btn-amber" style="margin-top: auto;">Register as Seller</a>
+            <a href="<?= e(url('pages/auth/register_seller.php')) ?>" class="btn btn-amber" style="margin-top: auto;">
+                <?= icon('store') ?>
+                <span>Register as Seller</span>
+            </a>
         </div>
 
         <div class="role-card">
-            <div class="role-icon">D</div>
+            <div class="role-icon"><?= icon('truck', 'lucide-lg') ?></div>
             <h2>Delivery Personnel</h2>
             <p class="muted">Claim local delivery requests across Kutus and Kerugoya, update transit status, and track fulfillment.</p>
-            <a href="<?= e(url('pages/auth/register_delivery.php')) ?>" class="btn btn-primary" style="margin-top: auto;">Join Delivery Team</a>
+            <a href="<?= e(url('pages/auth/register_delivery.php')) ?>" class="btn btn-primary" style="margin-top: auto;">
+                <?= icon('truck') ?>
+                <span>Join Delivery Team</span>
+            </a>
         </div>
     </div>
 
     <p style="text-align: center; margin-top: 2rem;" class="muted">
-        Already have an account? <a href="<?= e(url('pages/auth/login.php')) ?>"><strong>Sign In Here</strong></a>
+        Already have an account? <a href="<?= e(url('pages/auth/login.php')) ?>"><strong><?= icon('log-in', 'lucide-sm') ?> Sign In Here</strong></a>
     </p>
 </main>
 

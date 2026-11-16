@@ -14,6 +14,20 @@ function e(mixed $value): string
 }
 
 /**
+ * Render a Lucide vector icon element with data-lucide attribute.
+ * Automatically instantiated into crisp inline SVG icons by Lucide.
+ */
+function icon(string $name, string $class = '', string $extraAttrs = ''): string
+{
+    $classes = 'lucide';
+    if ($class !== '') {
+        $classes .= ' ' . $class;
+    }
+    $attrs = $extraAttrs !== '' ? ' ' . $extraAttrs : '';
+    return '<i data-lucide="' . e($name) . '" class="' . e($classes) . '"' . $attrs . '></i>';
+}
+
+/**
  * Redirect cleanly and terminate execution.
  */
 function redirect(string $path): never
@@ -184,27 +198,27 @@ function get_preset_product_images(): array
 function get_nav_items(?array $user): array
 {
     $items = [
-        ['label' => 'Home', 'href' => 'index.php', 'match' => ['index.php']],
-        ['label' => 'Products', 'href' => 'pages/public/products.php', 'match' => ['products.php', 'product_details.php']],
-        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php']],
-        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'match' => ['contact.php']],
+        ['label' => 'Home', 'href' => 'index.php', 'icon' => 'home', 'match' => ['index.php']],
+        ['label' => 'Products', 'href' => 'pages/public/products.php', 'icon' => 'shopping-bag', 'match' => ['products.php', 'product_details.php']],
+        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'icon' => 'info', 'match' => ['about.php']],
+        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'icon' => 'mail', 'match' => ['contact.php']],
     ];
 
     if ($user !== null) {
-        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php']];
+        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'icon' => 'layout-dashboard', 'match' => ['dashboard.php']];
 
         if (in_array($user['role'], ['seller', 'admin'], true)) {
-            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php']];
+            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'icon' => 'package', 'match' => ['manage_products.php']];
         }
 
-        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php']];
+        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'icon' => 'receipt', 'match' => ['orders.php', 'checkout.php']];
 
         if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
-            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php']];
+            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'icon' => 'truck', 'match' => ['deliveries.php']];
         }
 
         if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
-            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php']];
+            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'icon' => 'bar-chart-2', 'match' => ['reports.php']];
         }
     }
 

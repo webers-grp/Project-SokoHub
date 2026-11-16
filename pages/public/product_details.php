@@ -35,7 +35,9 @@ require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <main class="container section-space">
-    <p class="small muted" style="margin-bottom: 1rem;">
+    <p class="small muted" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+        <?= icon('home', 'lucide-sm') ?>
+        <a href="<?= e(url('index.php')) ?>">Home</a> /
         <a href="<?= e(url('pages/public/products.php')) ?>">Products</a> /
         <a href="<?= e(url('pages/public/products.php?category=' . urlencode($product['category_slug']))) ?>"><?= e($product['category_name']) ?></a> /
         <span><?= e($product['name']) ?></span>
@@ -61,10 +63,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 <p style="margin-bottom: 1.25rem;"><?= e($product['description']) ?></p>
 
                 <div class="card" style="background: #f8fafc; margin-bottom: 1.25rem;">
-                    <strong>Seller Information</strong>
+                    <strong><?= icon('store', 'lucide-sm') ?> Seller Information</strong>
                     <p class="small muted" style="margin-top: 0.35rem;">
                         Vendor: <strong><?= e($product['business_name'] ?: $product['owner_name']) ?></strong><br>
-                        Location: <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?><br>
+                        Location: <?= icon('map-pin', 'lucide-sm') ?> <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?><br>
                         Availability:
                         <?php if ((int) $product['stock_qty'] > 0): ?>
                             <span class="badge badge-success"><?= (int) $product['stock_qty'] ?> units available</span>
@@ -85,7 +87,10 @@ require_once __DIR__ . '/../../includes/header.php';
                             <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" max="<?= (int) $product['stock_qty'] ?>" required>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Add to Shopping Cart</button>
+                        <button type="submit" class="btn btn-primary">
+                            <?= icon('shopping-cart') ?>
+                            <span>Add to Shopping Cart</span>
+                        </button>
                     </form>
                 <?php endif; ?>
             </div>

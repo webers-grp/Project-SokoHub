@@ -187,7 +187,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     <label for="terms" style="margin: 0;">I agree to the SokoHub Terms of Service and Seller Guidelines.</label>
                 </div>
 
-                <button type="submit" class="btn btn-amber btn-block">Register &amp; Start Selling</button>
+                <button type="submit" class="btn btn-amber btn-block">
+                    <?= icon('store') ?>
+                    <span>Register &amp; Start Selling</span>
+                </button>
             </form>
 
             <p class="small muted" style="margin-top: 1rem;">

@@ -140,7 +140,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1>Orders &amp; Fulfillment</h1>
             <p class="muted">Track marketplace purchases, payment states, and seller processing statuses.</p>
         </div>
-        <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">Shop More Products</a>
+        <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
+            <?= icon('shopping-bag') ?>
+            <span>Shop More Products</span>
+        </a>
     </div>
 
     <?php if (empty($orders)): ?>
@@ -203,7 +206,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="cancel">
                                         <input type="hidden" name="order_id" value="<?= (int) $ord['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel order <?= e($ord['order_code']) ?>?">Cancel</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel order <?= e($ord['order_code']) ?>?">
+                                            <?= icon('x-circle', 'lucide-sm') ?>
+                                            <span>Cancel</span>
+                                        </button>
                                     </form>
                                 <?php endif; ?>
 
@@ -217,7 +223,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 <option value="<?= $st ?>" <?= $ord['order_status'] === $st ? 'selected' : '' ?>><?= ucfirst($st) ?></option>
                                             <?php endforeach; ?>
                                         </select>
-                                        <button type="submit" class="btn btn-outline btn-sm">Set</button>
+                                        <button type="submit" class="btn btn-outline btn-sm">
+                                            <?= icon('check', 'lucide-sm') ?>
+                                            <span>Set</span>
+                                        </button>
                                     </form>
                                 <?php endif; ?>
                             </td>

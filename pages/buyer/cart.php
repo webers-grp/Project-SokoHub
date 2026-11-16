@@ -104,14 +104,21 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1>Your Shopping Cart</h1>
             <p class="muted">Review items before proceeding to secure checkout.</p>
         </div>
-        <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline">Continue Shopping</a>
+        <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline">
+            <?= icon('arrow-left', 'lucide-sm') ?>
+            <span>Continue Shopping</span>
+        </a>
     </div>
 
     <?php if (empty($cartItems)): ?>
         <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+            <div style="color: var(--amber-primary); margin-bottom: 0.75rem;"><?= icon('shopping-bag', 'lucide-xl') ?></div>
             <h2>Your cart is currently empty</h2>
             <p class="muted" style="margin: 0.6rem 0 1.4rem;">Explore fresh food, cooking gas, electronics, and clothing from local Kirinyaga vendors.</p>
-            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">Browse Marketplace</a>
+            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
+                <?= icon('shopping-bag') ?>
+                <span>Browse Marketplace</span>
+            </a>
         </div>
     <?php else: ?>
         <div class="card">
@@ -144,7 +151,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="action" value="update">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
                                     <input type="number" name="quantity" class="form-control" value="<?= (int) $item['cart_qty'] ?>" min="1" max="<?= (int) $item['stock_qty'] ?>" style="width:76px;">
-                                    <button type="submit" class="btn btn-outline btn-sm">Update</button>
+                                    <button type="submit" class="btn btn-outline btn-sm">
+                                        <?= icon('refresh-cw', 'lucide-sm') ?>
+                                        <span>Update</span>
+                                    </button>
                                 </form>
                             </td>
                             <td><strong><?= format_ksh($item['line_total']) ?></strong></td>
@@ -153,7 +163,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <?= icon('trash-2', 'lucide-sm') ?>
+                                        <span>Remove</span>
+                                    </button>
                                 </form>
                             </td>
                         </tr>
@@ -166,7 +179,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="clear">
-                    <button type="submit" class="btn btn-outline btn-sm" data-confirm="Clear all items from your cart?">Clear Cart</button>
+                    <button type="submit" class="btn btn-outline btn-sm" data-confirm="Clear all items from your cart?">
+                        <?= icon('trash', 'lucide-sm') ?>
+                        <span>Clear Cart</span>
+                    </button>
                 </form>
 
                 <div style="text-align:right;">
@@ -175,7 +191,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     <p style="font-size:1.3rem; margin:0.45rem 0 0.9rem;">
                         Estimated Total: <strong style="color:var(--green-dark);"><?= format_ksh($subtotal + $deliveryFee) ?></strong>
                     </p>
-                    <a href="<?= e(url('pages/buyer/checkout.php')) ?>" class="btn btn-amber">Proceed to Checkout &rarr;</a>
+                    <a href="<?= e(url('pages/buyer/checkout.php')) ?>" class="btn btn-amber">
+                        <span>Proceed to Checkout</span>
+                        <?= icon('arrow-right', 'lucide-sm') ?>
+                    </a>
                 </div>
             </div>
         </div>

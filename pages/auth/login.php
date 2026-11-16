@@ -87,20 +87,35 @@ require_once __DIR__ . '/../../includes/header.php';
                     <label for="remember_me" style="margin: 0;">Remember my email on this browser (Cookie)</label>
                 </div>
 
-                <button type="submit" class="btn btn-amber btn-block">Login to SokoHub</button>
+                <button type="submit" class="btn btn-amber btn-block">
+                    <?= icon('log-in') ?>
+                    <span>Login to SokoHub</span>
+                </button>
             </form>
 
             <p class="small muted" style="margin-top: 1rem;">
-                Don't have an account? <a href="<?= e(url('pages/auth/register.php')) ?>">Create one here</a>
+                Don't have an account? <a href="<?= e(url('pages/auth/register.php')) ?>"><?= icon('user-plus', 'lucide-sm') ?> Create one here</a>
             </p>
 
             <div class="demo-box">
-                <strong class="small">Quick Demo Accounts (Password: <code>SokoHub@2026</code>)</strong>
+                <strong class="small"><?= icon('key', 'lucide-sm') ?> Quick Demo Accounts (Password: <code>SokoHub@2026</code>)</strong>
                 <div class="demo-btns">
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">Buyer</button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">Seller</button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">Delivery</button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">Admin</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">
+                        <?= icon('shopping-bag', 'lucide-sm') ?>
+                        <span>Buyer</span>
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">
+                        <?= icon('store', 'lucide-sm') ?>
+                        <span>Seller</span>
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">
+                        <?= icon('truck', 'lucide-sm') ?>
+                        <span>Delivery</span>
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">
+                        <?= icon('shield-check', 'lucide-sm') ?>
+                        <span>Admin</span>
+                    </button>
                 </div>
             </div>
         </div>

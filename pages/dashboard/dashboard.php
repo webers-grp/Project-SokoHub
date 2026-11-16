@@ -25,10 +25,10 @@ if ($role === 'buyer') {
     $activeDelStmt->execute([':id' => $userId]);
 
     $kpis = [
-        ['label' => 'My Orders', 'value' => (int) $agg['cnt']],
-        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent'])],
-        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn()],
-        ['label' => 'Items in Cart', 'value' => cart_count()],
+        ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag'],
+        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet'],
+        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck'],
+        ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -58,10 +58,10 @@ if ($role === 'buyer') {
     $rev = $revStmt->fetch();
 
     $kpis = [
-        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn()],
-        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn()],
-        ['label' => 'Units Sold', 'value' => (int) $rev['units']],
-        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev'])],
+        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package'],
+        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn(), 'icon' => 'alert-triangle'],
+        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag'],
+        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -86,10 +86,10 @@ if ($role === 'buyer') {
     $done = $mineDone->fetch();
 
     $kpis = [
-        ['label' => 'Available Tasks', 'value' => $avail],
-        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn()],
-        ['label' => 'Completed Drops', 'value' => (int) $done['cnt']],
-        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees'])],
+        ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock'],
+        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation'],
+        ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle-2'],
+        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet'],
     ];
 
     $recStmt = $pdo->prepare(
@@ -104,10 +104,10 @@ if ($role === 'buyer') {
     $recentRows = $recStmt->fetchAll();
 } else { // admin
     $kpis = [
-        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn()],
-        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn()],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn())],
-        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn()],
+        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users'],
+        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package'],
+        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up'],
+        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail'],
     ];
 
     $recentRows = $pdo->query(
@@ -127,25 +127,52 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="container section-space">
     <div class="page-head">
         <div>
-            <span class="badge badge-primary"><?= e($roleLabels[$role] ?? ucfirst($role)) ?></span>
+            <span class="badge badge-primary"><?= icon('shield-check', 'lucide-sm') ?> <?= e($roleLabels[$role] ?? ucfirst($role)) ?></span>
             <h1 style="margin-top: 0.4rem;">Welcome, <?= e($user['full_name']) ?></h1>
             <p class="muted">Signed in as <strong><?= e($user['email']) ?></strong></p>
         </div>
 
         <div class="hero-cta">
             <?php if ($role === 'buyer'): ?>
-                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">Browse Products</a>
-                <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="btn btn-outline">My Orders</a>
+                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
+                    <?= icon('shopping-bag') ?>
+                    <span>Browse Products</span>
+                </a>
+                <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="btn btn-outline">
+                    <?= icon('receipt') ?>
+                    <span>My Orders</span>
+                </a>
             <?php elseif ($role === 'seller'): ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Products (CRUD)</a>
-                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">View Sales &amp; Stock Reports</a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                    <?= icon('package') ?>
+                    <span>Manage Products</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
+                    <?= icon('bar-chart-2') ?>
+                    <span>Sales &amp; Stock Reports</span>
+                </a>
             <?php elseif ($role === 'delivery'): ?>
-                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">Delivery Queue</a>
-                <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">Delivery Report</a>
+                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">
+                    <?= icon('truck') ?>
+                    <span>Delivery Queue</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
+                    <?= icon('file-text') ?>
+                    <span>Delivery Report</span>
+                </a>
             <?php else: ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Catalog</a>
-                <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">Support Inquiries</a>
-                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">System Reports</a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                    <?= icon('package') ?>
+                    <span>Manage Catalog</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">
+                    <?= icon('message-square') ?>
+                    <span>Support Inquiries</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
+                    <?= icon('bar-chart-3') ?>
+                    <span>System Reports</span>
+                </a>
             <?php endif; ?>
         </div>
     </div>
@@ -153,7 +180,12 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="stats-grid">
         <?php foreach ($kpis as $kpi): ?>
             <div class="stat-card">
-                <span class="stat-label"><?= e($kpi['label']) ?></span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <span class="stat-label"><?= e($kpi['label']) ?></span>
+                    <?php if (!empty($kpi['icon'])): ?>
+                        <span style="color: var(--green-primary); opacity: 0.85;"><?= icon($kpi['icon'], 'lucide-lg') ?></span>
+                    <?php endif; ?>
+                </div>
                 <strong class="stat-value"><?= e($kpi['value']) ?></strong>
             </div>
         <?php endforeach; ?>

@@ -40,7 +40,10 @@ $flash = get_flash();
                         <?php $isActive = in_array($currentScript, $item['match'], true); ?>
                         <li>
                             <a href="<?= e(url($item['href'])) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                                <?= e($item['label']) ?>
+                                <?php if (!empty($item['icon'])): ?>
+                                    <?= icon($item['icon'], 'lucide-sm') ?>
+                                <?php endif; ?>
+                                <span><?= e($item['label']) ?></span>
                             </a>
                         </li>
                     <?php endforeach; ?>
@@ -48,19 +51,30 @@ $flash = get_flash();
 
                 <div class="nav-actions">
                     <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="cart-pill" title="Shopping Cart">
+                        <?= icon('shopping-cart', 'lucide-sm') ?>
                         <span>Cart</span>
                         <span class="cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </a>
 
                     <?php if ($authUser !== null): ?>
                         <div class="user-pill">
+                            <?= icon('user', 'lucide-sm') ?>
                             <span class="user-name"><?= e(explode(' ', $authUser['full_name'])[0]) ?></span>
                             <span class="role-tag"><?= e(ucfirst($authUser['role'])) ?></span>
                         </div>
-                        <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">Logout</a>
+                        <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">
+                            <?= icon('log-out', 'lucide-sm') ?>
+                            <span>Logout</span>
+                        </a>
                     <?php else: ?>
-                        <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-amber btn-sm">Register</a>
-                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-light btn-sm">Sign In</a>
+                        <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-amber btn-sm">
+                            <?= icon('user-plus', 'lucide-sm') ?>
+                            <span>Register</span>
+                        </a>
+                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-light btn-sm">
+                            <?= icon('log-in', 'lucide-sm') ?>
+                            <span>Sign In</span>
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -69,9 +83,18 @@ $flash = get_flash();
 </header>
 
 <?php if ($flash !== null): ?>
+    <?php
+    $alertIcon = match ($flash['type'] ?? 'info') {
+        'success' => 'check-circle-2',
+        'danger', 'error' => 'alert-circle',
+        'warning' => 'alert-triangle',
+        default => 'info',
+    };
+    ?>
     <div class="container flash-wrap">
-        <div class="alert alert-<?= e($flash['type']) ?>" role="alert">
-            <span><?= e($flash['message']) ?></span>
+        <div class="alert alert-<?= e($flash['type']) ?>" role="alert" style="display: flex; align-items: center; gap: 0.6rem;">
+            <?= icon($alertIcon) ?>
+            <span style="flex: 1;"><?= e($flash['message']) ?></span>
             <button type="button" class="alert-close" aria-label="Dismiss">&times;</button>
         </div>
     </div>

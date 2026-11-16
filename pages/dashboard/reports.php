@@ -272,16 +272,34 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Real-time MySQL summaries, charts, and CSV exports across sales, stock, deliveries, and vendors.</p>
         </div>
         <div class="hero-cta no-print">
-            <a href="<?= e(url('pages/dashboard/reports.php?' . http_build_query(['type' => $reportType, 'start_date' => $startDate, 'end_date' => $endDate, 'category_id' => $categoryFilter, 'export' => 'csv']))) ?>" class="btn btn-amber">Export CSV</a>
-            <button type="button" onclick="window.print()" class="btn btn-outline">Print Report</button>
+            <a href="<?= e(url('pages/dashboard/reports.php?' . http_build_query(['type' => $reportType, 'start_date' => $startDate, 'end_date' => $endDate, 'category_id' => $categoryFilter, 'export' => 'csv']))) ?>" class="btn btn-amber">
+                <?= icon('download') ?>
+                <span>Export CSV</span>
+            </a>
+            <button type="button" onclick="window.print()" class="btn btn-outline">
+                <?= icon('printer') ?>
+                <span>Print Report</span>
+            </button>
         </div>
     </div>
 
     <div class="report-tabs no-print">
-        <a href="<?= e(url('pages/dashboard/reports.php?type=sales')) ?>" class="report-tab <?= $reportType === 'sales' ? 'active' : '' ?>">1. Sales &amp; Revenue</a>
-        <a href="<?= e(url('pages/dashboard/reports.php?type=inventory')) ?>" class="report-tab <?= $reportType === 'inventory' ? 'active' : '' ?>">2. Inventory &amp; Stock Alerts</a>
-        <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="report-tab <?= $reportType === 'deliveries' ? 'active' : '' ?>">3. Delivery Performance</a>
-        <a href="<?= e(url('pages/dashboard/reports.php?type=vendors')) ?>" class="report-tab <?= $reportType === 'vendors' ? 'active' : '' ?>">4. Users &amp; Top Vendors</a>
+        <a href="<?= e(url('pages/dashboard/reports.php?type=sales')) ?>" class="report-tab <?= $reportType === 'sales' ? 'active' : '' ?>">
+            <?= icon('trending-up', 'lucide-sm') ?>
+            <span>1. Sales &amp; Revenue</span>
+        </a>
+        <a href="<?= e(url('pages/dashboard/reports.php?type=inventory')) ?>" class="report-tab <?= $reportType === 'inventory' ? 'active' : '' ?>">
+            <?= icon('package', 'lucide-sm') ?>
+            <span>2. Inventory &amp; Stock Alerts</span>
+        </a>
+        <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="report-tab <?= $reportType === 'deliveries' ? 'active' : '' ?>">
+            <?= icon('truck', 'lucide-sm') ?>
+            <span>3. Delivery Performance</span>
+        </a>
+        <a href="<?= e(url('pages/dashboard/reports.php?type=vendors')) ?>" class="report-tab <?= $reportType === 'vendors' ? 'active' : '' ?>">
+            <?= icon('users', 'lucide-sm') ?>
+            <span>4. Users &amp; Top Vendors</span>
+        </a>
     </div>
 
     <?php if ($reportType === 'sales'): ?>

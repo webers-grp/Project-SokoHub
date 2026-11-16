@@ -292,7 +292,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 <label for="is_featured" style="margin: 0;">Feature this product on the SokoHub Home Page</label>
             </div>
 
-            <button type="submit" class="btn btn-primary"><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></button>
+            <button type="submit" class="btn btn-primary">
+                <?= icon($editingProduct ? 'save' : 'plus-circle') ?>
+                <span><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></span>
+            </button>
         </form>
     </div>
 
@@ -301,7 +304,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <h2>Current Listings (<?= count($myProducts) ?>)</h2>
             <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
                 <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:220px;">
-                <button type="submit" class="btn btn-outline btn-sm">Search</button>
+                <button type="submit" class="btn btn-outline btn-sm">
+                    <?= icon('search', 'lucide-sm') ?>
+                    <span>Search</span>
+                </button>
             </form>
         </div>
 
@@ -345,12 +351,18 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td><?= e($prod['condition_type']) ?></td>
                             <td>
                                 <div style="display:flex; gap:0.4rem;">
-                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm">Edit</a>
+                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm">
+                                        <?= icon('edit-3', 'lucide-sm') ?>
+                                        <span>Edit</span>
+                                    </a>
                                     <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete product '<?= e($prod['name']) ?>'?">Delete</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete product '<?= e($prod['name']) ?>'?">
+                                            <?= icon('trash-2', 'lucide-sm') ?>
+                                            <span>Delete</span>
+                                        </button>
                                     </form>
                                 </div>
                             </td>

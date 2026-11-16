@@ -121,7 +121,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Coordinate pickup, transit progress, and proof of completion.</p>
         </div>
         <?php if (in_array($role, ['delivery', 'admin'], true)): ?>
-            <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">Delivery Performance Report</a>
+            <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
+                <?= icon('file-text') ?>
+                <span>Delivery Performance Report</span>
+            </a>
         <?php endif; ?>
     </div>
 
@@ -168,7 +171,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="claim">
                                             <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
-                                            <button type="submit" class="btn btn-primary btn-sm">Claim Task</button>
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <?= icon('hand', 'lucide-sm') ?>
+                                                <span>Claim Task</span>
+                                            </button>
                                         </form>
                                     <?php elseif ($role === 'admin' || (int) $del['delivery_person_id'] === $userId): ?>
                                         <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display:flex; flex-direction:column; gap:0.35rem; min-width:190px;">
@@ -183,7 +189,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 <?php endforeach; ?>
                                             </select>
                                             <input type="text" name="tracking_notes" class="form-control" style="padding:0.28rem 0.45rem; font-size:0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Update note...">
-                                            <button type="submit" class="btn btn-amber btn-sm">Update</button>
+                                            <button type="submit" class="btn btn-amber btn-sm">
+                                                <?= icon('check', 'lucide-sm') ?>
+                                                <span>Update</span>
+                                            </button>
                                         </form>
                                     <?php else: ?>
                                         <span class="small muted">Assigned to another rider</span>
