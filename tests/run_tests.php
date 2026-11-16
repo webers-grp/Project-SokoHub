@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/audit.php';
+require_once __DIR__ . '/../includes/kyc.php';
 
 $passed = 0;
 $failed = 0;
@@ -148,6 +149,13 @@ assert_true($auditRecorded === true, 'TC-08a: Audit::record() writes system even
 $auditLogs = Audit::getLogs(['action' => 'test.audit_event'], 5);
 assert_true(!empty($auditLogs) && (int) $auditLogs[0]['entity_id'] === 9999, 'TC-08b: Audit::getLogs() retrieves recorded event and details');
 $pdo->prepare("DELETE FROM audit_logs WHERE action = 'test.audit_event'")->execute();
+
+// 9. Seller KYC & Verification (Kennedy's Feature 2)
+Kyc::ensureSchema();
+$kycSellerId = 2; // Seed seller user ID
+$approveOk = Kyc::updateSellerStatus($kycSellerId, 'approved', 1);
+assert_true($approveOk === true, 'TC-09a: Kyc::updateSellerStatus() approves merchant and logs audit');
+assert_true(Kyc::isSellerApproved($kycSellerId) === true, 'TC-09b: Kyc::isSellerApproved() validates verified merchant');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

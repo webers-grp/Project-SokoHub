@@ -139,13 +139,14 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php elseif ($role === 'seller'): ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Products (CRUD)</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">View Sales &amp; Stock Reports</a>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">Verification &amp; KYC</a>
             <?php elseif ($role === 'delivery'): ?>
                 <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">Delivery Queue</a>
                 <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">Delivery Report</a>
             <?php else: ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Catalog</a>
-                <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">Support Inquiries</a>
-                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">System Reports</a>
+                <a href="<?= e(url('pages/dashboard/seller_verification.php')) ?>" class="btn btn-amber">Seller KYC Queue</a>
+                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-outline">System Reports</a>
                 <a href="<?= e(url('pages/dashboard/audit_logs.php')) ?>" class="btn btn-outline" style="border-color: #6366f1; color: #6366f1;">Audit Logs</a>
             <?php endif; ?>
         </div>

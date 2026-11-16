@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/audit.php';
+require_once __DIR__ . '/../../includes/kyc.php';
 init_session();
 $user = require_role(['seller', 'admin']);
 $pdo = get_db_connection();
@@ -207,6 +208,24 @@ require_once __DIR__ . '/../../includes/header.php';
             <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
         <?php endif; ?>
     </div>
+
+    <?php if (!$isAdmin): 
+        $sellerKycStatus = Kyc::getSellerProfile($userId)['verification_status'] ?? 'pending';
+    ?>
+        <?php if ($sellerKycStatus !== 'approved'): ?>
+            <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <strong style="color: #92400e; font-size: 1rem;">⚠️ Merchant Verification Required</strong>
+                        <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
+                            Your store is currently <strong><?= e(ucfirst($sellerKycStatus)) ?></strong>. Upload your National ID or Business Permit to activate your store and display your items to buyers.
+                        </p>
+                    </div>
+                    <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">Complete KYC Verification &rarr;</a>
+                </div>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
 
     <div class="card">
         <h2 style="margin-bottom: 1rem; color: var(--green-dark);">
