@@ -75,7 +75,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Upload your official National ID and M-Pesa payment details to verify your account.</p>
         </div>
         <div class="header-actions">
-            <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">&larr; Back to Dashboard</a>
+            <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">
+                <?= icon('arrow-left', 'lucide-xs') ?>
+                <span>Back to Dashboard</span>
+            </a>
         </div>
     </div>
 
@@ -86,20 +89,30 @@ require_once __DIR__ . '/../../includes/header.php';
                 <span class="muted" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Account Verification Status</span>
                 <div style="margin-top: 0.25rem; display: flex; align-items: center; gap: 0.75rem;">
                     <?php if ($currentStatus === 'approved'): ?>
-                        <span class="badge badge-success" style="font-size: 1rem; padding: 0.4rem 0.8rem;">
-                            <?= $role === 'delivery' ? 'Verified Delivery Rider &check;' : 'Verified Merchant &check;' ?>
+                        <span class="badge badge-success" style="font-size: 0.95rem; padding: 0.35rem 0.75rem;">
+                            <?= icon('shield-check', 'lucide-xs', 'white') ?>
+                            <span><?= $role === 'delivery' ? 'Verified Delivery Rider' : 'Verified Merchant' ?></span>
                         </span>
                         <span style="font-size: 0.95rem; color: #10b981; font-weight: 600;">
                             Your account is fully verified! You can publish products and process orders.
                         </span>
                     <?php elseif ($currentStatus === 'rejected'): ?>
-                        <span class="badge badge-danger" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Verification Rejected &cross;</span>
+                        <span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.35rem 0.75rem;">
+                            <?= icon('alert-circle', 'lucide-xs', 'white') ?>
+                            <span>Verification Rejected</span>
+                        </span>
                         <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Please review the administrator notes below and resubmit clear documents.</span>
                     <?php elseif ($currentStatus === 'suspended'): ?>
-                        <span class="badge badge-danger" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Account Suspended</span>
+                        <span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.35rem 0.75rem;">
+                            <?= icon('x-circle', 'lucide-xs', 'white') ?>
+                            <span>Account Suspended</span>
+                        </span>
                         <span style="font-size: 0.95rem; color: #ef4444; font-weight: 600;">Contact platform administration for compliance reactivation.</span>
                     <?php else: ?>
-                        <span class="badge badge-amber" style="font-size: 1rem; padding: 0.4rem 0.8rem;">Pending Admin Review &bull;</span>
+                        <span class="badge badge-amber" style="font-size: 0.95rem; padding: 0.35rem 0.75rem;">
+                            <?= icon('clock', 'lucide-xs', 'white') ?>
+                            <span>Pending Admin Review</span>
+                        </span>
                         <span style="font-size: 0.95rem; color: #b45309; font-weight: 600;">Your credentials and documents are currently in the administrator review queue.</span>
                     <?php endif; ?>
                 </div>
@@ -107,7 +120,8 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <?php if ($currentStatus === 'approved'): ?>
                 <a href="<?= e(url($role === 'delivery' ? 'pages/dashboard/deliveries.php' : 'pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
-                    <?= $role === 'delivery' ? 'Go to Delivery Queue &rarr;' : 'Go to Product Catalog &rarr;' ?>
+                    <?= $role === 'delivery' ? icon('truck', 'lucide-xs') : icon('package', 'lucide-xs') ?>
+                    <span><?= $role === 'delivery' ? 'Go to Delivery Queue' : 'Go to Product Catalog' ?></span>
                 </a>
             <?php endif; ?>
         </div>
@@ -179,13 +193,19 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div id="fileTypeWarning" style="display: none; color: #ef4444; font-size: 0.85rem; margin-top: 0.35rem; font-weight: 600;"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">Save Details &amp; Upload Document</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">
+                    <?= icon('upload', 'lucide-xs') ?>
+                    <span>Save Details &amp; Upload Document</span>
+                </button>
             </form>
         </div>
 
         <!-- Right: Requirements Guide & Benefits -->
         <div class="card" style="background: #f8fafc; height: fit-content;">
-            <h2 style="margin-bottom: 0.75rem;">Verification Guidelines</h2>
+            <h2 style="margin-bottom: 0.75rem;">
+                <?= icon('shield-check', 'lucide-sm', 'emerald') ?>
+                <span>Verification Guidelines</span>
+            </h2>
             <ul style="padding-left: 1.25rem; line-height: 1.8; color: #475569; font-size: 0.9rem;">
                 <li><strong>Why KYC is Mandatory:</strong> SokoHub enforces strict trust and safety. Both sellers and delivery riders must have a verified government identity to prevent scams and ensure accountability.</li>
                 <li><strong>M-Pesa Verification:</strong> Double-check your phone number. All customer order earnings and delivery commissions are disbursed to your registered M-Pesa line.</li>
@@ -198,7 +218,10 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Submitted Documents History -->
     <div class="card" style="margin-top: 2rem;">
         <div class="section-heading" style="margin-bottom: 1rem;">
-            <h2>Submitted Documents History</h2>
+            <h2>
+                <?= icon('file-text', 'lucide-sm', 'blue') ?>
+                <span>Submitted Documents History</span>
+            </h2>
             <span class="muted"><?= count($documents) ?> document(s) uploaded</span>
         </div>
 
@@ -244,7 +267,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </td>
                                 <td style="padding: 0.75rem;">
                                     <a href="<?= e(url($doc['file_path'])) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                                        &boxbox; View <?= $isPdf ? 'PDF' : 'Image' ?>
+                                        <?= icon('eye', 'lucide-xs', 'blue') ?>
+                                        <span>View <?= $isPdf ? 'PDF' : 'Image' ?></span>
                                     </a>
                                 </td>
                                 <td style="padding: 0.75rem; font-size: 0.85rem;" class="muted">
@@ -252,11 +276,20 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </td>
                                 <td style="padding: 0.75rem;">
                                     <?php if ($doc['review_status'] === 'accepted'): ?>
-                                        <span class="badge badge-success">Accepted &check;</span>
+                                        <span class="badge badge-success">
+                                            <?= icon('check-circle', 'lucide-xs') ?>
+                                            <span>Accepted</span>
+                                        </span>
                                     <?php elseif ($doc['review_status'] === 'rejected'): ?>
-                                        <span class="badge badge-danger">Rejected &cross;</span>
+                                        <span class="badge badge-danger">
+                                            <?= icon('x-circle', 'lucide-xs') ?>
+                                            <span>Rejected</span>
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge badge-amber">Under Review &bull;</span>
+                                        <span class="badge badge-amber">
+                                            <?= icon('clock', 'lucide-xs') ?>
+                                            <span>Under Review</span>
+                                        </span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

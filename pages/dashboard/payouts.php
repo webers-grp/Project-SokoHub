@@ -281,10 +281,19 @@ if (in_array($viewAction, ['statement', 'view'], true) && !empty($_GET['id'])) {
 
     <main class="container section-space">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;" class="no-print">
-            <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline btn-sm">&larr; Back to Payouts List</a>
+            <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline btn-sm">
+                <?= icon('arrow-left', 'lucide-xs') ?>
+                <span>Back to Payouts List</span>
+            </a>
             <div style="display: flex; gap: 0.5rem;">
-                <button type="button" class="btn btn-primary btn-sm" onclick="window.print();">🖨️ Print Payout Voucher</button>
-                <a href="<?= e(url('pages/dashboard/payouts.php?export=csv')) ?>" class="btn btn-amber btn-sm">Export Payroll CSV</a>
+                <button type="button" class="btn btn-primary btn-sm" onclick="window.print();">
+                    <?= icon('printer', 'lucide-xs') ?>
+                    <span>Print Payout Voucher</span>
+                </button>
+                <a href="<?= e(url('pages/dashboard/payouts.php?export=csv')) ?>" class="btn btn-amber btn-sm">
+                    <?= icon('download', 'lucide-xs') ?>
+                    <span>Export Payroll CSV</span>
+                </a>
             </div>
         </div>
 
@@ -482,7 +491,10 @@ if (in_array($viewAction, ['statement', 'view'], true) && !empty($_GET['id'])) {
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="action" value="approve">
                                 <input type="hidden" name="payout_id" value="<?= (int) $payout['id'] ?>">
-                                <button type="submit" class="btn btn-primary btn-sm">&check; Approve Statement</button>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <?= icon('check', 'lucide-xs') ?>
+                                    <span>Approve Statement</span>
+                                </button>
                             </form>
                         <?php endif; ?>
 
@@ -492,7 +504,8 @@ if (in_array($viewAction, ['statement', 'view'], true) && !empty($_GET['id'])) {
                             <input type="hidden" name="payout_id" value="<?= (int) $payout['id'] ?>">
                             <input type="text" name="mpesa_reference" placeholder="e.g. QJD782394A" class="form-control" style="font-family: monospace; font-size: 0.85rem; text-transform: uppercase; width: 180px; padding: 0.35rem 0.6rem;" required>
                             <button type="submit" class="btn btn-amber btn-sm" onclick="return confirm('Confirm disbursement of KES <?= number_format((float) $payout['net_amount'], 2) ?> via Safaricom M-Pesa?');">
-                                💸 Confirm M-Pesa Disbursal
+                                <?= icon('send', 'lucide-xs') ?>
+                                <span>Confirm M-Pesa Disbursal</span>
                             </button>
                         </form>
                     </div>
@@ -537,7 +550,8 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="page-head" style="margin-bottom: 2rem;">
         <div>
             <h1 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin: 0;">
-                <?= $isAdmin ? 'Seller Monthly Payouts &amp; Payroll' : 'My Earnings &amp; Monthly Statements' ?>
+                <?= icon('wallet', 'lucide-md', 'emerald') ?>
+                <span><?= $isAdmin ? 'Seller Monthly Payouts &amp; Payroll' : 'My Earnings &amp; Monthly Statements' ?></span>
             </h1>
             <p style="color: #64748b; font-size: 0.95rem; margin-top: 0.25rem;">
                 <?= $isAdmin 
@@ -551,7 +565,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 <!-- Monthly Statement Generator Popover -->
                 <details style="position: relative; display: inline-block;">
                     <summary class="btn btn-primary" style="cursor: pointer;">
-                        ⚡ Generate Monthly Statements
+                        <?= icon('refresh-cw', 'lucide-xs') ?>
+                        <span>Generate Monthly Statements</span>
                     </summary>
                     <div style="position: absolute; right: 0; z-index: 100; background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1.25rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); width: 320px; text-align: left;">
                         <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #1e293b;">Generate Monthly Payouts</h4>
@@ -568,7 +583,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <input type="month" name="payout_month" value="<?= e($defaultGenMonth) ?>" class="form-control" style="font-size: 0.85rem; margin-bottom: 1rem; width: 100%;" required>
 
                             <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
-                                Calculate &amp; Generate Drafts &rarr;
+                                <span>Calculate &amp; Generate Drafts</span>
+                                <?= icon('arrow-right', 'lucide-xs') ?>
                             </button>
                         </form>
                     </div>
@@ -576,7 +592,8 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php endif; ?>
 
             <a href="<?= e(url('pages/dashboard/payouts.php?' . http_build_query(array_merge($_GET, ['export' => 'csv'])))) ?>" class="btn btn-amber">
-                📥 Export CSV Payroll
+                <?= icon('download', 'lucide-xs') ?>
+                <span>Export CSV Payroll</span>
             </a>
         </div>
     </div>
@@ -584,8 +601,11 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Summary Metrics Cards -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
         <div class="card" style="padding: 1.25rem; border-left: 5px solid #27b327;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
-                Gross Delivered Sales
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                    Gross Delivered Sales
+                </div>
+                <span class="stat-icon-wrap stat-icon-emerald"><?= icon('shopping-bag', 'lucide-xs') ?></span>
             </div>
             <div style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin-top: 0.35rem;">
                 KES <?= number_format($summary['total_gross'], 2) ?>
@@ -597,8 +617,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <?php if ($isAdmin): ?>
             <div class="card" style="padding: 1.25rem; border-left: 5px solid #6366f1;">
-                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
-                    10% Platform Commission
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                        10% Platform Commission
+                    </div>
+                    <span class="stat-icon-wrap stat-icon-purple"><?= icon('receipt', 'lucide-xs') ?></span>
                 </div>
                 <div style="font-size: 1.6rem; font-weight: 800; color: #4338ca; margin-top: 0.35rem;">
                     KES <?= number_format($summary['total_fees'], 2) ?>
@@ -609,8 +632,11 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
         <?php else: ?>
             <div class="card" style="padding: 1.25rem; border-left: 5px solid #f59e0b;">
-                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
-                    Platform Fees (10%)
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                        Platform Fees (10%)
+                    </div>
+                    <span class="stat-icon-wrap stat-icon-amber"><?= icon('receipt', 'lucide-xs') ?></span>
                 </div>
                 <div style="font-size: 1.6rem; font-weight: 800; color: #b45309; margin-top: 0.35rem;">
                     KES <?= number_format($summary['total_fees'], 2) ?>
@@ -622,8 +648,11 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
 
         <div class="card" style="padding: 1.25rem; border-left: 5px solid #10b981;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
-                Total Disbursed (Paid)
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                    Total Disbursed (Paid)
+                </div>
+                <span class="stat-icon-wrap stat-icon-emerald"><?= icon('check-circle', 'lucide-xs') ?></span>
             </div>
             <div style="font-size: 1.6rem; font-weight: 800; color: #047857; margin-top: 0.35rem;">
                 KES <?= number_format($summary['total_paid'], 2) ?>
@@ -634,8 +663,11 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <div class="card" style="padding: 1.25rem; border-left: 5px solid #eab308;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
-                Pending Settlement
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                    Pending Settlement
+                </div>
+                <span class="stat-icon-wrap stat-icon-amber"><?= icon('clock', 'lucide-xs') ?></span>
             </div>
             <div style="font-size: 1.6rem; font-weight: 800; color: #854d0e; margin-top: 0.35rem;">
                 KES <?= number_format($summary['total_pending'], 2) ?>
@@ -644,6 +676,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <?= $summary['count_draft'] ?> Drafts &bull; <?= $summary['count_approved'] ?> Approved
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Filter & Search Controls -->

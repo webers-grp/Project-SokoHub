@@ -357,7 +357,8 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="page-head" style="margin-bottom: 1.5rem;">
         <div>
             <h1 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin: 0;">
-                Multi-Product Management &amp; Bulk Engine
+                <?= icon('file-spreadsheet', 'lucide-md', 'emerald') ?>
+                <span>Multi-Product Management &amp; Bulk Engine</span>
             </h1>
             <p style="color: #64748b; font-size: 0.95rem; margin-top: 0.25rem;">
                 Add multiple products using the live spreadsheet grid, upload CSV files, or edit your existing catalog in bulk.
@@ -365,7 +366,8 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline btn-sm">
-                Individual Product CRUD &rarr;
+                <?= icon('package', 'lucide-xs') ?>
+                <span>Individual Product CRUD</span>
             </a>
         </div>
     </div>
@@ -375,12 +377,18 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb; padding: 1.25rem 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <strong style="color: #92400e; font-size: 1rem;">⚠️ Merchant KYC Verification Required</strong>
+                    <strong style="color: #92400e; font-size: 1rem;">
+                        <?= icon('shield-alert', 'lucide-xs', 'amber') ?>
+                        <span>Merchant KYC Verification Required</span>
+                    </strong>
                     <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
                         Your seller account must have an approved National ID and verified Safaricom M-Pesa line before publishing bulk products to the live marketplace.
                     </p>
                 </div>
-                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">Complete KYC Verification &rarr;</a>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">
+                    <?= icon('shield-check', 'lucide-xs') ?>
+                    <span>Complete KYC Verification</span>
+                </a>
             </div>
         </div>
     <?php endif; ?>
@@ -388,13 +396,16 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Navigation Tabs -->
     <div class="tab-nav">
         <a href="?tab=grid" class="tab-btn <?= $activeTab === 'grid' ? 'active' : '' ?>">
-            <span>📋</span> Interactive Spreadsheet Grid (Add Multiple)
+            <?= icon('file-spreadsheet', 'lucide-xs', 'emerald') ?>
+            <span>Interactive Spreadsheet Grid (Add Multiple)</span>
         </a>
         <a href="?tab=csv" class="tab-btn <?= $activeTab === 'csv' ? 'active' : '' ?>">
-            <span>📤</span> Upload CSV File
+            <?= icon('upload', 'lucide-xs', 'blue') ?>
+            <span>Upload CSV File</span>
         </a>
         <a href="?tab=editor" class="tab-btn <?= $activeTab === 'editor' ? 'active' : '' ?>">
-            <span>✏️</span> Bulk Inventory Editor (<?= count($existingProducts) ?> Items)
+            <?= icon('edit-3', 'lucide-xs', 'amber') ?>
+            <span>Bulk Inventory Editor (<?= count($existingProducts) ?> Items)</span>
         </a>
     </div>
 
@@ -414,13 +425,16 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <button type="button" class="btn btn-outline btn-sm" onclick="addGridRow();">
-                        + Add 1 Row
+                        <?= icon('plus', 'lucide-xs') ?>
+                        <span>Add 1 Row</span>
                     </button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="addMultipleRows(5);">
-                        + Add 5 Rows
+                        <?= icon('plus', 'lucide-xs') ?>
+                        <span>Add 5 Rows</span>
                     </button>
                     <button type="button" class="btn btn-amber btn-sm" onclick="fillSampleData();">
-                        ✨ Fill Sample Demo Products
+                        <?= icon('sparkles', 'lucide-xs') ?>
+                        <span>Fill Sample Demo Products</span>
                     </button>
                 </div>
             </div>

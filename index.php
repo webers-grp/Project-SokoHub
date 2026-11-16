@@ -47,8 +47,14 @@ require_once __DIR__ . '/includes/header.php';
             <h1>Shop Local, Sell Smarter &amp; Deliver Faster with SokoHub</h1>
             <p>SokoHub connects small and medium local vendors, customers, and verified delivery riders in one secure marketplace — from fresh organic produce and cooking gas to electronics and apparel.</p>
             <div class="hero-cta">
-                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber">Explore Marketplace</a>
-                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light">Create Free Account</a>
+                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber">
+                    <?= icon('shopping-bag') ?>
+                    <span>Explore Marketplace</span>
+                </a>
+                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light">
+                    <?= icon('user-plus') ?>
+                    <span>Create Free Account</span>
+                </a>
             </div>
         </div>
 
@@ -80,13 +86,17 @@ require_once __DIR__ . '/includes/header.php';
     <?php if (!empty($recentAlerts)): ?>
         <div style="margin-bottom: 2rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                <span class="badge badge-success" style="font-size: 0.75rem; text-transform: uppercase;">🔔 Marketplace Live</span>
+                <span class="badge badge-success" style="font-size: 0.75rem; text-transform: uppercase;">
+                    <?= icon('bell', 'lucide-xs', 'white') ?>
+                    <span>Marketplace Live</span>
+                </span>
                 <span style="font-size: 0.9rem; color: #166534;">
                     <strong><?= e($recentAlerts[0]['title']) ?></strong> &mdash; <?= e($recentAlerts[0]['message']) ?>
                 </span>
             </div>
             <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-outline btn-sm" style="font-size: 0.75rem; border-color: #16a34a; color: #166534;">
-                View All Alerts &rarr;
+                <span>View All Alerts</span>
+                <?= icon('arrow-right', 'lucide-xs') ?>
             </a>
         </div>
     <?php endif; ?>
@@ -94,7 +104,10 @@ require_once __DIR__ . '/includes/header.php';
     <section>
         <div class="section-heading">
             <h2>Browse by Category</h2>
-            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-sm">View Full Catalog &rarr;</a>
+            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-sm">
+                <span>View Full Catalog</span>
+                <?= icon('arrow-right', 'lucide-sm') ?>
+            </a>
         </div>
         <div class="category-strip">
             <a href="<?= e(url('pages/public/products.php')) ?>" class="cat-chip active">All Categories</a>
@@ -145,13 +158,19 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php endif; ?>
                             </div>
                             <div class="product-actions">
-                                <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">Details</a>
+                                <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
+                                    <?= icon('eye', 'lucide-xs', 'blue') ?>
+                                    <span>Details</span>
+                                </a>
                                 <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="flex:1;">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="add">
                                     <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                                     <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn-primary btn-sm btn-block">Add to Cart</button>
+                                    <button type="submit" class="btn btn-primary btn-sm btn-block">
+                                        <?= icon('shopping-cart', 'lucide-xs', 'gold') ?>
+                                        <span>Add to Cart</span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -167,14 +186,17 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="prop-grid">
             <div class="prop-item">
+                <div class="prop-icon-wrap prop-icon-green"><?= icon('truck', 'lucide-md') ?></div>
                 <h3>Instant Local Delivery</h3>
                 <p>Dedicated motorbike, bicycle, and van riders pick up directly from local merchants and update real-time order statuses.</p>
             </div>
             <div class="prop-item">
+                <div class="prop-icon-wrap prop-icon-amber"><?= icon('credit-card', 'lucide-md') ?></div>
                 <h3>Flexible Payments</h3>
                 <p>Checkout smoothly using M-Pesa, Cash on Delivery, or Bank Card with clear order receipts and tracking codes.</p>
             </div>
             <div class="prop-item">
+                <div class="prop-icon-wrap prop-icon-blue"><?= icon('store', 'lucide-md') ?></div>
                 <h3>Empowered Local MSMEs</h3>
                 <p>Vendors manage inventory, pricing, stock alerts, and revenue reports from one clean web dashboard.</p>
             </div>

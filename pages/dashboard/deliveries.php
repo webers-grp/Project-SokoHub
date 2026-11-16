@@ -193,11 +193,15 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="action" value="claim">
                                                 <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
-                                                <button type="submit" class="btn btn-primary btn-sm">Claim Task</button>
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <?= icon('hand', 'lucide-xs') ?>
+                                                    <span>Claim Task</span>
+                                                </button>
                                             </form>
                                         <?php else: ?>
                                             <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline btn-sm" style="color: #b45309; border-color: #f59e0b; font-size: 0.75rem;" title="Upload National ID and M-Pesa to claim orders">
-                                                KYC Required &rarr;
+                                                <?= icon('shield-alert', 'lucide-xs', 'amber') ?>
+                                                <span>KYC Required</span>
                                             </a>
                                         <?php endif; ?>
                                     <?php elseif ($role === 'admin' || (int) $del['delivery_person_id'] === $userId): ?>
@@ -213,7 +217,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 <?php endforeach; ?>
                                             </select>
                                             <input type="text" name="tracking_notes" class="form-control" style="padding:0.28rem 0.45rem; font-size:0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Update note...">
-                                            <button type="submit" class="btn btn-amber btn-sm">Update</button>
+                                            <button type="submit" class="btn btn-amber btn-sm">
+                                                <?= icon('save', 'lucide-xs') ?>
+                                                <span>Update</span>
+                                            </button>
                                         </form>
                                     <?php else: ?>
                                         <span class="small muted">Assigned to another rider</span>

@@ -52,7 +52,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="container section-space">
     <div class="page-head">
         <div>
-            <h1>Marketplace Announcements &amp; Restock Alerts</h1>
+            <h1><?= icon('bell', 'lucide-md', 'amber') ?> <span>Marketplace Announcements &amp; Restock Alerts</span></h1>
             <p class="muted">Real-time alerts whenever new verified merchants join or your favorite products are back in stock.</p>
         </div>
 
@@ -62,18 +62,25 @@ require_once __DIR__ . '/../../includes/header.php';
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="mark_all_read">
                     <button type="submit" class="btn btn-outline btn-sm">
-                        &check; Mark All as Read (<?= $unreadCount ?>)
+                        <?= icon('check', 'lucide-xs') ?>
+                        <span>Mark All as Read (<?= $unreadCount ?>)</span>
                     </button>
                 </form>
             <?php endif; ?>
-            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary btn-sm">Browse All Products &rarr;</a>
+            <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary btn-sm">
+                <?= icon('shopping-bag', 'lucide-xs') ?>
+                <span>Browse All Products</span>
+            </a>
         </div>
     </div>
 
     <!-- Metrics Cards -->
     <div class="stats-grid" style="margin-bottom: 2rem;">
         <div class="stat-card">
-            <span class="stat-label">Unread Alerts</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Unread Alerts</span>
+                <span class="stat-icon-wrap <?= $unreadCount > 0 ? 'stat-icon-rose' : 'stat-icon-emerald' ?>"><?= icon('bell', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: <?= $unreadCount > 0 ? '#ef4444' : '#10b981' ?>;">
                 <?= $unreadCount ?>
             </strong>
@@ -82,17 +89,26 @@ require_once __DIR__ . '/../../includes/header.php';
             </span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">Restocked Items</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Restocked Items</span>
+                <span class="stat-icon-wrap stat-icon-amber"><?= icon('refresh-cw', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: #b45309;"><?= $restockCount ?></strong>
             <span class="badge badge-amber">Back in Inventory</span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">New Sellers Joined</span>
-            <strong class="stat-value" style="color: #6366f1;"><?= $sellerCount ?></strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">New Sellers Joined</span>
+                <span class="stat-icon-wrap stat-icon-cyan"><?= icon('store', 'lucide-xs') ?></span>
+            </div>
+            <strong class="stat-value" style="color: #0891b2;"><?= $sellerCount ?></strong>
             <span class="badge badge-primary">Verified Stores</span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">Fresh Arrivals</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Fresh Arrivals</span>
+                <span class="stat-icon-wrap stat-icon-emerald"><?= icon('package', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: #10b981;"><?= $stockCount ?></strong>
             <span class="badge badge-success">New Listings</span>
         </div>
@@ -102,16 +118,16 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn <?= $typeFilter === '' ? 'btn-primary' : 'btn-outline' ?> btn-sm">
-                All Alerts (<?= $allCount ?>)
+                <?= icon('bell', 'lucide-xs') ?> <span>All Alerts (<?= $allCount ?>)</span>
             </a>
             <a href="<?= e(url('pages/buyer/notifications.php?type=restock')) ?>" class="btn <?= $typeFilter === 'restock' ? 'btn-amber' : 'btn-outline' ?> btn-sm">
-                🔄 Back in Stock (<?= $restockCount ?>)
+                <?= icon('refresh-cw', 'lucide-xs') ?> <span>Back in Stock (<?= $restockCount ?>)</span>
             </a>
             <a href="<?= e(url('pages/buyer/notifications.php?type=new_seller')) ?>" class="btn <?= $typeFilter === 'new_seller' ? 'btn-primary' : 'btn-outline' ?> btn-sm">
-                🏪 New Sellers (<?= $sellerCount ?>)
+                <?= icon('store', 'lucide-xs') ?> <span>New Sellers (<?= $sellerCount ?>)</span>
             </a>
             <a href="<?= e(url('pages/buyer/notifications.php?type=new_stock')) ?>" class="btn <?= $typeFilter === 'new_stock' ? 'btn-primary' : 'btn-outline' ?> btn-sm">
-                📦 New Arrivals (<?= $stockCount ?>)
+                <?= icon('package', 'lucide-xs') ?> <span>New Arrivals (<?= $stockCount ?>)</span>
             </a>
         </div>
 
@@ -133,32 +149,32 @@ require_once __DIR__ . '/../../includes/header.php';
                 // Type styling
                 $typeConfig = [
                     'new_seller' => [
-                        'icon'  => '🏪',
+                        'icon'  => 'store',
                         'badge' => 'badge-primary',
                         'label' => 'New Merchant Joined',
                         'btn'   => 'Explore Store',
-                        'color' => '#6366f1',
+                        'color' => '#f97316',
                     ],
                     'restock' => [
-                        'icon'  => '🔄',
+                        'icon'  => 'refresh-cw',
                         'badge' => 'badge-amber',
                         'label' => 'Back in Stock',
                         'btn'   => 'View Restocked Item',
-                        'color' => '#b45309',
+                        'color' => '#f59e0b',
                     ],
                     'new_stock' => [
-                        'icon'  => '📦',
+                        'icon'  => 'package',
                         'badge' => 'badge-success',
                         'label' => 'New Product Arrival',
                         'btn'   => 'View Product Details',
                         'color' => '#10b981',
                     ],
                     'system' => [
-                        'icon'  => '🔔',
+                        'icon'  => 'bell',
                         'badge' => 'badge-primary',
                         'label' => 'Marketplace Update',
                         'btn'   => 'Learn More',
-                        'color' => '#475569',
+                        'color' => '#0284c7',
                     ],
                 ];
                 $cfg = $typeConfig[$type] ?? $typeConfig['system'];
@@ -166,8 +182,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="card" style="border-left: 5px solid <?= $cfg['color'] ?>; background: <?= $isRead ? '#ffffff' : '#f8fafc' ?>; padding: 1.25rem; transition: box-shadow 0.2s ease;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <div style="font-size: 1.8rem; line-height: 1; padding: 0.5rem; background: #f1f5f9; border-radius: 8px;">
-                                <?= $cfg['icon'] ?>
+                            <div class="stat-icon-wrap" style="width: 32px; height: 32px; background: #f1f5f9;">
+                                <?= icon($cfg['icon'], 'lucide-sm') ?>
                             </div>
                             <div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
@@ -201,7 +217,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="notification_id" value="<?= (int) $n['id'] ?>">
                                     <input type="hidden" name="redirect_to" value="<?= e($n['link_url']) ?>">
                                     <button type="submit" class="btn btn-primary btn-sm" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">
-                                        <?= $cfg['btn'] ?> &rarr;
+                                        <span><?= $cfg['btn'] ?></span>
+                                        <?= icon('arrow-right', 'lucide-xs') ?>
                                     </button>
                                 </form>
                             <?php endif; ?>
@@ -212,7 +229,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <input type="hidden" name="action" value="mark_read">
                                     <input type="hidden" name="notification_id" value="<?= (int) $n['id'] ?>">
                                     <button type="submit" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; color: #64748b; border-color: #cbd5e1;">
-                                        &check; Mark as Read
+                                        <?= icon('check', 'lucide-xs') ?>
+                                        <span>Mark as Read</span>
                                     </button>
                                 </form>
                             <?php endif; ?>

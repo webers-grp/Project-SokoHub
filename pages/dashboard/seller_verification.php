@@ -78,28 +78,40 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="container section-space">
     <div class="page-head">
         <div>
-            <h1>Merchant &amp; Delivery KYC Verification Queue</h1>
+            <h1><?= icon('shield-alert', 'lucide-md', 'amber') ?> <span>Merchant &amp; Delivery KYC Verification Queue</span></h1>
             <p class="muted">Review uploaded National IDs, Licenses, and Safaricom M-Pesa lines before granting marketplace selling or dispatch privileges.</p>
         </div>
         <div class="header-actions">
-            <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">&larr; Back to Dashboard</a>
+            <a href="<?= e(url('pages/dashboard/dashboard.php')) ?>" class="btn btn-outline">
+                <?= icon('arrow-left', 'lucide-xs') ?>
+                <span>Back to Dashboard</span>
+            </a>
         </div>
     </div>
 
     <!-- Metrics Cards -->
     <div class="stats-grid" style="margin-bottom: 2rem;">
         <div class="stat-card">
-            <span class="stat-label">Pending Reviews</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Pending Reviews</span>
+                <span class="stat-icon-wrap stat-icon-amber"><?= icon('clock', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: #b45309;"><?= number_format($totalPending) ?></strong>
             <span class="badge badge-amber"><?= $totalPendingSellers ?> Sellers, <?= $totalPendingRiders ?> Riders</span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">Verified Accounts</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Verified Accounts</span>
+                <span class="stat-icon-wrap stat-icon-emerald"><?= icon('shield-check', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: #10b981;"><?= number_format($totalApproved) ?></strong>
             <span class="badge badge-success">Approved to Operate</span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">Rejected / Needs Resubmit</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span class="stat-label">Rejected / Needs Resubmit</span>
+                <span class="stat-icon-wrap stat-icon-rose"><?= icon('alert-triangle', 'lucide-xs') ?></span>
+            </div>
             <strong class="stat-value" style="color: #ef4444;"><?= number_format($totalRejected) ?></strong>
             <span class="badge badge-danger">Action Required</span>
         </div>
@@ -214,7 +226,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                     </div>
                                                     <div style="margin-top: 0.25rem;">
                                                         <a href="<?= e(url($d['file_path'])) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                                                            &boxbox; Inspect <?= $isPdf ? 'PDF' : 'Photo' ?> &rarr;
+                                                            <?= icon('eye', 'lucide-xs', 'blue') ?>
+                                                            <span>Inspect <?= $isPdf ? 'PDF' : 'Photo' ?></span>
                                                         </a>
                                                     </div>
                                                 </div>
@@ -226,23 +239,35 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <!-- Status Column -->
                                 <td style="padding: 0.75rem;">
                                     <?php if ($status === 'approved'): ?>
-                                        <span class="badge badge-success" style="font-size: 0.85rem;">Approved &check;</span>
+                                        <span class="badge badge-success" style="font-size: 0.85rem;">
+                                            <?= icon('check-circle', 'lucide-xs') ?>
+                                            <span>Approved</span>
+                                        </span>
                                         <?php if ($acc['verified_at']): ?>
                                             <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem;">
                                                 Verified by <?= e($acc['reviewer_name'] ?: 'Admin') ?>
                                             </div>
                                         <?php endif; ?>
                                     <?php elseif ($status === 'rejected'): ?>
-                                        <span class="badge badge-danger" style="font-size: 0.85rem;">Rejected &cross;</span>
+                                        <span class="badge badge-danger" style="font-size: 0.85rem;">
+                                            <?= icon('x-circle', 'lucide-xs') ?>
+                                            <span>Rejected</span>
+                                        </span>
                                         <?php if (!empty($acc['rejection_reason'])): ?>
                                             <div style="font-size: 0.75rem; color: #ef4444; margin-top: 0.25rem; max-width: 180px;">
                                                 <?= e($acc['rejection_reason']) ?>
                                             </div>
                                         <?php endif; ?>
                                     <?php elseif ($status === 'suspended'): ?>
-                                        <span class="badge badge-danger" style="font-size: 0.85rem;">Suspended</span>
+                                        <span class="badge badge-danger" style="font-size: 0.85rem;">
+                                            <?= icon('alert-circle', 'lucide-xs') ?>
+                                            <span>Suspended</span>
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge badge-amber" style="font-size: 0.85rem;">Pending Review</span>
+                                        <span class="badge badge-amber" style="font-size: 0.85rem;">
+                                            <?= icon('clock', 'lucide-xs') ?>
+                                            <span>Pending Review</span>
+                                        </span>
                                     <?php endif; ?>
                                 </td>
 
@@ -256,7 +281,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 <input type="hidden" name="role" value="<?= e($role) ?>">
                                                 <input type="hidden" name="action" value="approve">
                                                 <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Approve this <?= $role ?> account to start operations?');">
-                                                    &check; Approve
+                                                    <?= icon('check', 'lucide-xs') ?>
+                                                    <span>Approve</span>
                                                 </button>
                                             </form>
                                         <?php endif; ?>
@@ -264,7 +290,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <?php if ($status !== 'rejected'): ?>
                                             <details style="position: relative; display: inline-block;">
                                                 <summary class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #ef4444; font-size: 0.75rem; cursor: pointer;">
-                                                    Reject...
+                                                    <?= icon('x', 'lucide-xs', 'rose') ?>
+                                                    <span>Reject...</span>
                                                 </summary>
                                                 <div style="position: absolute; right: 0; z-index: 100; background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); width: 280px; text-align: left;">
                                                     <form method="POST" action="<?= e(url('pages/dashboard/seller_verification.php')) ?>">
@@ -277,7 +304,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                         <textarea name="rejection_reason" class="form-control" rows="2" placeholder="e.g. Blurry ID, expired permit, ID does not match name" style="font-size: 0.85rem; margin-bottom: 0.75rem;" required></textarea>
 
                                                         <button type="submit" class="btn btn-primary btn-sm" style="background: #ef4444; width: 100%;">
-                                                            Confirm Rejection
+                                                            <?= icon('x-circle', 'lucide-xs') ?>
+                                                            <span>Confirm Rejection</span>
                                                         </button>
                                                     </form>
                                                 </div>

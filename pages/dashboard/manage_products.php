@@ -263,9 +263,15 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted">Create, view, update, and delete marketplace listings stored in MySQL.</p>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-amber">📤 Bulk CSV Upload</a>
+            <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-amber">
+                <?= icon('file-spreadsheet', 'lucide-xs') ?>
+                <span>Bulk CSV Upload</span>
+            </a>
             <?php if ($editingProduct): ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">
+                    <?= icon('x', 'lucide-xs') ?>
+                    <span>Cancel Edit / Add New</span>
+                </a>
             <?php endif; ?>
         </div>
     </div>
@@ -411,11 +417,15 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <?php if ($isVerifiedSeller): ?>
-                <button type="submit" class="btn btn-primary"><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></button>
+                <button type="submit" class="btn btn-primary">
+                    <?= icon('save', 'lucide-xs') ?>
+                    <span><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></span>
+                </button>
             <?php else: ?>
                 <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <button type="submit" class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;" title="Admin verification required">
-                        <?= $editingProduct ? 'Save Changes (KYC Required)' : 'Create Product (KYC Required)' ?>
+                        <?= icon('lock', 'lucide-xs') ?>
+                        <span><?= $editingProduct ? 'Save Changes (KYC Required)' : 'Create Product (KYC Required)' ?></span>
                     </button>
                     <span style="color: #ef4444; font-size: 0.85rem; font-weight: 600;">
                         ⚠️ Verification required to publish listings. <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" style="text-decoration: underline; color: #b45309;">Complete KYC &rarr;</a>
@@ -436,7 +446,8 @@ require_once __DIR__ . '/../../includes/header.php';
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
                 <?php if ($lowStockCount > 0): ?>
                     <a href="<?= e(url('pages/dashboard/manage_products.php' . ($filter === 'low_stock' ? '' : '?filter=low_stock'))) ?>" class="btn <?= $filter === 'low_stock' ? 'btn-primary' : 'btn-outline' ?> btn-sm" style="<?= $filter === 'low_stock' ? '' : 'color: #b91c1c; border-color: #ef4444;' ?>">
-                        <?= $filter === 'low_stock' ? 'Show All Products' : '⚠️ Low Stock Alerts (' . $lowStockCount . ')' ?>
+                        <?= icon('alert-triangle', 'lucide-xs', 'amber') ?>
+                        <span><?= $filter === 'low_stock' ? 'Show All Products' : 'Low Stock Alerts (' . $lowStockCount . ')' ?></span>
                     </a>
                 <?php endif; ?>
                 <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
@@ -444,7 +455,10 @@ require_once __DIR__ . '/../../includes/header.php';
                         <input type="hidden" name="filter" value="<?= e($filter) ?>">
                     <?php endif; ?>
                     <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:200px;">
-                    <button type="submit" class="btn btn-outline btn-sm">Search</button>
+                    <button type="submit" class="btn btn-outline btn-sm">
+                        <?= icon('search', 'lucide-xs') ?>
+                        <span>Search</span>
+                    </button>
                 </form>
             </div>
         </div>
@@ -499,12 +513,16 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td><?= e($prod['condition_type']) ?></td>
                             <td>
                                 <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
-                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.8rem;">Edit</a>
+                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.8rem;">
+                                        <?= icon('edit-3', 'lucide-xs', 'blue') ?>
+                                        <span>Edit</span>
+                                    </a>
 
                                     <?php if ($sq <= $th): ?>
                                         <details style="position: relative; display: inline-block;">
                                             <summary class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.45rem; color: #16a34a; border-color: #16a34a; cursor: pointer;">
-                                                + Restock
+                                                <?= icon('plus', 'lucide-xs') ?>
+                                                <span>Restock</span>
                                             </summary>
                                             <div style="position: absolute; right: 0; z-index: 50; background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.6rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15); min-width: 150px; text-align: left;">
                                                 <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="margin: 0;">
@@ -523,7 +541,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" style="padding:0.25rem 0.45rem; font-size:0.8rem;" data-confirm="Delete product '<?= e($prod['name']) ?>'?">Delete</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" style="padding:0.25rem 0.45rem; font-size:0.8rem;" data-confirm="Delete product '<?= e($prod['name']) ?>'?">
+                                            <?= icon('trash-2', 'lucide-xs') ?>
+                                            <span>Delete</span>
+                                        </button>
                                     </form>
                                 </div>
                             </td>

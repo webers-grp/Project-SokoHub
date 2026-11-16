@@ -18,7 +18,7 @@ $flash = get_flash();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
-    <link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
 </head>
 <body>
 <header class="site-header">
@@ -41,7 +41,10 @@ $flash = get_flash();
                         <?php $isActive = in_array($currentScript, $item['match'], true); ?>
                         <li>
                             <a href="<?= e(url($item['href'])) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                                <?= e($item['label']) ?>
+                                <?php if (!empty($item['icon'])): ?>
+                                    <?= icon($item['icon'], 'lucide-sm') ?>
+                                <?php endif; ?>
+                                <span><?= e($item['label']) ?></span>
                             </a>
                         </li>
                     <?php endforeach; ?>
@@ -49,6 +52,7 @@ $flash = get_flash();
 
                 <div class="nav-actions">
                     <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="cart-pill" title="Shopping Cart">
+                        <?= icon('shopping-cart', 'lucide-sm') ?>
                         <span>Cart</span>
                         <span class="cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </a>
@@ -57,7 +61,7 @@ $flash = get_flash();
                         $notifUnread = Notifications::getUnreadCount((int) $authUser['id']);
                     ?>
                         <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="cart-pill" title="Marketplace Alerts &amp; Restocks" style="padding: 0.35rem 0.65rem;">
-                            <span>🔔</span>
+                            <?= icon('bell', 'lucide-sm', 'amber') ?>
                             <?php if ($notifUnread > 0): ?>
                                 <span class="cart-badge" style="background: #ef4444;"><?= $notifUnread ?></span>
                             <?php endif; ?>
@@ -66,13 +70,23 @@ $flash = get_flash();
 
                     <?php if ($authUser !== null): ?>
                         <div class="user-pill">
+                            <?= icon('user', 'lucide-xs') ?>
                             <span class="user-name"><?= e(explode(' ', $authUser['full_name'])[0]) ?></span>
                             <span class="role-tag"><?= e(ucfirst($authUser['role'])) ?></span>
                         </div>
-                        <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">Logout</a>
+                        <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">
+                            <?= icon('log-out', 'lucide-xs') ?>
+                            <span>Logout</span>
+                        </a>
                     <?php else: ?>
-                        <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-amber btn-sm">Register</a>
-                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-light btn-sm">Sign In</a>
+                        <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-amber btn-sm">
+                            <?= icon('user-plus', 'lucide-sm') ?>
+                            <span>Register</span>
+                        </a>
+                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-light btn-sm">
+                            <?= icon('log-in', 'lucide-sm') ?>
+                            <span>Sign In</span>
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>

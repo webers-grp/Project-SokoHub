@@ -79,6 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('canvas[data-chart-values]').forEach((canvas) => {
         renderBarChart(canvas);
     });
+
+    // 7. Initialize Lucide Vector Icons (Strict Compact Default)
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        lucide.createIcons({
+            attrs: {
+                width: '13',
+                height: '13',
+                'stroke-width': '1.85'
+            }
+        });
+    }
 });
 
 function clearFieldError(field) {
