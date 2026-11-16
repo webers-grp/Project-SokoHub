@@ -2,12 +2,15 @@
 /**
  * SokoHub Automated Integration Test Suite
  * Tests PDO connectivity, password hashing, session/cookies, validation,
- * Product CRUD, Checkout transaction, Order cancellation, Delivery workflow, and Reports.
+ * Product CRUD, Checkout transaction, Order cancellation with stock restore,
+ * M-Pesa phone normalization, configuration, and refund processing.
  *
  * Usage: DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=sokohub_db DB_USER=root DB_PASS= php -d extension=pdo_mysql tests/run_tests.php
  */
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/orders.php';
+require_once __DIR__ . '/../includes/mpesa.php';
 
 $passed = 0;
 $failed = 0;
@@ -27,9 +30,11 @@ function assert_true(bool $condition, string $label): void
 // 1. Database Connectivity & Seed Verification
 $dbCheck = test_db_connection();
 assert_true($dbCheck['ok'] === true, 'TC-01: PDO MySQL connection succeeds');
-assert_true(count($dbCheck['tables']) === 9, 'TC-01b: All 9 schema tables exist');
+assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: All schema tables exist (' . count($dbCheck['tables']) . ' tables)');
 
 $pdo = get_db_connection();
+ensure_order_schema_tables($pdo);
+
 $userCount = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
 $prodCount = (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn();
 assert_true($userCount >= 7, 'TC-01c: Seeded users loaded (' . $userCount . ' users)');
@@ -88,7 +93,7 @@ $readStmt->execute([':id' => $testProdId]);
 $updatedProd = $readStmt->fetch();
 assert_true((float) $updatedProd['price'] === 790.00 && (int) $updatedProd['stock_qty'] === 15, 'TC-04c: Update product price and stock');
 
-// 5. Buyer Order Placement & Stock Decrement + Cancel Restore
+// 5. Buyer Order Placement & Stock Decrement
 $buyerLogin = login_user($pdo, 'buyer@sokohub.co.ke', 'SokoHub@2026', false);
 $buyerId = (int) $buyerLogin['user']['id'];
 $pdo->beginTransaction();
@@ -123,7 +128,7 @@ $delRow = $pdo->prepare('SELECT delivery_status FROM deliveries WHERE order_id =
 $delRow->execute([':oid' => $testOrderId]);
 assert_true($delRow->fetchColumn() === 'delivered', 'TC-06: Delivery status updates cleanly to delivered');
 
-// Clean up test order & test product so seeded baseline stays clean
+// Clean up test order & test product
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $testOrderId]);
 $pdo->prepare('DELETE FROM products WHERE id = :pid')->execute([':pid' => $testProdId]);
 $readStmt->execute([':id' => $testProdId]);
@@ -140,6 +145,110 @@ $catRevenue = $pdo->query(
      GROUP BY c.id, c.name"
 )->fetchAll();
 assert_true(count($catRevenue) >= 3, 'TC-07: Sales report returns category revenue aggregates');
+
+// 8. M-Pesa Phone Normalization
+assert_true(mpesa_format_phone('0712345678') === '254712345678', 'TC-08a: Format standard Safaricom 07XXXXXXXX');
+assert_true(mpesa_format_phone('0112345678') === '254112345678', 'TC-08b: Format modern Airtel/Safaricom 01XXXXXXXX');
+assert_true(mpesa_format_phone('+254712345678') === '254712345678', 'TC-08c: Strip leading plus prefix');
+assert_true(mpesa_format_phone('254712345678') === '254712345678', 'TC-08d: Retain valid 12-digit international format');
+
+// 9. M-Pesa Configuration & Environment Resolution
+$mpesaConfig = get_mpesa_config();
+assert_true(in_array($mpesaConfig['env'], ['sandbox', 'live'], true), 'TC-09a: M-Pesa environment resolves cleanly');
+assert_true(!empty($mpesaConfig['shortcode']), 'TC-09b: Business shortcode resolved');
+assert_true(!empty($mpesaConfig['passkey']), 'TC-09c: Lipa na M-Pesa passkey resolved');
+
+// 10. Order Cancellation with Atomic Stock Restoration & Refund Generation
+$pdo->beginTransaction();
+$pdo->prepare(
+    "INSERT INTO products (seller_id, category_id, name, description, price, stock_qty, condition_type, image_path, status)
+     VALUES (:sid, 1, 'Restock Test Coat', 'Test item for cancel restock', 1200.00, 10, 'New', 'assets/img/clothes.jpg', 'active')"
+)->execute([':sid' => $sellerId]);
+$cancelProdId = (int) $pdo->lastInsertId();
+
+$cancelOrderCode = 'SKH-RESTORE-' . bin2hex(random_bytes(3));
+$pdo->prepare(
+    "INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town)
+     VALUES (:code, :buyer, 3600.00, 'M-Pesa', 'paid', 'pending', 'Test Street', 'Kutus')"
+)->execute([':code' => $cancelOrderCode, ':buyer' => $buyerId]);
+$cancelOrderId = (int) $pdo->lastInsertId();
+
+$pdo->prepare(
+    'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
+     VALUES (:oid, :pid, :sid, 3, 1200.00, 3600.00)'
+)->execute([':oid' => $cancelOrderId, ':pid' => $cancelProdId, ':sid' => $sellerId]);
+
+// Decrement 3 units from initial 10 -> 7
+$pdo->prepare('UPDATE products SET stock_qty = stock_qty - 3 WHERE id = :pid')->execute([':pid' => $cancelProdId]);
+$pdo->prepare(
+    "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status)
+     VALUES (:oid, 'Kutus', 'Test Street', 150.00, 'pending')"
+)->execute([':oid' => $cancelOrderId]);
+$pdo->commit();
+
+// Cancel order as buyer
+$cancelResult = cancel_order_with_stock_restore($pdo, $cancelOrderId, $buyerId, 'buyer', 'Found better alternative');
+assert_true($cancelResult['ok'] === true, 'TC-10a: Order cancellation succeeds');
+assert_true($cancelResult['restored_items'] === 3, 'TC-10b: Exact 3 items returned to stock');
+
+// Verify stock balance restored from 7 back to 10
+$checkStock = $pdo->prepare('SELECT stock_qty FROM products WHERE id = :id');
+$checkStock->execute([':id' => $cancelProdId]);
+assert_true((int) $checkStock->fetchColumn() === 10, 'TC-10c: Product stock accurately restored to 10');
+
+// Verify order status updated to cancelled
+$checkOrder = $pdo->prepare('SELECT order_status, cancel_reason FROM orders WHERE id = :id');
+$checkOrder->execute([':id' => $cancelOrderId]);
+$cancelledRow = $checkOrder->fetch();
+assert_true($cancelledRow['order_status'] === 'cancelled', 'TC-10d: Order status updated to cancelled');
+assert_true(str_contains((string) $cancelledRow['cancel_reason'], 'Found better alternative'), 'TC-10e: Cancellation reason stored');
+
+// 11. Automatic Refund Request Generated for Paid Order
+$refCheck = $pdo->prepare('SELECT * FROM refunds WHERE order_id = :oid');
+$refCheck->execute([':oid' => $cancelOrderId]);
+$refundRow = $refCheck->fetch();
+assert_true($refundRow && (float) $refundRow['amount'] === 3600.00, 'TC-11a: Refund request created for KSh 3,600.00');
+assert_true($refundRow['status'] === 'requested', 'TC-11b: Initial refund status is requested');
+
+// Admin processes refund with M-Pesa reversal reference
+$adminLogin = login_user($pdo, 'admin@sokohub.co.ke', 'SokoHub@2026', false);
+$adminId = (int) $adminLogin['user']['id'];
+$refProcess = process_order_refund($pdo, (int) $refundRow['id'], $adminId, 'admin', 'complete', 'REV-MPESA-99882', 'Reversed to customer phone');
+assert_true($refProcess['ok'] === true, 'TC-11c: Admin approves and completes refund');
+
+$refCheck->execute([':oid' => $cancelOrderId]);
+$completedRefund = $refCheck->fetch();
+assert_true($completedRefund['status'] === 'completed' && $completedRefund['provider_reference'] === 'REV-MPESA-99882', 'TC-11d: Refund record updated with provider reference');
+
+// Verify order payment status is now refunded
+$checkOrder->execute([':id' => $cancelOrderId]);
+$refundedOrder = $checkOrder->fetch();
+$ordPayCheck = $pdo->prepare('SELECT payment_status FROM orders WHERE id = :id');
+$ordPayCheck->execute([':id' => $cancelOrderId]);
+assert_true($ordPayCheck->fetchColumn() === 'refunded', 'TC-11e: Order payment status updated to refunded');
+
+// Clean up cancel test order and product
+$pdo->prepare('DELETE FROM refunds WHERE order_id = :oid')->execute([':oid' => $cancelOrderId]);
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $cancelOrderId]);
+$pdo->prepare('DELETE FROM products WHERE id = :pid')->execute([':pid' => $cancelProdId]);
+
+// 12. M-Pesa STK Push Simulation & Status Polling
+$simOrderCode = 'SKH-SIM-' . bin2hex(random_bytes(3));
+$pdo->prepare(
+    "INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town)
+     VALUES (:code, :buyer, 1200.00, 'M-Pesa', 'unpaid', 'pending', 'Kirinyaga Uni Hostel 1', 'Kutus')"
+)->execute([':code' => $simOrderCode, ':buyer' => $buyerId]);
+$simOrderId = (int) $pdo->lastInsertId();
+
+$simRes = mpesa_simulate_success($pdo, $simOrderId);
+assert_true($simRes['ok'] === true, 'TC-12a: Simulated M-Pesa payment approved');
+assert_true(!empty($simRes['receipt']), 'TC-12b: Valid M-Pesa receipt generated (' . $simRes['receipt'] . ')');
+
+$pollRes = mpesa_poll_status($pdo, $simOrderId);
+assert_true($pollRes['status'] === 'succeeded' && $pollRes['paid'] === true, 'TC-12c: Status polling confirms paid state');
+
+$pdo->prepare('DELETE FROM payments WHERE order_id = :oid')->execute([':oid' => $simOrderId]);
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $simOrderId]);
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

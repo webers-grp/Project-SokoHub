@@ -1,9 +1,12 @@
 <?php
 /**
- * SokoHub Order Checkout (Atomic MySQL Transaction)
- * Creates order, order_items, delivery dispatch record, and decrements product stock.
+ * SokoHub Order Checkout (Atomic MySQL Transaction & M-Pesa Integration)
+ * Creates order, order_items, delivery dispatch record, decrements product stock,
+ * and initiates M-Pesa STK Push.
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/mpesa.php';
+require_once __DIR__ . '/../../includes/orders.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -48,6 +51,7 @@ $old = [
     'delivery_address' => '',
     'delivery_town'    => 'Kutus',
     'payment_method'   => 'M-Pesa',
+    'mpesa_phone'      => $user['phone'] ?? '',
     'notes'            => '',
 ];
 
@@ -58,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old['delivery_address'] = trim((string) ($_POST['delivery_address'] ?? ''));
         $old['delivery_town'] = trim((string) ($_POST['delivery_town'] ?? ''));
         $old['payment_method'] = (string) ($_POST['payment_method'] ?? 'M-Pesa');
+        $old['mpesa_phone'] = trim((string) ($_POST['mpesa_phone'] ?? ''));
         $old['notes'] = trim((string) ($_POST['notes'] ?? ''));
 
         if (mb_strlen($old['delivery_address']) < 5) {
@@ -68,6 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!in_array($old['payment_method'], ['M-Pesa', 'Cash on Delivery', 'Bank Card'], true)) {
             $errors[] = 'Select a valid payment method.';
+        }
+
+        if ($old['payment_method'] === 'M-Pesa') {
+            $cleanPhone = mpesa_format_phone($old['mpesa_phone']);
+            if (strlen($cleanPhone) !== 12 || !str_starts_with($cleanPhone, '254')) {
+                $errors[] = 'Please enter a valid Kenyan M-Pesa phone number (e.g. 0712 345 678 or 0112 345 678).';
+            }
         }
 
         if (empty($errors)) {
@@ -96,7 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $grandTotal = $verifiedSubtotal;
                 $orderCode = 'SKH-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
-                $payStatus = ($old['payment_method'] === 'Cash on Delivery') ? 'unpaid' : 'paid';
+
+                // Payment starts as unpaid for M-Pesa (until PIN is entered) and Cash on Delivery
+                $payStatus = ($old['payment_method'] === 'Bank Card') ? 'paid' : 'unpaid';
 
                 $ordStmt = $pdo->prepare(
                     "INSERT INTO orders
@@ -148,8 +162,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->commit();
                 $_SESSION['cart'] = [];
-                set_flash('success', 'Order ' . $orderCode . ' placed successfully! A delivery dispatch request has been created.');
-                redirect('pages/buyer/orders.php');
+
+                // If payment method is M-Pesa, dispatch STK Push
+                if ($old['payment_method'] === 'M-Pesa') {
+                    $stkRes = mpesa_stk_push(
+                        $pdo,
+                        $orderId,
+                        $old['mpesa_phone'],
+                        $grandTotal,
+                        $orderCode,
+                        'SokoHub Order'
+                    );
+
+                    if ($stkRes['ok']) {
+                        set_flash('success', 'Order ' . $orderCode . ' created! Please check your phone (' . $stkRes['phone'] . ') and enter your M-Pesa PIN.');
+                        redirect('pages/buyer/orders.php?mpesa_prompt=1&order_id=' . $orderId . '&crid=' . urlencode($stkRes['checkout_request_id']));
+                    } else {
+                        set_flash('warning', 'Order ' . $orderCode . ' created! M-Pesa notice: ' . $stkRes['message'] . '. You can retry payment from your orders page.');
+                        redirect('pages/buyer/orders.php');
+                    }
+                } else {
+                    set_flash('success', 'Order ' . $orderCode . ' placed successfully! A delivery dispatch request has been created.');
+                    redirect('pages/buyer/orders.php');
+                }
             } catch (Throwable $e) {
                 $pdo->rollBack();
                 $errors[] = $e->getMessage();
@@ -201,10 +236,16 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="form-group">
                     <label for="payment_method">Payment Method</label>
                     <select id="payment_method" name="payment_method" class="form-control" required>
-                        <option value="M-Pesa" <?= $old['payment_method'] === 'M-Pesa' ? 'selected' : '' ?>>M-Pesa Mobile Money</option>
+                        <option value="M-Pesa" <?= $old['payment_method'] === 'M-Pesa' ? 'selected' : '' ?>>M-Pesa Mobile Money (STK Push)</option>
                         <option value="Cash on Delivery" <?= $old['payment_method'] === 'Cash on Delivery' ? 'selected' : '' ?>>Cash on Delivery</option>
                         <option value="Bank Card" <?= $old['payment_method'] === 'Bank Card' ? 'selected' : '' ?>>Bank Card</option>
                     </select>
+                </div>
+
+                <div class="form-group" id="mpesa_phone_group" style="<?= $old['payment_method'] === 'M-Pesa' ? '' : 'display:none;' ?>">
+                    <label for="mpesa_phone">M-Pesa Phone Number</label>
+                    <input type="tel" id="mpesa_phone" name="mpesa_phone" class="form-control" value="<?= e($old['mpesa_phone']) ?>" placeholder="e.g. 0712 345 678 or 0112 345 678">
+                    <span class="small muted">An instant STK Push prompt will be sent to this phone to enter your M-Pesa PIN.</span>
                 </div>
 
                 <div class="form-group">
@@ -241,5 +282,19 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const methodSelect = document.getElementById('payment_method');
+    const mpesaGroup = document.getElementById('mpesa_phone_group');
+    if (methodSelect && mpesaGroup) {
+        const toggleMpesa = () => {
+            mpesaGroup.style.display = (methodSelect.value === 'M-Pesa') ? 'block' : 'none';
+        };
+        methodSelect.addEventListener('change', toggleMpesa);
+        toggleMpesa();
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

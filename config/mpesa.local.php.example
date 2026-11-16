@@ -1,0 +1,42 @@
+<?php
+/**
+ * SokoHub M-Pesa Local Credentials Template
+ *
+ * HOW TO USE:
+ * 1. Copy this file to `config/mpesa.local.php`:
+ *    cp config/mpesa.local.php.example config/mpesa.local.php
+ * 2. Log in to Safaricom Developer Portal: https://developer.safaricom.co.ke
+ * 3. Go to "My Apps" -> Create an App -> Enable "Lipa na M-Pesa Sandbox"
+ * 4. Copy your Consumer Key and Consumer Secret below.
+ * 5. Set your public Callback URL (e.g., your ngrok URL or live domain).
+ *
+ * Note: `config/mpesa.local.php` is ignored by Git to protect your secrets.
+ */
+
+return [
+    // 'sandbox' for testing with Safaricom Daraja simulator, 'live' for production
+    'env' => 'sandbox',
+
+    // Your Daraja App Consumer Key from developer.safaricom.co.ke
+    'consumer_key' => 'YOUR_CONSUMER_KEY_HERE',
+
+    // Your Daraja App Consumer Secret
+    'consumer_secret' => 'YOUR_CONSUMER_SECRET_HERE',
+
+    // Paybill / Till Number (Sandbox default: 174379)
+    'shortcode' => '174379',
+
+    // Lipa na M-Pesa Online Passkey
+    // In Sandbox, use the official Safaricom test passkey:
+    // bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+    'passkey' => 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
+
+    // Public HTTPS URL where Safaricom sends payment results.
+    // In local development, use your ngrok or localtunnel URL:
+    // e.g. 'https://abc1234.ngrok-free.app/pages/api/mpesa_callback.php'
+    // On live hosting (Render / InfinityFree / cPanel), use your public domain.
+    'callback_url' => '',
+
+    // Enables developer simulation buttons when testing on localhost
+    'allow_simulation' => true,
+];

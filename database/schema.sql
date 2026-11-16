@@ -8,6 +8,11 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS order_status_history;
+DROP TABLE IF EXISTS stock_movements;
+DROP TABLE IF EXISTS refunds;
+DROP TABLE IF EXISTS mpesa_callbacks;
+DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS deliveries;
 DROP TABLE IF EXISTS order_items;
@@ -98,6 +103,8 @@ CREATE TABLE orders (
     delivery_address VARCHAR(255) NOT NULL,
     delivery_town VARCHAR(100) NOT NULL,
     notes VARCHAR(255) NULL,
+    cancel_reason VARCHAR(255) NULL,
+    cancelled_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_orders_buyer (buyer_id),
@@ -149,6 +156,89 @@ CREATE TABLE contact_messages (
     message TEXT NOT NULL,
     status ENUM('new', 'read', 'resolved') NOT NULL DEFAULT 'new',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Payments (M-Pesa STK push transactions & receipts)
+CREATE TABLE payments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    method ENUM('mpesa', 'cash_on_delivery', 'bank_card') NOT NULL DEFAULT 'mpesa',
+    amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('initiated', 'pending', 'succeeded', 'failed', 'cancelled') NOT NULL DEFAULT 'initiated',
+    phone VARCHAR(20) NULL,
+    merchant_request_id VARCHAR(64) NULL,
+    checkout_request_id VARCHAR(64) NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    result_code INT NULL,
+    result_desc VARCHAR(255) NULL,
+    attempt_no TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_payments_order (order_id),
+    INDEX idx_payments_status (status, created_at),
+    INDEX idx_payments_checkout (checkout_request_id),
+    CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Raw M-Pesa Callbacks (Audit trail & duplicate prevention)
+CREATE TABLE mpesa_callbacks (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    checkout_request_id VARCHAR(64) NULL,
+    result_code INT NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    payload JSON NOT NULL,
+    dedupe_key CHAR(64) NOT NULL UNIQUE,
+    received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME NULL,
+    INDEX idx_callbacks_checkout (checkout_request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. Refunds & Cancellation Dispute Claims
+CREATE TABLE refunds (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    payment_id INT UNSIGNED NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    status ENUM('requested', 'approved', 'rejected', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'requested',
+    requested_by INT UNSIGNED NOT NULL,
+    decided_by INT UNSIGNED NULL,
+    decided_at DATETIME NULL,
+    provider_reference VARCHAR(64) NULL,
+    notes VARCHAR(255) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_refunds_order (order_id),
+    CONSTRAINT fk_refund_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_refund_requester FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. Stock Movements Ledger (Audits decrements & restored inventory)
+CREATE TABLE stock_movements (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL,
+    order_id INT UNSIGNED NULL,
+    change_qty INT NOT NULL,
+    reason ENUM('reserve', 'release', 'adjustment', 'import') NOT NULL,
+    balance_after INT NOT NULL,
+    created_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_stock_product (product_id, created_at),
+    INDEX idx_stock_order (order_id),
+    CONSTRAINT fk_stock_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 14. Order Status History (Audits lifecycle transitions)
+CREATE TABLE order_status_history (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    from_status VARCHAR(20) NULL,
+    to_status VARCHAR(20) NOT NULL,
+    changed_by INT UNSIGNED NULL,
+    note VARCHAR(255) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_history_order (order_id, created_at),
+    CONSTRAINT fk_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

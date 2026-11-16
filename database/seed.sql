@@ -73,3 +73,11 @@ INSERT INTO contact_messages (name, email, subject, message, status) VALUES
 ('Mercy Njeri', 'mercy.njeri@example.com', 'Bulk Produce Order Inquiry', 'Hello SokoHub, can we schedule weekly vegetable deliveries for a hostel cafeteria in Kutus?', 'new'),
 ('David Mutua', 'david.mutua@example.com', 'Seller Verification Question', 'How long does it take to start listing electronics after seller registration?', 'read'),
 ('Alice Wambui', 'alice.wambui@example.com', 'Great Delivery Speed', 'My 6kg gas cylinder arrived at Gate B in under 40 minutes. Keep up the great service!', 'resolved');
+
+-- Seeded M-Pesa Payments & Transactions
+INSERT INTO payments (order_id, method, amount, status, phone, mpesa_receipt, result_code, result_desc, created_at) VALUES
+(1, 'mpesa', 2600.00, 'succeeded', '254733400004', 'QGH7182901', 0, 'The service request is processed successfully.', DATE_SUB(NOW(), INTERVAL 12 DAY)),
+(2, 'mpesa', 4500.00, 'succeeded', '254744500005', 'QGH8391022', 0, 'The service request is processed successfully.', DATE_SUB(NOW(), INTERVAL 9 DAY)),
+(3, 'bank_card', 18500.00, 'succeeded', '254733400004', 'AUTH-VISA-9910', 0, 'Approved', DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(4, 'mpesa', 3200.00, 'succeeded', '254744500005', 'QGH9482103', 0, 'The service request is processed successfully.', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(6, 'mpesa', 14500.00, 'pending', '254744500005', NULL, NULL, 'STK push prompt sent to customer phone.', NOW());
