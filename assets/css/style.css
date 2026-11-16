@@ -1148,89 +1148,183 @@ table.data-table {
     }
 }
 
-/* ---------------- Lucide Vector Icons (Compact & Colorful) ---------------- */
+/* ---------------- Lucide Vector Icons (Compact & Colorful System) ---------------- */
 .lucide, [data-lucide] {
     display: inline-block;
-    vertical-align: -0.15em;
+    vertical-align: -2px;
     stroke-width: 1.85;
-    stroke: currentColor;
     fill: none;
     flex-shrink: 0;
     transition: transform 0.15s ease, stroke 0.2s ease;
 }
 
-/* Base compact icon size (approx 15px) */
-svg.lucide {
-    width: 0.92em;
-    height: 0.92em;
+/* Global compact default icon sizing (14px) */
+svg.lucide, .lucide {
+    width: 14px;
+    height: 14px;
 }
 
-/* Extra small (approx 11px-12px) */
+/* Size Modifiers (Strictly compact & proportional) */
 .lucide-xs, svg.lucide-xs {
-    width: 0.72em;
-    height: 0.72em;
+    width: 12px !important;
+    height: 12px !important;
     stroke-width: 1.9;
+    vertical-align: -1px;
 }
 
-/* Small (approx 12.5px-13.5px) */
 .lucide-sm, svg.lucide-sm {
-    width: 0.82em;
-    height: 0.82em;
+    width: 13px !important;
+    height: 13px !important;
     stroke-width: 1.85;
+    vertical-align: -1.5px;
 }
 
-/* Medium / in cards & headers (approx 16px-17px) */
 .lucide-md, svg.lucide-md {
-    width: 1.05em;
-    height: 1.05em;
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 1.85;
+    vertical-align: -2px;
 }
 
-/* Large (approx 18px-20px) */
 .lucide-lg, svg.lucide-lg {
-    width: 1.18em;
-    height: 1.18em;
+    width: 17px !important;
+    height: 17px !important;
+    stroke-width: 1.8;
 }
 
-/* Extra Large in hero or empty states (approx 26px) */
 .lucide-xl, svg.lucide-xl {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 20px !important;
+    height: 20px !important;
     stroke-width: 1.75;
 }
 
+/* Headings auto-sizing so icons in headers never look oversized */
+h1 > .lucide, h1 > svg.lucide { width: 18px; height: 18px; vertical-align: -3px; }
+h2 > .lucide, h2 > svg.lucide { width: 15px; height: 15px; vertical-align: -2px; }
+h3 > .lucide, h3 > svg.lucide { width: 14px; height: 14px; vertical-align: -2px; }
+
 /* Sizing inside buttons & interactive controls */
 .btn .lucide {
-    width: 0.88em;
-    height: 0.88em;
-    margin-right: 0.28rem;
+    width: 13px;
+    height: 13px;
+    margin-right: 0.25rem;
+    vertical-align: -1.5px;
 }
 
 .btn-sm .lucide {
-    width: 0.78em;
-    height: 0.78em;
-    margin-right: 0.22rem;
+    width: 12px;
+    height: 12px;
+    margin-right: 0.2rem;
+    vertical-align: -1px;
 }
 
 .cart-pill .lucide {
-    width: 0.92em;
-    height: 0.92em;
+    width: 14px;
+    height: 14px;
     margin-right: 0.25rem;
 }
 
 .user-pill .lucide {
-    width: 0.85em;
-    height: 0.85em;
+    width: 13px;
+    height: 13px;
     margin-right: 0.22rem;
 }
 
 .badge .lucide {
-    width: 0.78em;
-    height: 0.78em;
-    margin-right: 0.2rem;
-    vertical-align: -0.1em;
+    width: 11px;
+    height: 11px;
+    margin-right: 0.18rem;
+    vertical-align: -1px;
 }
 
-/* ---------------- Vibrant Color System for Lucide Icons ---------------- */
+table .lucide {
+    width: 12px;
+    height: 12px;
+}
+
+/* ---------------- Global Semantic Auto-Color Palette by Icon Name ---------------- */
+/* Every Lucide icon across the entire platform automatically displays its signature color */
+
+/* Shopping, Products & Cart */
+.lucide-shopping-cart, [data-lucide="shopping-cart"] { stroke: #f59e0b; } /* Amber Gold */
+.lucide-shopping-bag,  [data-lucide="shopping-bag"]  { stroke: #10b981; } /* Emerald */
+.lucide-store,         [data-lucide="store"]         { stroke: #f97316; } /* Warm Orange */
+.lucide-package,       [data-lucide="package"]       { stroke: #3b82f6; } /* Royal Blue */
+.lucide-box,           [data-lucide="box"]           { stroke: #6366f1; } /* Indigo */
+.lucide-tag,           [data-lucide="tag"]           { stroke: #06b6d4; } /* Cyan */
+.lucide-eye,           [data-lucide="eye"]           { stroke: #0284c7; } /* Sky Blue */
+
+/* Money & Financials */
+.lucide-wallet,        [data-lucide="wallet"]        { stroke: #10b981; } /* Emerald Green */
+.lucide-credit-card,   [data-lucide="credit-card"]   { stroke: #2563eb; } /* Blue */
+.lucide-dollar-sign,   [data-lucide="dollar-sign"]   { stroke: #10b981; } /* Emerald */
+.lucide-receipt,       [data-lucide="receipt"]       { stroke: #8b5cf6; } /* Purple */
+
+/* Delivery, Logistics & Navigation */
+.lucide-truck,         [data-lucide="truck"]         { stroke: #0284c7; } /* Sky Blue */
+.lucide-navigation,    [data-lucide="navigation"]    { stroke: #06b6d4; } /* Cyan */
+.lucide-map-pin,       [data-lucide="map-pin"]       { stroke: #ef4444; } /* Coral Red */
+.lucide-clock,         [data-lucide="clock"]         { stroke: #f59e0b; } /* Amber */
+.lucide-home,          [data-lucide="home"]          { stroke: #f59e0b; } /* Warm Amber */
+.lucide-layout-dashboard, [data-lucide="layout-dashboard"] { stroke: #10b981; } /* Emerald */
+
+/* Analytics, Reports & Documents */
+.lucide-trending-up,   [data-lucide="trending-up"]   { stroke: #10b981; } /* Emerald */
+.lucide-bar-chart-2,   [data-lucide="bar-chart-2"],
+.lucide-bar-chart-3,   [data-lucide="bar-chart-3"]   { stroke: #8b5cf6; } /* Purple */
+.lucide-pie-chart,     [data-lucide="pie-chart"]     { stroke: #ec4899; } /* Pink */
+.lucide-file-text,     [data-lucide="file-text"]     { stroke: #0284c7; } /* Blue */
+.lucide-printer,       [data-lucide="printer"]       { stroke: #6366f1; } /* Indigo */
+.lucide-download,      [data-lucide="download"]      { stroke: #10b981; } /* Emerald */
+
+/* Actions, Controls & Status */
+.lucide-edit-3,        [data-lucide="edit-3"],
+.lucide-edit,          [data-lucide="edit"]          { stroke: #2563eb; } /* Blue */
+.lucide-trash-2,       [data-lucide="trash-2"],
+.lucide-trash,         [data-lucide="trash"]         { stroke: #ef4444; } /* Red */
+.lucide-search,        [data-lucide="search"]        { stroke: #3b82f6; } /* Blue */
+.lucide-filter,        [data-lucide="filter"]        { stroke: #6366f1; } /* Indigo */
+.lucide-rotate-ccw,    [data-lucide="rotate-ccw"],
+.lucide-refresh-cw,    [data-lucide="refresh-cw"]    { stroke: #06b6d4; } /* Cyan */
+.lucide-save,          [data-lucide="save"],
+.lucide-plus-circle,   [data-lucide="plus-circle"]   { stroke: #10b981; } /* Emerald */
+.lucide-check,         [data-lucide="check"],
+.lucide-check-circle,  [data-lucide="check-circle"],
+.lucide-check-circle-2,[data-lucide="check-circle-2"]{ stroke: #10b981; } /* Emerald */
+.lucide-hand,          [data-lucide="hand"]          { stroke: #10b981; } /* Emerald */
+
+/* Alerts & Warnings */
+.lucide-alert-triangle,[data-lucide="alert-triangle"]{ stroke: #f59e0b; } /* Amber */
+.lucide-alert-circle,  [data-lucide="alert-circle"]  { stroke: #ef4444; } /* Red */
+.lucide-x-circle,      [data-lucide="x-circle"],
+.lucide-x,             [data-lucide="x"]             { stroke: #ef4444; } /* Red */
+.lucide-info,          [data-lucide="info"]          { stroke: #0284c7; } /* Blue */
+.lucide-shield-check,  [data-lucide="shield-check"]  { stroke: #10b981; } /* Emerald */
+
+/* Users, Auth & Communication */
+.lucide-user,          [data-lucide="user"]          { stroke: #06b6d4; } /* Cyan */
+.lucide-users,         [data-lucide="users"]         { stroke: #0891b2; } /* Dark Cyan */
+.lucide-user-plus,     [data-lucide="user-plus"],
+.lucide-user-check,    [data-lucide="user-check"]    { stroke: #10b981; } /* Emerald */
+.lucide-log-in,        [data-lucide="log-in"]        { stroke: #2563eb; } /* Blue */
+.lucide-log-out,       [data-lucide="log-out"]       { stroke: #ef4444; } /* Red */
+.lucide-key,           [data-lucide="key"],
+.lucide-lock,          [data-lucide="lock"]          { stroke: #f59e0b; } /* Amber */
+.lucide-mail,          [data-lucide="mail"]          { stroke: #0284c7; } /* Blue */
+.lucide-phone,         [data-lucide="phone"]         { stroke: #10b981; } /* Green */
+.lucide-message-square,[data-lucide="message-square"]{ stroke: #ec4899; } /* Pink */
+.lucide-send,          [data-lucide="send"]          { stroke: #3b82f6; } /* Blue */
+.lucide-headphones,    [data-lucide="headphones"]    { stroke: #8b5cf6; } /* Purple */
+.lucide-activity,      [data-lucide="activity"]      { stroke: #14b8a6; } /* Teal */
+
+/* Solid Buttons: preserve high contrast white icon stroke */
+.btn-primary .lucide,
+.btn-amber .lucide,
+.btn-danger .lucide {
+    stroke: #ffffff !important;
+}
+
+/* Specific Utility Color Overrides */
 .icon-emerald, svg.icon-emerald { stroke: #10b981 !important; }
 .icon-green,   svg.icon-green   { stroke: #16a34a !important; }
 .icon-lime,    svg.icon-lime    { stroke: #84cc16 !important; }
@@ -1251,7 +1345,7 @@ svg.lucide {
 .icon-white,   svg.icon-white   { stroke: #ffffff !important; }
 .icon-slate,   svg.icon-slate   { stroke: #64748b !important; }
 
-/* In Header Navbar Links: distinctive colorful icons */
+/* In Header Navbar Links: pastel vibrancy on green background */
 .nav-links a .lucide {
     display: inline-block;
     transition: transform 0.15s ease;
@@ -1260,89 +1354,89 @@ svg.lucide {
     transform: scale(1.15);
 }
 
-.nav-links a[href*="index.php"] .lucide           { stroke: #fef08a; } /* Warm Yellow */
-.nav-links a[href*="products.php"] .lucide        { stroke: #a7f3d0; } /* Mint Emerald */
-.nav-links a[href*="about.php"] .lucide           { stroke: #bae6fd; } /* Ice Sky Blue */
-.nav-links a[href*="contact.php"] .lucide         { stroke: #fbcfe8; } /* Soft Rose Pink */
-.nav-links a[href*="dashboard.php"] .lucide       { stroke: #fde047; } /* Warm Amber Gold */
-.nav-links a[href*="manage_products.php"] .lucide { stroke: #fed7aa; } /* Light Peach Orange */
-.nav-links a[href*="orders.php"] .lucide          { stroke: #c7d2fe; } /* Lavender Blue */
-.nav-links a[href*="deliveries.php"] .lucide      { stroke: #a5f3fc; } /* Cyan Teal */
-.nav-links a[href*="reports.php"] .lucide         { stroke: #e9d5ff; } /* Lilac Violet */
+.nav-links a[href*="index.php"] .lucide           { stroke: #fef08a !important; } /* Warm Yellow */
+.nav-links a[href*="products.php"] .lucide        { stroke: #a7f3d0 !important; } /* Mint Emerald */
+.nav-links a[href*="about.php"] .lucide           { stroke: #bae6fd !important; } /* Ice Sky Blue */
+.nav-links a[href*="contact.php"] .lucide         { stroke: #fbcfe8 !important; } /* Soft Rose Pink */
+.nav-links a[href*="dashboard.php"] .lucide       { stroke: #fde047 !important; } /* Warm Amber Gold */
+.nav-links a[href*="manage_products.php"] .lucide { stroke: #fed7aa !important; } /* Light Peach Orange */
+.nav-links a[href*="orders.php"] .lucide          { stroke: #c7d2fe !important; } /* Lavender Blue */
+.nav-links a[href*="deliveries.php"] .lucide      { stroke: #a5f3fc !important; } /* Cyan Teal */
+.nav-links a[href*="reports.php"] .lucide         { stroke: #e9d5ff !important; } /* Lilac Violet */
 
 .cart-pill .lucide {
-    stroke: #fef08a;
+    stroke: #fef08a !important;
 }
 .user-pill .lucide {
-    stroke: #67e8f9;
+    stroke: #67e8f9 !important;
 }
 
 /* Circular Icon Badges for Dashboard KPIs & Stats */
 .stat-icon-wrap {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 .stat-icon-wrap .lucide {
-    width: 17px;
-    height: 17px;
+    width: 15px !important;
+    height: 15px !important;
 }
 .stat-icon-emerald { background: #ecfdf5; color: #059669; }
-.stat-icon-emerald .lucide { stroke: #059669; }
+.stat-icon-emerald .lucide { stroke: #059669 !important; }
 
 .stat-icon-blue    { background: #eff6ff; color: #2563eb; }
-.stat-icon-blue .lucide { stroke: #2563eb; }
+.stat-icon-blue .lucide { stroke: #2563eb !important; }
 
 .stat-icon-purple  { background: #f5f3ff; color: #7c3aed; }
-.stat-icon-purple .lucide { stroke: #7c3aed; }
+.stat-icon-purple .lucide { stroke: #7c3aed !important; }
 
 .stat-icon-amber   { background: #fffbeb; color: #d97706; }
-.stat-icon-amber .lucide { stroke: #d97706; }
+.stat-icon-amber .lucide { stroke: #d97706 !important; }
 
 .stat-icon-rose    { background: #fff1f2; color: #e11d48; }
-.stat-icon-rose .lucide { stroke: #e11d48; }
+.stat-icon-rose .lucide { stroke: #e11d48 !important; }
 
 .stat-icon-cyan    { background: #ecfeff; color: #0891b2; }
-.stat-icon-cyan .lucide { stroke: #0891b2; }
+.stat-icon-cyan .lucide { stroke: #0891b2 !important; }
 
 .stat-icon-teal    { background: #f0fdf4; color: #0d9488; }
-.stat-icon-teal .lucide { stroke: #0d9488; }
+.stat-icon-teal .lucide { stroke: #0d9488 !important; }
 
 .stat-icon-pink    { background: #fdf2f8; color: #db2777; }
-.stat-icon-pink .lucide { stroke: #db2777; }
+.stat-icon-pink .lucide { stroke: #db2777 !important; }
 
 /* Tinted Icon Badges for Value Propositions on Home */
 .prop-icon-wrap {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 0.75rem;
 }
 .prop-icon-amber { background: #fff7ed; color: #ea580c; }
-.prop-icon-amber .lucide { stroke: #ea580c; width: 18px; height: 18px; }
+.prop-icon-amber .lucide { stroke: #ea580c !important; width: 16px !important; height: 16px !important; }
 
 .prop-icon-blue  { background: #eff6ff; color: #0284c7; }
-.prop-icon-blue .lucide { stroke: #0284c7; width: 18px; height: 18px; }
+.prop-icon-blue .lucide { stroke: #0284c7 !important; width: 16px !important; height: 16px !important; }
 
 .prop-icon-green { background: #ecfdf5; color: #16a34a; }
-.prop-icon-green .lucide { stroke: #16a34a; width: 18px; height: 18px; }
+.prop-icon-green .lucide { stroke: #16a34a !important; width: 16px !important; height: 16px !important; }
 
 /* Tinted Role Icons on Registration Page */
 .role-icon-buyer    { background: #eff6ff !important; color: #2563eb !important; }
-.role-icon-buyer .lucide { stroke: #2563eb; width: 22px; height: 22px; }
+.role-icon-buyer .lucide { stroke: #2563eb !important; width: 20px !important; height: 20px !important; }
 
 .role-icon-seller   { background: #fffbeb !important; color: #d97706 !important; }
-.role-icon-seller .lucide { stroke: #d97706; width: 22px; height: 22px; }
+.role-icon-seller .lucide { stroke: #d97706 !important; width: 20px !important; height: 20px !important; }
 
 .role-icon-delivery { background: #ecfdf5 !important; color: #059669 !important; }
-.role-icon-delivery .lucide { stroke: #059669; width: 22px; height: 22px; }
+.role-icon-delivery .lucide { stroke: #059669 !important; width: 20px !important; height: 20px !important; }
 
 @media print {
     .site-header,
