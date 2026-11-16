@@ -146,6 +146,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Catalog</a>
                 <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">Support Inquiries</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">System Reports</a>
+                <a href="<?= e(url('pages/dashboard/audit_logs.php')) ?>" class="btn btn-outline" style="border-color: #6366f1; color: #6366f1;">Audit Logs</a>
             <?php endif; ?>
         </div>
     </div>

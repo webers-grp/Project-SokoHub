@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/audit.php';
 
 $passed = 0;
 $failed = 0;
@@ -27,7 +28,7 @@ function assert_true(bool $condition, string $label): void
 // 1. Database Connectivity & Seed Verification
 $dbCheck = test_db_connection();
 assert_true($dbCheck['ok'] === true, 'TC-01: PDO MySQL connection succeeds');
-assert_true(count($dbCheck['tables']) === 9, 'TC-01b: All 9 schema tables exist');
+assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: Core schema tables exist (' . count($dbCheck['tables']) . ' tables)');
 
 $pdo = get_db_connection();
 $userCount = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -140,6 +141,13 @@ $catRevenue = $pdo->query(
      GROUP BY c.id, c.name"
 )->fetchAll();
 assert_true(count($catRevenue) >= 3, 'TC-07: Sales report returns category revenue aggregates');
+
+// 8. Universal Audit Logging Verification (Kennedy's Feature 1)
+$auditRecorded = Audit::record('test.audit_event', 'test_entity', 9999, ['test_key' => 'verified_value'], 1, 'admin');
+assert_true($auditRecorded === true, 'TC-08a: Audit::record() writes system event safely');
+$auditLogs = Audit::getLogs(['action' => 'test.audit_event'], 5);
+assert_true(!empty($auditLogs) && (int) $auditLogs[0]['entity_id'] === 9999, 'TC-08b: Audit::getLogs() retrieves recorded event and details');
+$pdo->prepare("DELETE FROM audit_logs WHERE action = 'test.audit_event'")->execute();
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

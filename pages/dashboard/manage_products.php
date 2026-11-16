@@ -4,6 +4,7 @@
  * Accessible to authenticated Sellers (own products) and Admins (all products).
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/audit.php';
 init_session();
 $user = require_role(['seller', 'admin']);
 $pdo = get_db_connection();
@@ -40,10 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     if ($hasOrders) {
         $arch = $pdo->prepare("UPDATE products SET status = 'archived' WHERE id = :id");
         $arch->execute([':id' => $prodId]);
+        Audit::record('product.archived', 'product', $prodId, ['name' => $target['name'], 'reason' => 'has_order_history']);
         set_flash('info', '"' . $target['name'] . '" has existing order history, so it was archived safely instead of hard-deleted.');
     } else {
         $del = $pdo->prepare('DELETE FROM products WHERE id = :id');
         $del->execute([':id' => $prodId]);
+        Audit::record('product.deleted', 'product', $prodId, ['name' => $target['name'], 'hard_deleted' => true]);
         set_flash('success', 'Product "' . $target['name'] . '" deleted permanently.');
     }
     redirect('pages/dashboard/manage_products.php');
@@ -129,6 +132,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     ':feat'  => $form['is_featured'],
                     ':id'    => (int) $editingProduct['id'],
                 ]);
+                Audit::record('product.updated', 'product', (int) $editingProduct['id'], [
+                    'name'  => $form['name'],
+                    'price' => (float) $form['price'],
+                    'stock' => (int) $form['stock_qty'],
+                ]);
                 set_flash('success', 'Product "' . $form['name'] . '" updated successfully.');
             } else {
                 $ins = $pdo->prepare(
@@ -147,6 +155,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                     ':cond'   => $form['condition_type'],
                     ':img'    => $form['image_path'],
                     ':feat'   => $form['is_featured'],
+                ]);
+                $newId = (int) $pdo->lastInsertId();
+                Audit::record('product.created', 'product', $newId, [
+                    'name'  => $form['name'],
+                    'price' => (float) $form['price'],
+                    'stock' => (int) $form['stock_qty'],
                 ]);
                 set_flash('success', 'New product "' . $form['name'] . '" created and published!');
             }
