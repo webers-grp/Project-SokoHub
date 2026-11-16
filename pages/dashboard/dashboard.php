@@ -157,6 +157,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-amber">🔔 Restock &amp; Store Alerts</a>
             <?php elseif ($role === 'seller'): ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Products (CRUD)</a>
+                <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">Bulk CSV Import</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">View Sales &amp; Stock Reports</a>
                 <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline" style="border-color: #10b981; color: #047857;">Monthly Payouts</a>
                 <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">Verification &amp; KYC</a>
@@ -166,6 +167,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">Delivery Report</a>
             <?php else: ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">Manage Catalog</a>
+                <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">Bulk CSV Import</a>
                 <a href="<?= e(url('pages/dashboard/seller_verification.php')) ?>" class="btn btn-amber">KYC Review Queue</a>
                 <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline" style="border-color: #10b981; color: #047857;">Seller Payouts</a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-outline">System Reports</a>

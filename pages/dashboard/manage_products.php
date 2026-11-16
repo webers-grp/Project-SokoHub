@@ -262,9 +262,12 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1><?= $editingProduct ? 'Edit Product #' . (int) $editingProduct['id'] : 'Product Inventory Management (CRUD)' ?></h1>
             <p class="muted">Create, view, update, and delete marketplace listings stored in MySQL.</p>
         </div>
-        <?php if ($editingProduct): ?>
-            <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
-        <?php endif; ?>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-amber">📤 Bulk CSV Upload</a>
+            <?php if ($editingProduct): ?>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php if (!$isAdmin): 

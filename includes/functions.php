@@ -195,6 +195,7 @@ function get_nav_items(?array $user): array
 
         if (in_array($user['role'], ['seller', 'admin'], true)) {
             $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php']];
+            $items[] = ['label' => 'Bulk Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php']];
         }
 
         if (in_array($user['role'], ['seller', 'delivery'], true)) {

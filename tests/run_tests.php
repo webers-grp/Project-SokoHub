@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/kyc.php';
 require_once __DIR__ . '/../includes/inventory.php';
 require_once __DIR__ . '/../includes/notifications.php';
 require_once __DIR__ . '/../includes/payouts.php';
+require_once __DIR__ . '/../includes/bulk_import.php';
 
 $passed = 0;
 $failed = 0;
@@ -398,6 +399,209 @@ assert_true(
     $summary['total_paid'] >= 1080.00,
     'TC-12k: Payouts::getPayoutSummary() computes gross sales, fees, and disbursed totals'
 );
+
+// 13. Bulk Product CSV Upload Engine
+BulkImport::ensureSchema();
+
+// 13a. Schema check
+$tBulk1 = $pdo->query("SHOW TABLES LIKE 'bulk_imports'")->fetch();
+$tBulk2 = $pdo->query("SHOW TABLES LIKE 'bulk_import_rows'")->fetch();
+assert_true(!empty($tBulk1) && !empty($tBulk2), 'TC-13a: BulkImport::ensureSchema() creates bulk_imports and bulk_import_rows tables');
+
+// 13b. Category resolution
+$catFood = BulkImport::resolveCategory($pdo, 'Food');
+$catGas  = BulkImport::resolveCategory($pdo, 'gas');
+$catId1  = BulkImport::resolveCategory($pdo, '1');
+$catBad  = BulkImport::resolveCategory($pdo, 'NonExistentCategory999');
+assert_true(
+    $catFood === 3 && $catGas === 2 && $catId1 === 1 && $catBad === null,
+    'TC-13b: BulkImport::resolveCategory() resolves by name, slug, and ID, rejecting invalid categories'
+);
+
+// 13c. Sample CSV template generator
+$sampleCsv = BulkImport::generateSampleCsv();
+assert_true(
+    str_contains($sampleCsv, 'name,category,description,price') &&
+    str_contains($sampleCsv, 'Kirinyaga Organic Raw Honey'),
+    'TC-13c: BulkImport::generateSampleCsv() generates standard valid CSV template'
+);
+
+// 13d. Unverified seller check (Grace Wanjiku, user 3 is pending KYC)
+$tmpCsvPath = tempnam(sys_get_temp_dir(), 'csv_test_');
+file_put_contents($tmpCsvPath, "name,category,description,price\nTest Prod,Food,Test description long enough,500.00\n");
+$unverifiedUpload = BulkImport::uploadAndProcessCsv(3, [
+    'name'     => 'test.csv',
+    'tmp_name' => $tmpCsvPath,
+    'size'     => filesize($tmpCsvPath),
+    'error'    => UPLOAD_ERR_OK,
+], 3, 'seller');
+assert_true(
+    $unverifiedUpload['ok'] === false && str_contains($unverifiedUpload['error'], 'KYC Compliance Required'),
+    'TC-13d: BulkImport::uploadAndProcessCsv() blocks unverified merchants from uploading catalog CSVs'
+);
+
+// 13e. Valid CSV upload & batch product creation (Seller 2 is verified)
+$validCsvContent = "name,category,description,price,original_price,stock_qty,low_stock_threshold,condition_type,is_featured\n" .
+    "Kirinyaga Bulk Premium Tea Leaves 500g,Food,Fresh hand-picked high-grown tea leaves from Mount Kenya slopes.,450.00,500.00,20,5,New,1\n" .
+    "Heavy Duty Kitchen Gas Hose 2M,Gas,Reinforced high-pressure safety gas hose certified for domestic cylinders.,650.00,750.00,15,3,New,0\n";
+file_put_contents($tmpCsvPath, $validCsvContent);
+
+$validUpload = BulkImport::uploadAndProcessCsv(2, [
+    'name'     => 'catalog_batch_1.csv',
+    'tmp_name' => $tmpCsvPath,
+    'size'     => filesize($tmpCsvPath),
+    'error'    => UPLOAD_ERR_OK,
+], 2, 'seller');
+
+assert_true(
+    $validUpload['ok'] === true &&
+    $validUpload['total_rows'] === 2 &&
+    $validUpload['success_rows'] === 2 &&
+    $validUpload['error_rows'] === 0 &&
+    $validUpload['status'] === 'completed',
+    'TC-13e: BulkImport::uploadAndProcessCsv() creates products and publishes to catalog cleanly'
+);
+
+// Verify products created in products table
+$pCheck1 = $pdo->query("SELECT id, name, price, stock_qty FROM products WHERE name = 'Kirinyaga Bulk Premium Tea Leaves 500g'")->fetch();
+$pCheck2 = $pdo->query("SELECT id, name, price, stock_qty FROM products WHERE name = 'Heavy Duty Kitchen Gas Hose 2M'")->fetch();
+assert_true(
+    !empty($pCheck1) && !empty($pCheck2) && (float) $pCheck1['price'] === 450.00 && (int) $pCheck2['stock_qty'] === 15,
+    'TC-13f: Bulk-imported products exist in MySQL products table with correct fields and stock'
+);
+
+// 13g. Fault tolerance with mixed valid & invalid rows
+$mixedCsvContent = "name,category,description,price,stock_qty\n" .
+    "Valid Handcrafted Ceramic Bowl,Others,Artisan fired traditional clay soup bowl for home dining.,350.00,10\n" .
+    "Bad Price Item,Food,High quality rice from Mwea irrigation scheme.,-200.00,5\n" .
+    "Short,Clothes,Short,1200.00,8\n" .
+    "Invalid Category Item,UnknownCategoryXYZ,High quality authentic product description here.,800.00,10\n";
+file_put_contents($tmpCsvPath, $mixedCsvContent);
+
+$mixedUpload = BulkImport::uploadAndProcessCsv(2, [
+    'name'     => 'mixed_batch.csv',
+    'tmp_name' => $tmpCsvPath,
+    'size'     => filesize($tmpCsvPath),
+    'error'    => UPLOAD_ERR_OK,
+], 2, 'seller');
+
+assert_true(
+    $mixedUpload['ok'] === true &&
+    $mixedUpload['total_rows'] === 4 &&
+    $mixedUpload['success_rows'] === 1 &&
+    $mixedUpload['error_rows'] === 3,
+    'TC-13g: Fault tolerance: Valid items are created while invalid items capture row errors without aborting the batch'
+);
+
+// 13h. Import details & row error inspection
+$mixedDetails = BulkImport::getImportDetails($mixedUpload['import_id']);
+assert_true(
+    !empty($mixedDetails) &&
+    count($mixedDetails['rows']) === 4 &&
+    $mixedDetails['rows'][0]['status'] === 'created' &&
+    $mixedDetails['rows'][1]['status'] === 'invalid' &&
+    str_contains($mixedDetails['rows'][1]['error_message'], 'Selling price must be a positive number') &&
+    str_contains($mixedDetails['rows'][2]['error_message'], 'at least 10 characters') &&
+    str_contains($mixedDetails['rows'][3]['error_message'], 'Unknown category'),
+    'TC-13h: BulkImport::getImportDetails() records precise error messages for price, description, and category'
+);
+
+// 13i. Seller & Admin import history lists
+$sellerHistory = BulkImport::getSellerImports(2);
+$adminHistory = BulkImport::getAdminImports();
+assert_true(
+    count($sellerHistory) >= 2 && count($adminHistory) >= 2,
+    'TC-13i: BulkImport::getSellerImports() and getAdminImports() return complete upload audit history'
+);
+
+// 13j. Manual spreadsheet grid multi-product creation (without CSV file)
+$gridRows = [
+    [
+        'name'                => 'Grid Product One Tea 250g',
+        'category_id'         => 3,
+        'description'         => 'Premium tea leaves harvested directly from Kirinyaga tea farms.',
+        'price'               => '320.00',
+        'original_price'      => '380.00',
+        'stock_qty'           => '25',
+        'low_stock_threshold' => '5',
+        'condition_type'      => 'New',
+    ],
+    [
+        'name'                => 'Grid Product Two Woolen Scarf',
+        'category_id'         => 1,
+        'description'         => 'Warm hand-knitted acrylic woolen scarf for cold seasons.',
+        'price'               => '450.00',
+        'original_price'      => '500.00',
+        'stock_qty'           => '18',
+        'low_stock_threshold' => '4',
+        'condition_type'      => 'New',
+    ],
+];
+
+$gridResult = BulkImport::processManualBulkRows(2, $gridRows, 2, 'seller');
+assert_true(
+    $gridResult['ok'] === true &&
+    $gridResult['total_rows'] === 2 &&
+    $gridResult['success_rows'] === 2 &&
+    $gridResult['error_rows'] === 0,
+    'TC-13j: BulkImport::processManualBulkRows() creates multiple products via in-browser spreadsheet grid without CSV'
+);
+
+// 13k. Bulk update existing products via spreadsheet editor
+$p1Id = $pdo->query("SELECT id FROM products WHERE name = 'Grid Product One Tea 250g'")->fetchColumn();
+$p2Id = $pdo->query("SELECT id FROM products WHERE name = 'Grid Product Two Woolen Scarf'")->fetchColumn();
+
+$updateItems = [
+    [
+        'id'                  => (int) $p1Id,
+        'name'                => 'Grid Product One Tea 250g (Updated)',
+        'category_id'         => 3,
+        'price'               => 350.00,
+        'stock_qty'           => 40,
+        'low_stock_threshold' => 8,
+        'condition_type'      => 'New',
+        'status'              => 'active',
+    ],
+    [
+        'id'                  => (int) $p2Id,
+        'name'                => 'Grid Product Two Woolen Scarf',
+        'category_id'         => 1,
+        'price'               => 480.00,
+        'stock_qty'           => 12,
+        'low_stock_threshold' => 3,
+        'condition_type'      => 'New',
+        'status'              => 'active',
+    ],
+];
+
+$bulkUpRes = BulkImport::bulkUpdateProducts(2, $updateItems, false, 2);
+$p1After = $pdo->query("SELECT name, price, stock_qty FROM products WHERE id = {$p1Id}")->fetch();
+$p2After = $pdo->query("SELECT price, stock_qty FROM products WHERE id = {$p2Id}")->fetch();
+
+assert_true(
+    $bulkUpRes['ok'] === true &&
+    $bulkUpRes['updated_count'] === 2 &&
+    $p1After['name'] === 'Grid Product One Tea 250g (Updated)' &&
+    (float) $p1After['price'] === 350.00 &&
+    (int) $p1After['stock_qty'] === 40 &&
+    (float) $p2After['price'] === 480.00,
+    'TC-13k: BulkImport::bulkUpdateProducts() modifies multiple product prices and stock quantities in-place'
+);
+
+// Clean up grid test products
+if ($p1Id && $p2Id) {
+    $pdo->exec("DELETE FROM products WHERE id IN ({$p1Id}, {$p2Id})");
+}
+
+// Clean up temporary test products and test imports
+if (!empty($pCheck1['id'])) {
+    $pdo->exec("DELETE FROM products WHERE id IN ({$pCheck1['id']}, {$pCheck2['id']})");
+}
+$createdRowProdId = $pdo->query("SELECT product_id FROM bulk_import_rows WHERE import_id = {$mixedUpload['import_id']} AND status = 'created'")->fetchColumn();
+if ($createdRowProdId) {
+    $pdo->exec("DELETE FROM products WHERE id = {$createdRowProdId}");
+}
+@unlink($tmpCsvPath);
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
