@@ -219,6 +219,10 @@ function get_nav_items(?array $user): array
         if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
             $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php']];
         }
+
+        if (in_array($user['role'], ['seller', 'admin'], true)) {
+            $items[] = ['label' => 'Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php']];
+        }
     }
 
     return $items;

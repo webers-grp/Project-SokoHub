@@ -352,4 +352,43 @@ class Notifications
             return [];
         }
     }
+
+    /**
+     * Notify a specific user directly (e.g. seller on payout payment or system alert).
+     */
+    public static function notifyUser(int $userId, string $type, string $title, string $message, ?string $linkUrl = null): int
+    {
+        self::ensureSchema();
+        try {
+            $pdo = get_db_connection();
+            $stmt = $pdo->prepare('
+                INSERT INTO notifications (user_id, type, title, message, link_url, created_at)
+                VALUES (:uid_target, :type_name, :title_text, :msg_body, :link_href, NOW())
+            ');
+            $stmt->execute([
+                ':uid_target' => $userId,
+                ':type_name'  => $type,
+                ':title_text' => $title,
+                ':msg_body'   => $message,
+                ':link_href'  => $linkUrl,
+            ]);
+            return (int) $pdo->lastInsertId();
+        } catch (Throwable $e) {
+            error_log('SokoHub Notifications::notifyUser Error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Notify seller of disbursed payout via Safaricom M-Pesa.
+     */
+    public static function notifyPayoutDisbursed(int $sellerId, float $netAmount, string $mpesaRef, string $periodStart, string $periodEnd, int $payoutId): int
+    {
+        $title = '💰 M-Pesa Payout Disbursed';
+        $formattedNet = number_format($netAmount, 2);
+        $message = "Your monthly sales payout of KES {$formattedNet} for period {$periodStart} to {$periodEnd} has been disbursed to your Safaricom M-Pesa line. Transaction Ref: {$mpesaRef}.";
+        $link = 'pages/dashboard/payouts.php?action=statement&id=' . $payoutId;
+
+        return self::notifyUser($sellerId, 'system', $title, $message, $link);
+    }
 }

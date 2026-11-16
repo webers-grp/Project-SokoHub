@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../includes/kyc.php';
 require_once __DIR__ . '/../includes/inventory.php';
 require_once __DIR__ . '/../includes/notifications.php';
+require_once __DIR__ . '/../includes/payouts.php';
 
 $passed = 0;
 $failed = 0;
@@ -304,6 +305,99 @@ $pdo->prepare("DELETE FROM notifications WHERE id IN (:n1, :n2, :n3)")->execute(
     ':n3' => $restockNotifId,
 ]);
 $pdo->prepare("DELETE FROM audit_logs WHERE action IN ('notification.new_seller_broadcast', 'notification.new_stock_broadcast', 'notification.restock_broadcast')")->execute();
+
+// 12. Seller Monthly Payouts & Commission Engine
+Payouts::ensureSchema();
+
+// Reset test billing cycle for seller 2 to ensure idempotent test runs
+$pdo->exec("DELETE FROM seller_payouts WHERE seller_user_id = 2 AND period_start = '2026-10-01'");
+
+// 12a. Schema check
+$payoutTable = $pdo->query("SHOW TABLES LIKE 'seller_payouts'")->fetch();
+assert_true(!empty($payoutTable), 'TC-12a: Payouts::ensureSchema() creates seller_payouts table');
+
+// 12b. Period sales and 10% fee calculation
+// Seller 2 in October 2026 had Order 1 delivered with line_total = 1200.00
+$octSales = Payouts::calculatePeriodSales(2, '2026-10-01', '2026-10-31');
+assert_true(
+    (float) $octSales['gross_sales'] === 1200.00 &&
+    (float) $octSales['platform_fee'] === 120.00 &&
+    (float) $octSales['net_amount'] === 1080.00 &&
+    count($octSales['line_items']) === 1,
+    'TC-12b: Payouts::calculatePeriodSales() computes gross sales, 10% platform fee, and net amount'
+);
+
+// 12c. Generate monthly statements
+$genRes = Payouts::generateMonthlyPayouts('2026-10', 1);
+assert_true(
+    $genRes['ok'] === true &&
+    $genRes['year_month'] === '2026-10' &&
+    $genRes['total_gross'] >= 1200.00,
+    'TC-12c: Payouts::generateMonthlyPayouts() generates monthly payout statements for active sellers'
+);
+
+// Find generated payout ID for seller 2
+$s2Payout = $pdo->query("SELECT id, status, gross_sales, platform_fee, net_amount FROM seller_payouts WHERE seller_user_id = 2 AND period_start = '2026-10-01'")->fetch();
+$testPayoutId = (int) ($s2Payout['id'] ?? 0);
+assert_true($testPayoutId > 0 && $s2Payout['status'] === 'draft', 'TC-12d: Draft payout record created with correct amounts');
+
+// 12e. Idempotent re-generation updates draft without constraint collision
+$reGen = Payouts::generateMonthlyPayouts('2026-10', 1);
+assert_true(
+    $reGen['ok'] === true &&
+    $reGen['created'] === 0 &&
+    $reGen['updated'] >= 1,
+    'TC-12e: Payouts::generateMonthlyPayouts() updates existing drafts safely without duplicate key collision'
+);
+
+// 12f. Approve draft payout
+$appRes = Payouts::approvePayout($testPayoutId, 1);
+$statusAfterApprove = $pdo->query("SELECT status FROM seller_payouts WHERE id = {$testPayoutId}")->fetchColumn();
+assert_true($appRes['ok'] === true && $statusAfterApprove === 'approved', 'TC-12f: Payouts::approvePayout() transitions payout to approved');
+
+// 12g. Reject invalid M-Pesa transaction reference
+$badMpesa = Payouts::markPayoutPaid($testPayoutId, 'bad-code!', 1);
+assert_true($badMpesa['ok'] === false && str_contains($badMpesa['error'], 'Invalid M-Pesa'), 'TC-12g: Payouts::markPayoutPaid() validates Safaricom M-Pesa code format');
+
+// 12h. Mark payout paid with valid Safaricom transaction reference
+$goodMpesa = Payouts::markPayoutPaid($testPayoutId, 'QJD782394A', 1);
+$paidRow = $pdo->query("SELECT status, mpesa_reference, paid_at FROM seller_payouts WHERE id = {$testPayoutId}")->fetch();
+assert_true(
+    $goodMpesa['ok'] === true &&
+    $paidRow['status'] === 'paid' &&
+    $paidRow['mpesa_reference'] === 'QJD782394A' &&
+    !empty($paidRow['paid_at']),
+    'TC-12h: Payouts::markPayoutPaid() records M-Pesa reference, sets paid_at, and marks status paid'
+);
+
+// 12i. Details and line items retrieval
+$details = Payouts::getPayoutDetails($testPayoutId);
+assert_true(
+    $details !== null &&
+    (int) $details['id'] === $testPayoutId &&
+    $details['status'] === 'paid' &&
+    count($details['line_items']) >= 1 &&
+    $details['line_items'][0]['order_code'] === 'SKH-2026-1001',
+    'TC-12i: Payouts::getPayoutDetails() returns complete statement with merchant profile and order breakdown'
+);
+
+// 12j. Paid payout statements are protected from recalculation overwrites
+$skipRes = Payouts::createOrUpdatePayout(2, '2026-10-01', '2026-10-31', 1);
+assert_true(
+    $skipRes['ok'] === true &&
+    $skipRes['action'] === 'skipped',
+    'TC-12j: Finalized / paid statements are immutable and protected against recalculation overwrites'
+);
+
+// 12k. Financial summary metrics
+$summary = Payouts::getPayoutSummary();
+assert_true(
+    $summary['total_count'] >= 1 &&
+    $summary['total_gross'] >= 1200.00 &&
+    $summary['total_fees'] >= 120.00 &&
+    $summary['total_paid'] >= 1080.00,
+    'TC-12k: Payouts::getPayoutSummary() computes gross sales, fees, and disbursed totals'
+);
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
