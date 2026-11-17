@@ -3,9 +3,11 @@
  * SokoHub Orders Management (View, Update Status, Cancel with Stock Restore)
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/payments.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
+Payments::ensureSchema();
 
 $role = $user['role'];
 $userId = (int) $user['id'];
@@ -189,6 +191,11 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td>
                                 <div><?= e($ord['payment_method']) ?></div>
                                 <span class="badge <?= e($pBadge['class']) ?>"><?= e($pBadge['label']) ?></span>
+                                <?php if (!empty($ord['mpesa_receipt'])): ?>
+                                    <div class="small" style="font-family: monospace; font-weight: 600; color: #065f46; margin-top: 0.15rem;">
+                                        Ref: <?= e($ord['mpesa_receipt']) ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td><span class="badge <?= e($oBadge['class']) ?>"><?= e($oBadge['label']) ?></span></td>
                             <td>

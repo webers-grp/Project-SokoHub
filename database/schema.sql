@@ -96,12 +96,14 @@ CREATE TABLE orders (
     order_code VARCHAR(32) NOT NULL UNIQUE,
     buyer_id INT UNSIGNED NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
-    payment_method ENUM('M-Pesa', 'Cash on Delivery', 'Bank Card') NOT NULL DEFAULT 'M-Pesa',
-    payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'paid',
+    payment_method VARCHAR(60) NOT NULL DEFAULT 'Digital Pay-on-Delivery (M-Pesa)',
+    payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
     order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
     delivery_address VARCHAR(255) NOT NULL,
     delivery_town VARCHAR(100) NOT NULL,
     notes VARCHAR(255) NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    paid_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_orders_buyer (buyer_id),
@@ -131,6 +133,7 @@ CREATE TABLE deliveries (
     order_id INT UNSIGNED NOT NULL UNIQUE,
     delivery_person_id INT UNSIGNED NULL,
     assigned_by_seller_id INT UNSIGNED NULL,
+    digital_payment_id INT UNSIGNED NULL,
     pickup_town VARCHAR(100) NOT NULL DEFAULT 'Kutus Market',
     dropoff_address VARCHAR(255) NOT NULL,
     delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 150.00,
@@ -147,7 +150,32 @@ CREATE TABLE deliveries (
     CONSTRAINT fk_delivery_seller FOREIGN KEY (assigned_by_seller_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. Contact & Customer Support Inquiries
+-- 9. Digital Payments (Pure Digital Pay-on-Delivery via M-Pesa STK)
+CREATE TABLE payments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    delivery_id INT UNSIGNED NULL,
+    rider_id INT UNSIGNED NULL,
+    buyer_phone VARCHAR(20) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(60) NOT NULL DEFAULT 'Digital Pay-on-Delivery (M-Pesa)',
+    status ENUM('pending', 'prompted', 'completed', 'failed', 'cancelled') NOT NULL DEFAULT 'pending',
+    mpesa_checkout_id VARCHAR(80) NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    prompted_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    failure_reason VARCHAR(255) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_payments_order (order_id),
+    INDEX idx_payments_delivery (delivery_id),
+    INDEX idx_payments_status (status),
+    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_payments_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL,
+    CONSTRAINT fk_payments_rider FOREIGN KEY (rider_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Contact & Customer Support Inquiries
 CREATE TABLE contact_messages (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,

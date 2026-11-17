@@ -1,19 +1,19 @@
 <?php
 /**
- * SokoHub Delivery Dispatch & Tracking Module (Seller-Driven Rider Allocation)
+ * SokoHub Delivery Dispatch & Tracking Module
+ * - Seller-Driven Rider Allocation (Merchants assign vetted riders on standby)
+ * - Pure Digital Pay-on-Delivery via Safaricom M-Pesa STK push prompted by rider on arrival
+ * - Strictly Cashless Policy: deliveries cannot be completed without confirmed digital payment
  * Authored by Kennedy Kalawa.
- *
- * Rules:
- * - Sellers select and assign verified delivery riders to orders containing their products.
- * - Delivery riders wait on standby (On Duty vs Off Duty) and cannot self-claim tasks.
- * - Riders view only deliveries assigned to them by merchants or administrators.
  */
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
+require_once __DIR__ . '/../../includes/payments.php';
 init_session();
 $user = require_role(['seller', 'delivery', 'buyer', 'admin']);
 $pdo = get_db_connection();
 Kyc::ensureSchema();
+Payments::ensureSchema();
 
 $role = $user['role'];
 $userId = (int) $user['id'];
@@ -57,6 +57,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['seller', 'deliver
         redirect('pages/dashboard/deliveries.php');
     }
 
+    // Step 4: Rider prompts customer's phone for Safaricom M-Pesa STK Push
+    if ($action === 'prompt_stk' && in_array($role, ['delivery', 'admin'], true)) {
+        $buyerPhone = trim((string) ($_POST['buyer_phone'] ?? ''));
+        $res = Payments::initiateStkPush($deliveryId, $userId, !empty($buyerPhone) ? $buyerPhone : null);
+        if ($res['ok']) {
+            set_flash('success', "M-Pesa STK Push prompted to customer {$res['phone']} for KES " . number_format($res['amount'], 2) . ". Waiting for customer PIN...");
+        } else {
+            set_flash('error', $res['error'] ?? 'Failed to initiate M-Pesa STK push.');
+        }
+        redirect('pages/dashboard/deliveries.php');
+    }
+
+    // Step 4: Rider confirms M-Pesa payment received digitally
+    if ($action === 'confirm_digital_payment' && in_array($role, ['delivery', 'admin'], true)) {
+        $paymentId = (int) ($_POST['payment_id'] ?? 0);
+        $receipt = trim((string) ($_POST['mpesa_receipt'] ?? ''));
+        $res = Payments::confirmDigitalPayment($paymentId, $userId, !empty($receipt) ? $receipt : null);
+        if ($res['ok']) {
+            set_flash('success', "Digital payment confirmed! Safaricom M-Pesa Ref: {$res['receipt']} (KES " . number_format($res['amount'], 2) . "). Order is paid. Package cleared for handoff.");
+        } else {
+            set_flash('error', $res['error'] ?? 'Failed to confirm digital payment.');
+        }
+        redirect('pages/dashboard/deliveries.php');
+    }
+
+    // Cancel active STK push prompt
+    if ($action === 'cancel_stk' && in_array($role, ['delivery', 'admin'], true)) {
+        $paymentId = (int) ($_POST['payment_id'] ?? 0);
+        Payments::cancelPrompt($paymentId, $userId, 'Cancelled by rider');
+        set_flash('info', 'M-Pesa STK prompt cancelled. You may re-prompt customer with a new phone number.');
+        redirect('pages/dashboard/deliveries.php');
+    }
+
     // Explicitly reject any self-claiming attempt
     if ($action === 'claim') {
         set_flash('error', 'Self-claiming deliveries is disabled. SokoHub operates on merchant-driven rider allocation; sellers choose and assign verified riders directly.');
@@ -79,6 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['seller', 'deliver
 
         if (!$del || ($role !== 'admin' && (int) $del['delivery_person_id'] !== $userId)) {
             set_flash('error', 'You cannot update a delivery not assigned to you.');
+            redirect('pages/dashboard/deliveries.php');
+        }
+
+        // STEP 4 ENFORCEMENT: STRICTLY NO CASH - Cannot deliver without confirmed digital payment
+        if ($newStatus === 'delivered' && !Payments::isDeliveryPaid($deliveryId)) {
+            set_flash('error', 'Strictly Cashless Delivery Policy: You cannot mark an order as "Delivered" until digital payment is confirmed via Safaricom M-Pesa STK push. Paper cash is strictly forbidden.');
             redirect('pages/dashboard/deliveries.php');
         }
 
@@ -116,15 +155,18 @@ if (in_array($role, ['seller', 'admin'], true)) {
     $availableRiders = Kyc::getAvailableRiders();
 }
 
-// Query deliveries based on user role
+// Query deliveries based on user role with digital payments linkage
 if ($role === 'buyer') {
     $stmt = $pdo->prepare(
-        'SELECT d.*, o.order_code, r.full_name AS rider_name, r.phone AS rider_phone,
-                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model
+        'SELECT d.*, o.order_code, o.total_amount, o.payment_status, o.mpesa_receipt,
+                r.full_name AS rider_name, r.phone AS rider_phone,
+                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model,
+                p.status AS payment_prompt_status, p.buyer_phone AS payment_phone, p.amount AS payment_amount
          FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
          LEFT JOIN users r ON r.id = d.delivery_person_id
          LEFT JOIN delivery_profiles dp ON dp.user_id = r.id
+         LEFT JOIN payments p ON p.id = d.digital_payment_id
          WHERE o.buyer_id = :uid
          ORDER BY d.id DESC'
     );
@@ -133,15 +175,18 @@ if ($role === 'buyer') {
 } elseif ($role === 'delivery') {
     // Delivery rider: strictly view assignments dispatched to them (NO unassigned tasks)
     $stmt = $pdo->prepare(
-        'SELECT d.*, o.order_code, o.payment_status,
+        'SELECT d.*, o.order_code, o.total_amount, o.payment_status, o.mpesa_receipt,
                 b.full_name AS buyer_name, b.phone AS buyer_phone,
                 s.full_name AS seller_name, s.phone AS seller_phone,
-                sp.business_name AS seller_business, sp.town AS seller_town
+                sp.business_name AS seller_business, sp.town AS seller_town,
+                p.id AS active_payment_id, p.status AS payment_prompt_status, p.buyer_phone AS payment_phone,
+                p.amount AS payment_amount, p.mpesa_checkout_id
          FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
          INNER JOIN users b ON b.id = o.buyer_id
          LEFT JOIN users s ON s.id = d.assigned_by_seller_id
          LEFT JOIN seller_profiles sp ON sp.user_id = s.id
+         LEFT JOIN payments p ON p.id = d.digital_payment_id
          WHERE d.delivery_person_id = :uid
          ORDER BY FIELD(d.delivery_status, "assigned", "picked_up", "in_transit", "delivered", "failed"), d.id DESC'
     );
@@ -150,16 +195,18 @@ if ($role === 'buyer') {
 } elseif ($role === 'seller') {
     // Seller: orders containing products from this seller
     $stmt = $pdo->prepare(
-        'SELECT DISTINCT d.*, o.order_code, o.order_status, o.payment_status, o.total_amount,
+        'SELECT DISTINCT d.*, o.order_code, o.order_status, o.payment_status, o.total_amount, o.mpesa_receipt,
                 b.full_name AS buyer_name, b.phone AS buyer_phone,
                 r.full_name AS rider_name, r.phone AS rider_phone,
-                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model
+                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model,
+                p.status AS payment_prompt_status, p.buyer_phone AS payment_phone, p.amount AS payment_amount
          FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
          INNER JOIN order_items oi ON oi.order_id = o.id
          INNER JOIN users b ON b.id = o.buyer_id
          LEFT JOIN users r ON r.id = d.delivery_person_id
          LEFT JOIN delivery_profiles dp ON dp.user_id = r.id
+         LEFT JOIN payments p ON p.id = d.digital_payment_id
          WHERE oi.seller_id = :uid
          ORDER BY (d.delivery_person_id IS NULL) DESC, d.id DESC'
     );
@@ -168,11 +215,13 @@ if ($role === 'buyer') {
 } else {
     // Admin: full visibility
     $deliveries = $pdo->query(
-        'SELECT d.*, o.order_code, o.order_status, o.payment_status,
+        'SELECT d.*, o.order_code, o.order_status, o.payment_status, o.total_amount, o.mpesa_receipt,
                 b.full_name AS buyer_name, b.phone AS buyer_phone,
                 s.full_name AS seller_name, sp.business_name AS seller_business,
                 r.full_name AS rider_name, r.phone AS rider_phone,
-                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model
+                dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model,
+                p.id AS active_payment_id, p.status AS payment_prompt_status, p.buyer_phone AS payment_phone,
+                p.amount AS payment_amount, p.mpesa_checkout_id
          FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
          INNER JOIN users b ON b.id = o.buyer_id
@@ -180,11 +229,12 @@ if ($role === 'buyer') {
          LEFT JOIN seller_profiles sp ON sp.user_id = s.id
          LEFT JOIN users r ON r.id = d.delivery_person_id
          LEFT JOIN delivery_profiles dp ON dp.user_id = r.id
+         LEFT JOIN payments p ON p.id = d.digital_payment_id
          ORDER BY (d.delivery_person_id IS NULL) DESC, d.id DESC'
     )->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$pageTitle = 'SokoHub | Delivery Coordination & Dispatch';
+$pageTitle = 'SokoHub | Delivery Coordination & Cashless Dispatch';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
@@ -193,17 +243,17 @@ require_once __DIR__ . '/../../includes/header.php';
         <div>
             <h1>
                 <?= icon('truck', 'lucide-sm', 'amber') ?>
-                <span>Delivery Dispatch &amp; Tracking</span>
+                <span>Delivery Dispatch &amp; Cashless Fulfillment</span>
             </h1>
             <p class="muted">
                 <?php if ($role === 'seller'): ?>
                     Manage order dispatch and assign vetted Kirinyaga delivery riders to customer shipments.
                 <?php elseif ($role === 'delivery'): ?>
-                    View your assigned delivery dispatches and manage your on-duty availability.
+                    Manage assigned deliveries, trigger customer M-Pesa STK prompts on arrival, and toggle your availability.
                 <?php elseif ($role === 'buyer'): ?>
-                    Track the fulfillment progress and verified rider assigned to your orders.
+                    Track fulfillment progress and prepare to authorize your Safaricom M-Pesa prompt upon rider arrival.
                 <?php else: ?>
-                    System-wide delivery oversight and dispatch coordination.
+                    System-wide delivery oversight and digital cashless dispatch coordination.
                 <?php endif; ?>
             </p>
         </div>
@@ -220,6 +270,23 @@ require_once __DIR__ . '/../../includes/header.php';
                     <span>View Orders</span>
                 </a>
             <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Strictly Cashless Banner -->
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 5px solid #10b981; background: rgba(16, 185, 129, 0.05); padding: 0.85rem 1.25rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span class="badge badge-success" style="font-size: 0.78rem;">
+                    <?= icon('shield-check', 'lucide-xs') ?> STRICTLY CASHLESS
+                </span>
+                <span style="font-weight: 600; font-size: 0.95rem; color: #065f46;">
+                    Pure Digital Pay-on-Delivery (Safaricom M-Pesa STK Push)
+                </span>
+            </div>
+            <div class="small muted">
+                No paper cash allowed. Riders prompt customer phones upon arrival. Packages are released once M-Pesa confirms payment.
+            </div>
         </div>
     </div>
 
@@ -318,12 +385,13 @@ require_once __DIR__ . '/../../includes/header.php';
                         <tr>
                             <th>Order</th>
                             <th>Route (Pickup &rarr; Dropoff)</th>
-                            <th>Fee</th>
+                            <th>Amount Payable</th>
                             <th>Assigned Rider</th>
-                            <th>Status</th>
+                            <th>M-Pesa Payment Status</th>
+                            <th>Delivery Status</th>
                             <th>Tracking Notes</th>
                             <?php if (in_array($role, ['seller', 'delivery', 'admin'], true)): ?>
-                                <th>Action</th>
+                                <th>Action &amp; Cashless Handoff</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -333,6 +401,9 @@ require_once __DIR__ . '/../../includes/header.php';
                         $badge = get_status_badge($del['delivery_status']); 
                         $hasRider = !empty($del['delivery_person_id']);
                         $isDelivered = in_array($del['delivery_status'], ['delivered', 'failed'], true);
+                        $isPaid = ($del['payment_status'] === 'paid');
+                        $isPrompted = ($del['payment_prompt_status'] === 'prompted');
+                        $totalPayable = (float) $del['total_amount'] + (float) $del['delivery_fee'];
                         ?>
                         <tr>
                             <td>
@@ -341,6 +412,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <div class="small muted">
                                         <?= icon('user', 'lucide-xs') ?>
                                         <span>Buyer: <?= e($del['buyer_name']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($del['buyer_phone'])): ?>
+                                    <div class="small muted">
+                                        <?= icon('phone', 'lucide-xs') ?>
+                                        <a href="tel:<?= e($del['buyer_phone']) ?>"><?= e($del['buyer_phone']) ?></a>
                                     </div>
                                 <?php endif; ?>
                                 <?php if (!empty($del['seller_business'])): ?>
@@ -354,7 +431,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <div><strong>From:</strong> <?= e($del['pickup_town']) ?></div>
                                 <div class="small muted"><strong>To:</strong> <?= e($del['dropoff_address']) ?></div>
                             </td>
-                            <td><strong><?= format_ksh($del['delivery_fee']) ?></strong></td>
+                            <td>
+                                <div><strong><?= format_ksh($totalPayable) ?></strong></div>
+                                <div class="small muted">Goods: <?= format_ksh($del['total_amount']) ?> + Fee: <?= format_ksh($del['delivery_fee']) ?></div>
+                            </td>
                             <td>
                                 <?php if ($hasRider): ?>
                                     <div>
@@ -384,6 +464,30 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <?php if ($isPaid): ?>
+                                    <span class="badge badge-success" style="font-size: 0.75rem;">
+                                        <?= icon('check-circle', 'lucide-xs') ?> Paid via M-Pesa
+                                    </span>
+                                    <?php if (!empty($del['mpesa_receipt'])): ?>
+                                        <div class="small" style="font-family: monospace; font-weight: 600; color: #065f46; margin-top: 0.2rem;">
+                                            Ref: <?= e($del['mpesa_receipt']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php elseif ($isPrompted): ?>
+                                    <span class="badge badge-info" style="font-size: 0.75rem;">
+                                        <?= icon('loader', 'lucide-xs') ?> STK Prompt Sent
+                                    </span>
+                                    <div class="small muted" style="margin-top: 0.15rem;">
+                                        To: <?= e($del['payment_phone'] ?: $del['buyer_phone']) ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="badge badge-warning" style="font-size: 0.75rem;">
+                                        <?= icon('clock', 'lucide-xs') ?> Unpaid (PoD)
+                                    </span>
+                                    <div class="small muted" style="margin-top: 0.15rem;">Prompt on arrival</div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
                                 <span class="badge <?= e($badge['class']) ?>">
                                     <?= e($badge['label']) ?>
                                 </span>
@@ -392,11 +496,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?= e($del['tracking_notes'] ?: '-') ?>
                             </td>
                             <?php if (in_array($role, ['seller', 'delivery', 'admin'], true)): ?>
-                                <td>
+                                <td style="min-width: 230px;">
                                     <?php if (in_array($role, ['seller', 'admin'], true)): ?>
                                         <?php if (!$hasRider): ?>
                                             <!-- Seller / Admin: Assign available rider -->
-                                            <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem; min-width: 210px;">
+                                            <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem;">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="action" value="assign_rider">
                                                 <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
@@ -422,7 +526,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                                     <?= icon('arrow-right-left', 'lucide-xs') ?>
                                                     <span>Change Rider</span>
                                                 </summary>
-                                                <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem; min-width: 210px; margin-top: 0.35rem;">
+                                                <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem;">
                                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                     <input type="hidden" name="action" value="assign_rider">
                                                     <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
@@ -451,27 +555,95 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <?php endif; ?>
 
                                     <?php elseif ($role === 'delivery' && (int) $del['delivery_person_id'] === $userId): ?>
-                                        <!-- Rider: Update tracking status and notes -->
-                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem; min-width: 190px;">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="update">
-                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
+                                        <!-- Rider: Cashless Payment & Tracking Controller -->
+                                        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
                                             
-                                            <select name="delivery_status" class="form-control" style="padding: 0.28rem 0.45rem; font-size: 0.84rem;">
-                                                <?php foreach (['assigned', 'picked_up', 'in_transit', 'delivered', 'failed'] as $st): ?>
-                                                    <option value="<?= $st ?>" <?= $del['delivery_status'] === $st ? 'selected' : '' ?>>
-                                                        <?= ucfirst(str_replace('_', ' ', $st)) ?>
+                                            <!-- Step 4 Digital Pay-on-Delivery Module -->
+                                            <?php if (!$isPaid): ?>
+                                                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.55rem 0.65rem;">
+                                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                                                        <strong style="color: #065f46; font-size: 0.82rem;">
+                                                            <?= icon('smartphone', 'lucide-xs') ?> M-Pesa STK Prompt
+                                                        </strong>
+                                                        <span class="badge badge-warning" style="font-size: 0.68rem;">NO CASH</span>
+                                                    </div>
+
+                                                    <?php if ($isPrompted): ?>
+                                                        <div class="small" style="color: #047857; margin-bottom: 0.4rem; font-weight: 500;">
+                                                            Waiting for customer (<?= e($del['payment_phone'] ?: $del['buyer_phone']) ?>) to enter PIN for <strong><?= format_ksh($totalPayable) ?></strong>.
+                                                        </div>
+
+                                                        <!-- Confirm Payment Button -->
+                                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="margin-bottom: 0.35rem;">
+                                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                            <input type="hidden" name="action" value="confirm_digital_payment">
+                                                            <input type="hidden" name="payment_id" value="<?= (int) ($del['active_payment_id'] ?? 0) ?>">
+                                                            <input type="text" name="mpesa_receipt" placeholder="M-Pesa Ref (optional code)" class="form-control" style="font-size: 0.78rem; font-family: monospace; padding: 0.25rem 0.45rem; margin-bottom: 0.35rem; text-transform: uppercase;">
+                                                            <button type="submit" class="btn btn-success btn-sm btn-block" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: #059669;">
+                                                                <?= icon('check-circle', 'lucide-xs') ?>
+                                                                <span>Confirm M-Pesa Payment Received</span>
+                                                            </button>
+                                                        </form>
+
+                                                        <!-- Resend STK Prompt -->
+                                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST">
+                                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                            <input type="hidden" name="action" value="prompt_stk">
+                                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
+                                                            <button type="submit" class="btn btn-outline btn-sm btn-block" style="font-size: 0.75rem; padding: 0.25rem;">
+                                                                <?= icon('refresh-cw', 'lucide-xs') ?>
+                                                                <span>Resend STK Push Prompt</span>
+                                                            </button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <p class="small muted" style="margin: 0 0 0.4rem 0;">
+                                                            Arrived at customer? Prompt their Safaricom phone to enter M-Pesa PIN.
+                                                        </p>
+                                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST">
+                                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                            <input type="hidden" name="action" value="prompt_stk">
+                                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
+                                                            <div style="display: flex; gap: 0.3rem; margin-bottom: 0.35rem;">
+                                                                <input type="tel" name="buyer_phone" value="<?= e($del['buyer_phone'] ?? '') ?>" placeholder="Customer Safaricom line" class="form-control" style="font-size: 0.78rem; padding: 0.25rem 0.45rem;" required>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm btn-block" style="background: #059669; border-color: #059669; font-size: 0.8rem; padding: 0.35rem 0.5rem;">
+                                                                <?= icon('send', 'lucide-xs') ?>
+                                                                <span>Prompt Buyer to Pay (<?= format_ksh($totalPayable) ?>)</span>
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 0.4rem 0.6rem; color: #065f46; font-size: 0.82rem; font-weight: 600;">
+                                                    <?= icon('check-circle', 'lucide-xs') ?>
+                                                    <span>M-Pesa Cleared (<?= e($del['mpesa_receipt'] ?? '') ?>) &mdash; Release package</span>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- Tracking Status Updater -->
+                                            <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="action" value="update">
+                                                <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
+                                                
+                                                <select name="delivery_status" class="form-control" style="padding: 0.28rem 0.45rem; font-size: 0.84rem;">
+                                                    <option value="assigned" <?= $del['delivery_status'] === 'assigned' ? 'selected' : '' ?>>Assigned (Heading for pickup)</option>
+                                                    <option value="picked_up" <?= $del['delivery_status'] === 'picked_up' ? 'selected' : '' ?>>Picked Up (Package collected)</option>
+                                                    <option value="in_transit" <?= $del['delivery_status'] === 'in_transit' ? 'selected' : '' ?>>In Transit (On the way)</option>
+                                                    <option value="delivered" <?= $del['delivery_status'] === 'delivered' ? 'selected' : '' ?> <?= !$isPaid ? 'disabled' : '' ?>>
+                                                        Delivered <?= !$isPaid ? '(Requires M-Pesa Payment First)' : '(Handoff Complete)' ?>
                                                     </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            
-                                            <input type="text" name="tracking_notes" class="form-control" style="padding: 0.28rem 0.45rem; font-size: 0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Customer note / update...">
-                                            
-                                            <button type="submit" class="btn btn-amber btn-sm">
-                                                <?= icon('save', 'lucide-xs') ?>
-                                                <span>Update Tracking</span>
-                                            </button>
-                                        </form>
+                                                    <option value="failed" <?= $del['delivery_status'] === 'failed' ? 'selected' : '' ?>>Failed (Delivery unsuccessful)</option>
+                                                </select>
+                                                
+                                                <input type="text" name="tracking_notes" class="form-control" style="padding: 0.28rem 0.45rem; font-size: 0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Customer note / update...">
+                                                
+                                                <button type="submit" class="btn btn-amber btn-sm">
+                                                    <?= icon('save', 'lucide-xs') ?>
+                                                    <span>Update Tracking</span>
+                                                </button>
+                                            </form>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>

@@ -14,6 +14,7 @@ require_once __DIR__ . '/../includes/inventory.php';
 require_once __DIR__ . '/../includes/notifications.php';
 require_once __DIR__ . '/../includes/payouts.php';
 require_once __DIR__ . '/../includes/bulk_import.php';
+require_once __DIR__ . '/../includes/payments.php';
 
 $passed = 0;
 $failed = 0;
@@ -804,6 +805,89 @@ $pdo->prepare('DELETE FROM deliveries WHERE id = :id')->execute([':id' => $alloc
 $pdo->prepare('DELETE FROM order_items WHERE order_id = :oid')->execute([':oid' => $allocOrderId]);
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $allocOrderId]);
 $pdo->prepare("DELETE FROM audit_logs WHERE action = 'delivery.rider_assigned' AND entity_id = :eid")->execute([':eid' => $allocDeliveryId]);
+
+// 17. Step 4: Pure Digital Pay-on-Delivery (M-Pesa STK Prompt upon Arrival, Strictly Cashless)
+// 17a. Payments::ensureSchema()
+Payments::ensureSchema();
+$payTblCheck = $pdo->query("SHOW TABLES LIKE 'payments'")->fetch();
+$ordRcCheck = $pdo->query("SHOW COLUMNS FROM orders LIKE 'mpesa_receipt'")->fetch();
+$delDpCheck = $pdo->query("SHOW COLUMNS FROM deliveries LIKE 'digital_payment_id'")->fetch();
+assert_true(
+    !empty($payTblCheck) && !empty($ordRcCheck) && !empty($delDpCheck),
+    'TC-17a: Payments::ensureSchema() initializes payments table and M-Pesa tracking columns'
+);
+
+// 17b. Create test order with zero upfront payment
+$pdo->beginTransaction();
+$podOrderCode = 'SKH-POD-' . strtoupper(bin2hex(random_bytes(3)));
+$pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town)
+    VALUES (:code, :bid, 1400.00, 'Digital Pay-on-Delivery (M-Pesa)', 'unpaid', 'pending', 'Kerugoya Hospital Road', 'Kerugoya')
+")->execute([':code' => $podOrderCode, ':bid' => $buyerId]);
+$podOrderId = (int) $pdo->lastInsertId();
+
+$pdo->prepare("
+    INSERT INTO deliveries (order_id, delivery_person_id, assigned_by_seller_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes)
+    VALUES (:oid, :rid, :sid, 'Kutus Market', 'Kerugoya Hospital Road', 150.00, 'assigned', 'Rider dispatched to customer')
+")->execute([':oid' => $podOrderId, ':rid' => $kycRiderId, ':sid' => $sellerId]);
+$podDeliveryId = (int) $pdo->lastInsertId();
+$pdo->commit();
+
+// Assert order starts strictly unpaid
+$podOrdCheck = $pdo->query("SELECT payment_status, payment_method FROM orders WHERE id = {$podOrderId}")->fetch();
+assert_true(
+    $podOrdCheck['payment_status'] === 'unpaid' && str_contains($podOrdCheck['payment_method'], 'Digital Pay-on-Delivery'),
+    'TC-17b: Pure Digital Pay-on-Delivery checkout enforces zero upfront payment (payment_status = unpaid)'
+);
+
+// 17c. Strictly Cashless Policy enforcement: Cannot deliver unpaid order
+$isPaidBefore = Payments::isDeliveryPaid($podDeliveryId);
+assert_true($isPaidBefore === false, 'TC-17c: Strictly Cashless Policy rejects completing delivery before digital payment confirmation');
+
+// 17d. Reject invalid phone number
+$invalidPhoneRes = Payments::initiateStkPush($podDeliveryId, $kycRiderId, '051234');
+assert_true(
+    $invalidPhoneRes['ok'] === false && str_contains($invalidPhoneRes['error'], 'Invalid M-Pesa phone number'),
+    'TC-17d: Payments::initiateStkPush() rejects invalid Safaricom phone numbers'
+);
+
+// 17e. Successfully initiate M-Pesa STK push prompt to customer
+$stkRes = Payments::initiateStkPush($podDeliveryId, $kycRiderId, '0712345678');
+assert_true(
+    $stkRes['ok'] === true && $stkRes['phone'] === '254712345678' && abs((float) $stkRes['amount'] - 1550.00) < 0.01,
+    'TC-17e: Payments::initiateStkPush() prompts Safaricom line (254712345678) for exact total payable (goods + fee = 1550.00)'
+);
+
+// 17f. Verify prompted state in database
+$activePayment = Payments::getPaymentForDelivery($podDeliveryId);
+assert_true(
+    $activePayment && $activePayment['status'] === 'prompted' && !empty($activePayment['mpesa_checkout_id']),
+    'TC-17f: Database records prompted M-Pesa STK push with checkout ID and audit trail'
+);
+
+// 17g. Confirm digital payment
+$confirmPayRes = Payments::confirmDigitalPayment((int) $activePayment['id'], $kycRiderId, 'QHK849102A');
+assert_true(
+    $confirmPayRes['ok'] === true && $confirmPayRes['receipt'] === 'QHK849102A',
+    'TC-17g: Payments::confirmDigitalPayment() confirms M-Pesa transaction and records receipt QHK849102A'
+);
+
+// Verify order is now paid in DB
+$ordPaidCheck = $pdo->query("SELECT payment_status, mpesa_receipt, paid_at FROM orders WHERE id = {$podOrderId}")->fetch();
+assert_true(
+    $ordPaidCheck['payment_status'] === 'paid' && $ordPaidCheck['mpesa_receipt'] === 'QHK849102A' && !empty($ordPaidCheck['paid_at']),
+    'TC-17h: Orders table in MySQL reflects payment_status paid, M-Pesa receipt, and paid_at timestamp'
+);
+
+// 17i. Cashless delivery can now be completed
+$isPaidAfter = Payments::isDeliveryPaid($podDeliveryId);
+assert_true($isPaidAfter === true, 'TC-17i: Payments::isDeliveryPaid() confirms order is settled and clears rider for delivery handoff');
+
+// Clean up test order, delivery, payment, and audit logs
+$pdo->prepare('DELETE FROM payments WHERE order_id = :oid')->execute([':oid' => $podOrderId]);
+$pdo->prepare('DELETE FROM deliveries WHERE id = :id')->execute([':id' => $podDeliveryId]);
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $podOrderId]);
+$pdo->prepare("DELETE FROM audit_logs WHERE action IN ('payment.stk_prompted', 'payment.stk_completed')")->execute();
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
