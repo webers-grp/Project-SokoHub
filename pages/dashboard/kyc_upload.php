@@ -18,6 +18,9 @@ $currentStatus = $profile['verification_status'] ?? 'pending';
 $rejectionReason = $profile['rejection_reason'] ?? null;
 $savedMpesa = $profile['mpesa_phone'] ?? '';
 $savedNid = $profile['national_id_no'] ?? '';
+$savedTransport = $profile['transport_method'] ?? 'motorbike';
+$savedPlate = $profile['vehicle_plate_number'] ?? '';
+$savedModel = $profile['vehicle_model'] ?? '';
 
 $errors = [];
 $successMessage = '';
@@ -28,17 +31,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = (string) ($_POST['action'] ?? '');
 
-        // 1. Update Profile M-Pesa & National ID
+        // 1. Update Profile Credentials & Vehicle Data
         if ($action === 'save_credentials' || $action === 'upload_doc') {
             $nidInput = trim((string) ($_POST['national_id_no'] ?? $savedNid));
             $mpesaInput = trim((string) ($_POST['mpesa_phone'] ?? $savedMpesa));
+            $transportInput = trim((string) ($_POST['transport_method'] ?? $savedTransport));
+            $plateInput = trim((string) ($_POST['vehicle_plate_number'] ?? $savedPlate));
+            $modelInput = trim((string) ($_POST['vehicle_model'] ?? $savedModel));
 
-            $credResult = Kyc::updateKycDetails($userId, $role, $nidInput, $mpesaInput);
+            $credResult = Kyc::updateKycDetails(
+                $userId,
+                $role,
+                $nidInput,
+                $mpesaInput,
+                $role === 'delivery' ? $plateInput : null,
+                $role === 'delivery' ? $transportInput : null,
+                $role === 'delivery' ? $modelInput : null
+            );
             if (!$credResult['ok']) {
                 $errors[] = $credResult['error'];
             } else {
                 $savedNid = $credResult['national_id_no'];
                 $savedMpesa = $credResult['mpesa_phone'];
+                if ($role === 'delivery') {
+                    $savedPlate = $credResult['vehicle_plate_number'] ?? $savedPlate;
+                    $savedTransport = $credResult['transport_method'] ?? $savedTransport;
+                    $savedModel = $credResult['vehicle_model'] ?? $savedModel;
+                }
             }
         }
 
@@ -166,6 +185,34 @@ require_once __DIR__ . '/../../includes/header.php';
                     <input type="tel" name="mpesa_phone" id="mpesa_phone" class="form-control" placeholder="e.g. 0712345678 or 0112345678" value="<?= e($savedMpesa) ?>" required>
                     <small class="muted">Payouts will be sent directly to this M-Pesa number. Must be a valid Kenyan mobile line.</small>
                 </div>
+
+                <?php if ($role === 'delivery'): ?>
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="transport_method" class="form-label" style="font-weight: 600;">Delivery Transport Category *</label>
+                        <select name="transport_method" id="transport_method" class="form-control" required>
+                            <option value="motorbike" <?= $savedTransport === 'motorbike' ? 'selected' : '' ?>>Motorcycle / Boda-Boda</option>
+                            <option value="tuk_tuk" <?= $savedTransport === 'tuk_tuk' ? 'selected' : '' ?>>Tuk-Tuk (Auto Rickshaw)</option>
+                            <option value="pickup_truck" <?= $savedTransport === 'pickup_truck' ? 'selected' : '' ?>>Pickup Truck / Van</option>
+                            <option value="car" <?= $savedTransport === 'car' ? 'selected' : '' ?>>Car / Station Wagon</option>
+                            <option value="bicycle" <?= $savedTransport === 'bicycle' ? 'selected' : '' ?>>Bicycle (Plate exempt)</option>
+                        </select>
+                        <small class="muted">Your active mode of transport for marketplace dispatches.</small>
+                    </div>
+
+                    <div id="vehiclePlateContainer" style="<?= $savedTransport === 'bicycle' ? 'display: none;' : '' ?>">
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="vehicle_plate_number" class="form-label" style="font-weight: 600;">Kenyan Vehicle Number Plate *</label>
+                            <input type="text" name="vehicle_plate_number" id="vehicle_plate_number" class="form-control" placeholder="e.g. KMDF 450A or KDA 567Z" value="<?= e($savedPlate) ?>" style="text-transform: uppercase; font-family: monospace; font-weight: 700; letter-spacing: 0.5px;">
+                            <small class="muted">Official Kenyan registration plate format: <code>KMDF 123A</code> (motorcycle) or <code>KDA 456B</code> (vehicle).</small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="vehicle_model" class="form-label" style="font-weight: 600;">Vehicle Make / Model (Optional)</label>
+                            <input type="text" name="vehicle_model" id="vehicle_model" class="form-control" placeholder="e.g. Bajaj Boxer BM150, TVS Star HLX, Toyota Probox" value="<?= e($savedModel) ?>">
+                            <small class="muted">Vehicle make and model to help merchants and buyers identify you.</small>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
 
@@ -302,6 +349,23 @@ require_once __DIR__ . '/../../includes/header.php';
 </main>
 
 <script>
+// Toggle vehicle number plate requirement based on transport category
+var transportSelect = document.getElementById('transport_method');
+var plateContainer = document.getElementById('vehiclePlateContainer');
+var plateInput = document.getElementById('vehicle_plate_number');
+
+if (transportSelect && plateContainer) {
+    transportSelect.addEventListener('change', function() {
+        if (this.value === 'bicycle') {
+            plateContainer.style.display = 'none';
+            if (plateInput) plateInput.removeAttribute('required');
+        } else {
+            plateContainer.style.display = 'block';
+            if (plateInput) plateInput.setAttribute('required', 'required');
+        }
+    });
+}
+
 // Client-side file extension check to immediately notify if wrong format is picked
 document.getElementById('document_file').addEventListener('change', function(e) {
     var file = this.files[0];

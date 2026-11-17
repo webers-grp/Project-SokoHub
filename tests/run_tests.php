@@ -178,6 +178,36 @@ $riderApproveOk = Kyc::updateStatus($kycRiderId, 'delivery', 'approved', 1);
 assert_true($riderApproveOk === true, 'TC-09f: Kyc::updateStatus() approves delivery rider and records audit');
 assert_true(Kyc::isUserApproved($kycRiderId, 'delivery') === true, 'TC-09g: Kyc::isUserApproved() validates verified rider');
 
+// 9j. Kenyan vehicle number plate normalization
+$plate1 = Kyc::cleanPlateNumber('kmdf 123a');
+$plate2 = Kyc::cleanPlateNumber('kda-456b');
+$plate3 = Kyc::cleanPlateNumber('kmdf123a');
+assert_true(
+    $plate1 === 'KMDF 123A' && $plate2 === 'KDA 456B' && $plate3 === 'KMDF 123A',
+    'TC-09j: Kyc::cleanPlateNumber() normalizes Kenyan motorcycle and vehicle number plates'
+);
+
+// 9k. Plate validation logic
+$valBike = Kyc::validatePlateNumber('', 'bicycle');
+$valMotorValid = Kyc::validatePlateNumber('KMDF 123A', 'motorbike');
+$valCarValid = Kyc::validatePlateNumber('KDA 456B', 'car');
+$valMissingMotor = Kyc::validatePlateNumber('', 'motorbike');
+$valBadFormat = Kyc::validatePlateNumber('123456', 'motorbike');
+assert_true(
+    $valBike === null && $valMotorValid === null && $valCarValid === null &&
+    $valMissingMotor !== null && $valBadFormat !== null,
+    'TC-09k: Kyc::validatePlateNumber() enforces plates on motorized transport and exempts bicycles'
+);
+
+// 9l. Rider KYC details update with vehicle plate and model
+$riderCredUpdate = Kyc::updateKycDetails($kycRiderId, 'delivery', '28991234', '0755600006', 'KMDF 450A', 'motorbike', 'Bajaj Boxer BM150');
+assert_true($riderCredUpdate['ok'] === true, 'TC-09l: Kyc::updateKycDetails() saves rider vehicle plate and model');
+$dpCheck = $pdo->query("SELECT vehicle_plate_number, vehicle_model, transport_method FROM delivery_profiles WHERE user_id = {$kycRiderId}")->fetch();
+assert_true(
+    $dpCheck && $dpCheck['vehicle_plate_number'] === 'KMDF 450A' && $dpCheck['vehicle_model'] === 'Bajaj Boxer BM150',
+    'TC-09m: Delivery profile in database reflects verified number plate KMDF 450A and model'
+);
+
 // 9h. Admin review queue
 $adminQueue = Kyc::getAdminQueue();
 assert_true(!empty($adminQueue), 'TC-09h: Kyc::getAdminQueue() retrieves pending and approved accounts with KYC metadata');

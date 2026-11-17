@@ -46,7 +46,9 @@ CREATE TABLE seller_profiles (
 CREATE TABLE delivery_profiles (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL UNIQUE,
-    transport_method ENUM('motorbike', 'bicycle', 'car', 'foot') NOT NULL DEFAULT 'motorbike',
+    transport_method ENUM('motorbike', 'tuk_tuk', 'pickup_truck', 'car', 'bicycle') NOT NULL DEFAULT 'motorbike',
+    vehicle_plate_number VARCHAR(20) NULL,
+    vehicle_model VARCHAR(80) NULL,
     license_number VARCHAR(60) NOT NULL,
     service_area VARCHAR(120) NOT NULL DEFAULT 'Kutus & Kerugoya',
     is_available TINYINT(1) NOT NULL DEFAULT 1,

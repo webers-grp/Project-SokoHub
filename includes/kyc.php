@@ -72,6 +72,24 @@ class Kyc
                 }
             }
 
+            // Ensure vehicle_plate_number and vehicle_model exist on delivery_profiles
+            $delPlateCheck = $pdo->query("SHOW COLUMNS FROM delivery_profiles LIKE 'vehicle_plate_number'")->fetch();
+            if (!$delPlateCheck) {
+                $pdo->exec("
+                    ALTER TABLE delivery_profiles 
+                    ADD COLUMN vehicle_plate_number VARCHAR(20) NULL,
+                    ADD COLUMN vehicle_model VARCHAR(80) NULL
+                ");
+            }
+
+            // Update transport_method ENUM to support tuk_tuk, pickup_truck, etc.
+            try {
+                $pdo->exec("
+                    ALTER TABLE delivery_profiles 
+                    MODIFY COLUMN transport_method ENUM('motorbike', 'tuk_tuk', 'pickup_truck', 'car', 'bicycle') NOT NULL DEFAULT 'motorbike'
+                ");
+            } catch (Throwable $_) {}
+
             // 3. Ensure seller_documents table exists and has file details
             $pdo->exec("
                 CREATE TABLE IF NOT EXISTS seller_documents (
@@ -144,6 +162,59 @@ class Kyc
     }
 
     /**
+     * Clean and normalize a Kenyan vehicle or motorcycle registration number plate.
+     * E.g. "kmdf 123a", "kmdf-123a", "kmdf123a" -> "KMDF 123A".
+     * E.g. "kda 456b", "kda456b" -> "KDA 456B".
+     */
+    public static function cleanPlateNumber(?string $plate): ?string
+    {
+        if ($plate === null) {
+            return null;
+        }
+
+        $p = strtoupper(trim($plate));
+        // Remove hyphens, dots, underscores, and extra spaces
+        $p = preg_replace('/[.\-_]+/', '', $p);
+        $p = preg_replace('/\s+/', '', $p);
+
+        if ($p === '') {
+            return null;
+        }
+
+        // Standard Kenyan pattern: (K + 2 or 3 letters) + (3 digits) + (1 letter)
+        // e.g. KMDF 123A, KDA 456B, KMC 789X
+        if (preg_match('/^(K[A-Z]{2,3})([0-9]{3})([A-Z])$/', $p, $matches)) {
+            return $matches[1] . ' ' . $matches[2] . $matches[3];
+        }
+
+        return $p;
+    }
+
+    /**
+     * Validate Kenyan registration number plate based on transport method.
+     * Bicycles are exempt. Motorized vehicles (motorbike, car, tuk-tuk, pickup) require a valid plate.
+     * Returns null if valid, or a descriptive error message string if invalid.
+     */
+    public static function validatePlateNumber(?string $plate, string $transportMethod = 'motorbike'): ?string
+    {
+        if ($transportMethod === 'bicycle') {
+            return null; // Bicycles do not require number plates
+        }
+
+        $clean = self::cleanPlateNumber($plate);
+        if ($clean === null || $clean === '') {
+            return 'Vehicle registration number plate is mandatory for motorized delivery vehicles (motorcycles, cars, tuk-tuks, and pickups).';
+        }
+
+        // Match standard Kenyan plate format: K[A-Z]{2,3} [0-9]{3}[A-Z]
+        if (!preg_match('/^K[A-Z]{2,3}\s[0-9]{3}[A-Z]$/', $clean)) {
+            return 'Invalid Kenyan number plate format. Expected format: KMDF 123A (motorcycles) or KDA 456B (vehicles).';
+        }
+
+        return null;
+    }
+
+    /**
      * Get profile with KYC details for either a seller or a delivery rider.
      */
     public static function getUserKycProfile(int $userId, string $role): ?array
@@ -201,8 +272,17 @@ class Kyc
 
     /**
      * Update M-Pesa phone number and National ID number on profile.
+     * For delivery riders, also validates and records transport method, vehicle number plate, and model.
      */
-    public static function updateKycDetails(int $userId, string $role, string $nationalId, string $mpesaPhone): array
+    public static function updateKycDetails(
+        int $userId,
+        string $role,
+        string $nationalId,
+        string $mpesaPhone,
+        ?string $plateNumber = null,
+        ?string $transportMethod = null,
+        ?string $vehicleModel = null
+    ): array
     {
         self::ensureSchema();
 
@@ -216,22 +296,64 @@ class Kyc
             return ['ok' => false, 'error' => 'National ID / Passport number must be between 6 and 20 characters.'];
         }
 
+        $cleanPlate = null;
+        if ($role === 'delivery') {
+            $validMethods = ['motorbike', 'tuk_tuk', 'pickup_truck', 'car', 'bicycle'];
+            $method = ($transportMethod !== null && in_array($transportMethod, $validMethods, true)) ? $transportMethod : 'motorbike';
+
+            // Validate number plate
+            $plateErr = self::validatePlateNumber($plateNumber, $method);
+            if ($plateErr !== null) {
+                return ['ok' => false, 'error' => $plateErr];
+            }
+            $cleanPlate = self::cleanPlateNumber($plateNumber);
+        }
+
         try {
             $pdo = get_db_connection();
-            $table = ($role === 'seller') ? 'seller_profiles' : 'delivery_profiles';
+            if ($role === 'seller') {
+                $stmt = $pdo->prepare("
+                    UPDATE seller_profiles
+                    SET national_id_no = :nid, mpesa_phone = :mpesa
+                    WHERE user_id = :uid
+                ");
+                $stmt->execute([
+                    ':nid'   => $cleanId,
+                    ':mpesa' => $cleanPhone,
+                    ':uid'   => $userId,
+                ]);
+            } else {
+                $validMethods = ['motorbike', 'tuk_tuk', 'pickup_truck', 'car', 'bicycle'];
+                $method = ($transportMethod !== null && in_array($transportMethod, $validMethods, true)) ? $transportMethod : 'motorbike';
+                $cleanModel = $vehicleModel !== null ? trim($vehicleModel) : null;
 
-            $stmt = $pdo->prepare("
-                UPDATE {$table}
-                SET national_id_no = :nid, mpesa_phone = :mpesa
-                WHERE user_id = :uid
-            ");
-            $stmt->execute([
-                ':nid'   => $cleanId,
-                ':mpesa' => $cleanPhone,
-                ':uid'   => $userId,
-            ]);
+                $stmt = $pdo->prepare("
+                    UPDATE delivery_profiles
+                    SET national_id_no = :nid,
+                        mpesa_phone = :mpesa,
+                        vehicle_plate_number = :plate,
+                        vehicle_model = :model,
+                        transport_method = :method
+                    WHERE user_id = :uid
+                ");
+                $stmt->execute([
+                    ':nid'    => $cleanId,
+                    ':mpesa'  => $cleanPhone,
+                    ':plate'  => $cleanPlate,
+                    ':model'  => $cleanModel ?: null,
+                    ':method' => $method,
+                    ':uid'    => $userId,
+                ]);
+            }
 
-            return ['ok' => true, 'mpesa_phone' => $cleanPhone, 'national_id_no' => $cleanId];
+            return [
+                'ok'                   => true,
+                'mpesa_phone'          => $cleanPhone,
+                'national_id_no'       => $cleanId,
+                'vehicle_plate_number' => $cleanPlate,
+                'transport_method'     => $transportMethod,
+                'vehicle_model'        => $vehicleModel,
+            ];
         } catch (Throwable $e) {
             error_log('SokoHub Kyc::updateKycDetails Error: ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Database error while saving profile credentials.'];
@@ -421,6 +543,9 @@ class Kyc
                         sp.user_id,
                         sp.business_name,
                         sp.business_type,
+                        NULL AS vehicle_plate_number,
+                        NULL AS vehicle_model,
+                        NULL AS license_number,
                         sp.town,
                         sp.verification_status,
                         sp.verified_at,
@@ -453,8 +578,11 @@ class Kyc
                 $sqlRiders = '
                     SELECT 
                         dp.user_id,
-                        CONCAT(UCASE(LEFT(dp.transport_method, 1)), SUBSTRING(dp.transport_method, 2), " Rider (", dp.license_number, ")") AS business_name,
+                        CONCAT(UCASE(LEFT(dp.transport_method, 1)), SUBSTRING(dp.transport_method, 2), " Rider (", COALESCE(dp.vehicle_plate_number, dp.license_number, "No Plate"), ")") AS business_name,
                         dp.transport_method AS business_type,
+                        dp.vehicle_plate_number,
+                        dp.vehicle_model,
+                        dp.license_number,
                         dp.service_area AS town,
                         dp.verification_status,
                         dp.verified_at,
