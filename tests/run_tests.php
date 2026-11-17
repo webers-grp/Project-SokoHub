@@ -981,5 +981,83 @@ assert_true(
 $pdo->prepare('DELETE FROM telephony_logs WHERE user_id IN (:sid, :rid)')->execute([':sid' => $kycSellerId, ':rid' => $kycRiderId]);
 $pdo->prepare("DELETE FROM audit_logs WHERE action IN ('telephony.sms_dispatched', 'telephony.call_placed', 'telephony.preference_updated')")->execute();
 
+// 19. Visual Order Progress Timeline Component (Buyer Tracking)
+// 19a. Active order renders all 5 progress steps
+$activeOrderSample = [
+    'id'                    => 901,
+    'order_code'            => 'ORD-TL-001',
+    'created_at'            => date('Y-m-d H:i:s'),
+    'order_status'          => 'processing',
+    'delivery_status'       => 'assigned',
+    'payment_status'        => 'unpaid',
+    'payment_prompt_status' => null,
+    'delivery_person_id'    => 5,
+    'rider_name'            => 'Samuel Ndegwa',
+    'rider_phone'           => '0712345678',
+    'transport_method'      => 'Motorbike',
+    'vehicle_plate_number'  => 'KMDF 123A',
+    'delivery_town'         => 'Kutus',
+    'delivery_address'      => 'Near Kutus Primary',
+];
+$activeHtml = render_order_progress_timeline($activeOrderSample);
+assert_true(
+    str_contains($activeHtml, 'Order Confirmed') &&
+    str_contains($activeHtml, 'Rider Assigned') &&
+    str_contains($activeHtml, 'Out for Delivery') &&
+    str_contains($activeHtml, 'M-Pesa Payment') &&
+    str_contains($activeHtml, 'Delivered') &&
+    str_contains($activeHtml, 'Live Dispatch Tracking'),
+    'TC-19a: render_order_progress_timeline() renders all 5 progress tracking stages and live header'
+);
+
+// 19b. Renders assigned rider identity & verified Kenyan plate number
+assert_true(
+    str_contains($activeHtml, 'Samuel Ndegwa') &&
+    str_contains($activeHtml, 'KMDF 123A') &&
+    str_contains($activeHtml, 'tel:0712345678'),
+    'TC-19b: Timeline embeds rider identity, verified Kenyan number plate, and direct call link'
+);
+
+// 19c. Arrived & M-Pesa STK prompt active stage
+$promptedOrderSample = array_merge($activeOrderSample, [
+    'order_status'          => 'shipped',
+    'delivery_status'       => 'in_transit',
+    'payment_prompt_status' => 'prompted',
+    'payment_phone'         => '0799887766',
+]);
+$promptedHtml = render_order_progress_timeline($promptedOrderSample);
+assert_true(
+    str_contains($promptedHtml, 'STK prompt sent to 0799887766') &&
+    str_contains($promptedHtml, 'Action Required on Handset'),
+    'TC-19c: Timeline transitions to active M-Pesa STK prompt state when rider triggers cashless prompt'
+);
+
+// 19d. Completed delivery with official M-Pesa receipt reference
+$deliveredOrderSample = array_merge($activeOrderSample, [
+    'order_status'    => 'delivered',
+    'delivery_status' => 'delivered',
+    'payment_status'  => 'paid',
+    'delivered_at'    => date('Y-m-d H:i:s'),
+    'mpesa_receipt'   => 'QHK89012XYZ',
+]);
+$deliveredHtml = render_order_progress_timeline($deliveredOrderSample);
+assert_true(
+    str_contains($deliveredHtml, 'QHK89012XYZ') &&
+    str_contains($deliveredHtml, 'Fulfillment Completed') &&
+    str_contains($deliveredHtml, 'timeline-step completed'),
+    'TC-19d: Timeline displays completed state with Safaricom M-Pesa receipt verification code'
+);
+
+// 19e. Cancelled order renders clear inventory restock notice
+$cancelledOrderSample = array_merge($activeOrderSample, [
+    'order_status' => 'cancelled',
+]);
+$cancelledHtml = render_order_progress_timeline($cancelledOrderSample);
+assert_true(
+    str_contains($cancelledHtml, 'Order Cancelled') &&
+    str_contains($cancelledHtml, 'returned to merchant inventory'),
+    'TC-19e: Cancelled order displays cancellation alert banner indicating items returned to merchant inventory'
+);
+
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
