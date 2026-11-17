@@ -90,6 +90,18 @@ class Kyc
                 ");
             } catch (Throwable $_) {}
 
+            // Ensure assigned_by_seller_id exists on deliveries
+            $delAssignCheck = $pdo->query("SHOW COLUMNS FROM deliveries LIKE 'assigned_by_seller_id'")->fetch();
+            if (!$delAssignCheck) {
+                $pdo->exec("ALTER TABLE deliveries ADD COLUMN assigned_by_seller_id INT UNSIGNED NULL");
+            }
+
+            // Ensure is_available column exists on delivery_profiles
+            $delAvailCheck = $pdo->query("SHOW COLUMNS FROM delivery_profiles LIKE 'is_available'")->fetch();
+            if (!$delAvailCheck) {
+                $pdo->exec("ALTER TABLE delivery_profiles ADD COLUMN is_available TINYINT(1) NOT NULL DEFAULT 1");
+            }
+
             // 3. Ensure seller_documents table exists and has file details
             $pdo->exec("
                 CREATE TABLE IF NOT EXISTS seller_documents (
@@ -394,6 +406,194 @@ class Kyc
     public static function getSellerProfile(int $sellerUserId): ?array
     {
         return self::getUserKycProfile($sellerUserId, 'seller');
+    }
+
+    /**
+     * Profile getter for delivery riders.
+     */
+    public static function getDeliveryProfile(int $riderUserId): ?array
+    {
+        return self::getUserKycProfile($riderUserId, 'delivery');
+    }
+
+    /**
+     * Retrieve all active, KYC-verified delivery riders who are available for dispatch.
+     */
+    public static function getAvailableRiders(?string $serviceArea = null): array
+    {
+        self::ensureSchema();
+        try {
+            $pdo = get_db_connection();
+            $sql = "
+                SELECT 
+                    u.id AS rider_id,
+                    u.full_name AS rider_name,
+                    u.phone AS rider_phone,
+                    dp.transport_method,
+                    dp.vehicle_plate_number,
+                    dp.vehicle_model,
+                    dp.service_area,
+                    dp.is_available,
+                    dp.verification_status,
+                    (SELECT COUNT(*) FROM deliveries d WHERE d.delivery_person_id = u.id AND d.delivery_status IN ('assigned', 'picked_up', 'in_transit')) AS active_deliveries
+                FROM users u
+                INNER JOIN delivery_profiles dp ON dp.user_id = u.id
+                WHERE u.role = 'delivery'
+                  AND dp.verification_status = 'approved'
+                  AND dp.is_available = 1
+            ";
+            if ($serviceArea !== null && $serviceArea !== '') {
+                $sql .= " AND (dp.service_area LIKE :area OR dp.service_area = 'All Kirinyaga' OR dp.service_area = 'Kirinyaga County & Embu')";
+            }
+            $sql .= " ORDER BY active_deliveries ASC, u.full_name ASC";
+            
+            $stmt = $pdo->prepare($sql);
+            if ($serviceArea !== null && $serviceArea !== '') {
+                $stmt->execute([':area' => '%' . trim($serviceArea) . '%']);
+            } else {
+                $stmt->execute();
+            }
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('SokoHub Kyc::getAvailableRiders Error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Seller or Admin assigns a delivery order directly to a verified delivery rider.
+     */
+    public static function assignRiderToDelivery(int $deliveryId, int $riderId, int $assignedByUserId, string $assignedByRole = 'seller'): array
+    {
+        self::ensureSchema();
+        try {
+            $pdo = get_db_connection();
+
+            // 1. Verify delivery exists
+            $dStmt = $pdo->prepare('
+                SELECT d.*, o.order_code
+                FROM deliveries d
+                INNER JOIN orders o ON o.id = d.order_id
+                WHERE d.id = :id LIMIT 1
+            ');
+            $dStmt->execute([':id' => $deliveryId]);
+            $del = $dStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$del) {
+                return ['ok' => false, 'error' => 'Delivery record not found.'];
+            }
+
+            // 2. If seller, verify seller has products in this order
+            if ($assignedByRole === 'seller') {
+                $sellerCheck = $pdo->prepare('
+                    SELECT COUNT(*) FROM order_items
+                    WHERE order_id = :oid AND seller_id = :sid
+                ');
+                $sellerCheck->execute([':oid' => $del['order_id'], ':sid' => $assignedByUserId]);
+                if ((int) $sellerCheck->fetchColumn() === 0) {
+                    return ['ok' => false, 'error' => 'You do not have permission to assign riders to an order that contains none of your products.'];
+                }
+            }
+
+            // 3. Verify rider is approved
+            $rStmt = $pdo->prepare('
+                SELECT u.id, u.full_name, u.phone, dp.transport_method, dp.vehicle_plate_number, dp.vehicle_model, dp.verification_status
+                FROM users u
+                INNER JOIN delivery_profiles dp ON dp.user_id = u.id
+                WHERE u.id = :rid AND u.role = "delivery" LIMIT 1
+            ');
+            $rStmt->execute([':rid' => $riderId]);
+            $rider = $rStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$rider || $rider['verification_status'] !== 'approved') {
+                return ['ok' => false, 'error' => 'The selected delivery person is not approved or verified for marketplace dispatch.'];
+            }
+
+            $riderDesc = $rider['full_name'];
+            if (!empty($rider['vehicle_plate_number'])) {
+                $riderDesc .= ' (' . $rider['vehicle_plate_number'] . ')';
+            } elseif (!empty($rider['transport_method'])) {
+                $riderDesc .= ' (' . ucfirst($rider['transport_method']) . ')';
+            }
+
+            $trackingNote = 'Assigned by ' . ($assignedByRole === 'admin' ? 'Administration' : 'Merchant') . ' to rider ' . $riderDesc;
+
+            $pdo->beginTransaction();
+            $upd = $pdo->prepare('
+                UPDATE deliveries
+                SET delivery_person_id = :rid,
+                    assigned_by_seller_id = :sid,
+                    delivery_status = "assigned",
+                    assigned_at = NOW(),
+                    tracking_notes = :notes
+                WHERE id = :did
+            ');
+            $upd->execute([
+                ':rid'   => $riderId,
+                ':sid'   => $assignedByUserId,
+                ':notes' => $trackingNote,
+                ':did'   => $deliveryId,
+            ]);
+
+            // Update order status to processing/confirmed if pending
+            $pdo->prepare('
+                UPDATE orders
+                SET order_status = "confirmed"
+                WHERE id = :oid AND order_status = "pending"
+            ')->execute([':oid' => $del['order_id']]);
+
+            Audit::record('delivery.rider_assigned', 'delivery', $deliveryId, [
+                'order_code' => $del['order_code'],
+                'rider_id'   => $riderId,
+                'rider_name' => $rider['full_name'],
+                'plate'      => $rider['vehicle_plate_number'],
+                'assigned_by'=> $assignedByUserId,
+                'role'       => $assignedByRole,
+            ], $assignedByUserId, $assignedByRole);
+
+            $pdo->commit();
+
+            return [
+                'ok'         => true,
+                'order_code' => $del['order_code'],
+                'rider_name' => $rider['full_name'],
+                'plate'      => $rider['vehicle_plate_number'],
+                'rider_desc' => $riderDesc,
+            ];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('SokoHub Kyc::assignRiderToDelivery Error: ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Database error during rider assignment: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Toggle or set rider availability status (On Duty vs Off Duty).
+     */
+    public static function toggleRiderAvailability(int $riderUserId, ?bool $explicitStatus = null): bool
+    {
+        self::ensureSchema();
+        try {
+            $pdo = get_db_connection();
+            if ($explicitStatus !== null) {
+                $newStatus = $explicitStatus ? 1 : 0;
+            } else {
+                $cur = (int) $pdo->query("SELECT is_available FROM delivery_profiles WHERE user_id = {$riderUserId}")->fetchColumn();
+                $newStatus = ($cur === 1) ? 0 : 1;
+            }
+
+            $stmt = $pdo->prepare('UPDATE delivery_profiles SET is_available = :st WHERE user_id = :uid');
+            $stmt->execute([':st' => $newStatus, ':uid' => $riderUserId]);
+
+            Audit::record('delivery.availability_updated', 'delivery_profile', $riderUserId, [
+                'is_available' => $newStatus,
+            ], $riderUserId, 'delivery');
+
+            return $newStatus === 1;
+        } catch (Throwable $e) {
+            error_log('SokoHub Kyc::toggleRiderAvailability Error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

@@ -249,7 +249,7 @@ function get_nav_items(?array $user): array
             $items[] = ['label' => 'Alerts', 'href' => 'pages/buyer/notifications.php', 'match' => ['notifications.php'], 'icon' => 'bell'];
         }
 
-        if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
+        if (in_array($user['role'], ['seller', 'delivery', 'admin', 'buyer'], true)) {
             $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'];
         }
 

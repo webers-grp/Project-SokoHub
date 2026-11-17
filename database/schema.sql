@@ -130,6 +130,7 @@ CREATE TABLE deliveries (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL UNIQUE,
     delivery_person_id INT UNSIGNED NULL,
+    assigned_by_seller_id INT UNSIGNED NULL,
     pickup_town VARCHAR(100) NOT NULL DEFAULT 'Kutus Market',
     dropoff_address VARCHAR(255) NOT NULL,
     delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 150.00,
@@ -139,9 +140,11 @@ CREATE TABLE deliveries (
     delivered_at DATETIME NULL,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_delivery_person (delivery_person_id),
+    INDEX idx_delivery_seller (assigned_by_seller_id),
     INDEX idx_delivery_status (delivery_status),
     CONSTRAINT fk_delivery_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    CONSTRAINT fk_delivery_rider FOREIGN KEY (delivery_person_id) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_delivery_rider FOREIGN KEY (delivery_person_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_delivery_seller FOREIGN KEY (assigned_by_seller_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. Contact & Customer Support Inquiries

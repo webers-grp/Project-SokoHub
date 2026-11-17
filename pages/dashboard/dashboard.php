@@ -169,6 +169,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('package', 'lucide-xs') ?>
                     <span>Manage Products</span>
                 </a>
+                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-outline" style="border-color: #3b82f6; color: #1d4ed8;">
+                    <?= icon('truck', 'lucide-xs') ?>
+                    <span>Dispatch &amp; Deliveries</span>
+                </a>
                 <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">
                     <?= icon('file-spreadsheet', 'lucide-xs') ?>
                     <span>Bulk CSV Import</span>

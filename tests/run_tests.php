@@ -702,5 +702,108 @@ if ($createdBananaId) {
     $pdo->exec("DELETE FROM products WHERE id = {$createdBananaId}");
 }
 
+// 16. Step 3: Seller-Driven Rider Allocation & Standby Dispatch
+// 16a. Kyc::getAvailableRiders() returns approved riders with is_available = 1
+Kyc::updateStatus($kycRiderId, 'delivery', 'approved', 1);
+Kyc::toggleRiderAvailability($kycRiderId, true);
+$activeRiders = Kyc::getAvailableRiders();
+$foundRider = false;
+foreach ($activeRiders as $ar) {
+    if ((int) $ar['rider_id'] === $kycRiderId) {
+        $foundRider = true;
+        break;
+    }
+}
+assert_true($foundRider === true, 'TC-16a: Kyc::getAvailableRiders() retrieves approved on-duty delivery riders');
+
+// 16b. Kyc::toggleRiderAvailability() toggles rider Off Duty
+$isAvailOff = Kyc::toggleRiderAvailability($kycRiderId, false);
+assert_true($isAvailOff === false, 'TC-16b: Kyc::toggleRiderAvailability() sets rider to Off Duty');
+$ridersAfterOff = Kyc::getAvailableRiders();
+$foundAfterOff = false;
+foreach ($ridersAfterOff as $ar) {
+    if ((int) $ar['rider_id'] === $kycRiderId) {
+        $foundAfterOff = true;
+        break;
+    }
+}
+assert_true($foundAfterOff === false, 'TC-16c: Off-duty delivery rider is hidden from merchant available dispatch list');
+
+// Toggle back on duty
+$isAvailOn = Kyc::toggleRiderAvailability($kycRiderId, true);
+assert_true($isAvailOn === true, 'TC-16d: Kyc::toggleRiderAvailability() restores rider to On Duty');
+
+// 16e. Create test order, product item, and pending delivery for allocation tests
+$pdo->beginTransaction();
+$pdo->prepare("
+    INSERT INTO orders (buyer_id, order_code, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town)
+    VALUES (:bid, 'ORD-ALLOC-TEST-01', 1200.00, 'M-Pesa', 'unpaid', 'pending', 'Kerugoya Town Plaza', 'Kerugoya')
+")->execute([':bid' => $buyerId]);
+$allocOrderId = (int) $pdo->lastInsertId();
+
+$pdo->prepare("
+    INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
+    VALUES (:oid, 1, :sid, 2, 600.00, 1200.00)
+")->execute([':oid' => $allocOrderId, ':sid' => $sellerId]);
+
+$pdo->prepare("
+    INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes)
+    VALUES (:oid, 'Kutus Market', 'Kerugoya Town Plaza', 150.00, 'pending', 'Awaiting merchant rider assignment')
+")->execute([':oid' => $allocOrderId]);
+$allocDeliveryId = (int) $pdo->lastInsertId();
+$pdo->commit();
+
+// 16f. Unauthorized seller cannot assign rider to an order containing none of their items
+$unauthSellerAssign = Kyc::assignRiderToDelivery($allocDeliveryId, $kycRiderId, 9999, 'seller');
+assert_true(
+    $unauthSellerAssign['ok'] === false && str_contains($unauthSellerAssign['error'], 'permission'),
+    'TC-16e: Kyc::assignRiderToDelivery() blocks unauthorized seller from allocating rider to another store order'
+);
+
+// 16g. Assignment rejects unapproved user or non-delivery account
+$invalidRiderAssign = Kyc::assignRiderToDelivery($allocDeliveryId, $buyerId, $sellerId, 'seller');
+assert_true(
+    $invalidRiderAssign['ok'] === false && str_contains($invalidRiderAssign['error'], 'not approved or verified'),
+    'TC-16f: Kyc::assignRiderToDelivery() rejects assigning task to non-delivery or unapproved user'
+);
+
+// 16h. Legitimate merchant assigns verified rider
+$validAssign = Kyc::assignRiderToDelivery($allocDeliveryId, $kycRiderId, $sellerId, 'seller');
+assert_true(
+    $validAssign['ok'] === true && !empty($validAssign['rider_name']),
+    'TC-16g: Legitimate merchant successfully assigns verified rider with vehicle plate to delivery'
+);
+
+// Verify delivery record in database
+$dCheck = $pdo->prepare('SELECT * FROM deliveries WHERE id = :id');
+$dCheck->execute([':id' => $allocDeliveryId]);
+$delRecord = $dCheck->fetch(PDO::FETCH_ASSOC);
+assert_true(
+    (int) $delRecord['delivery_person_id'] === $kycRiderId &&
+    (int) $delRecord['assigned_by_seller_id'] === $sellerId &&
+    $delRecord['delivery_status'] === 'assigned' &&
+    str_contains($delRecord['tracking_notes'], 'Assigned by Merchant'),
+    'TC-16h: Database reflects assigned_by_seller_id, delivery_person_id, status assigned, and tracking audit'
+);
+
+// 16i. Rider task query isolation: rider views strictly assigned tasks, unassigned tasks never leak
+$riderTasks = $pdo->prepare('SELECT * FROM deliveries WHERE delivery_person_id = :rid');
+$riderTasks->execute([':rid' => $kycRiderId]);
+$riderRows = $riderTasks->fetchAll(PDO::FETCH_ASSOC);
+$foundAllocatedTask = false;
+foreach ($riderRows as $rt) {
+    if ((int) $rt['id'] === $allocDeliveryId) {
+        $foundAllocatedTask = true;
+        break;
+    }
+}
+assert_true($foundAllocatedTask === true, 'TC-16i: Delivery rider sees strictly tasks assigned to them');
+
+// Clean up allocation test order & delivery
+$pdo->prepare('DELETE FROM deliveries WHERE id = :id')->execute([':id' => $allocDeliveryId]);
+$pdo->prepare('DELETE FROM order_items WHERE order_id = :oid')->execute([':oid' => $allocOrderId]);
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $allocOrderId]);
+$pdo->prepare("DELETE FROM audit_logs WHERE action = 'delivery.rider_assigned' AND entity_id = :eid")->execute([':eid' => $allocDeliveryId]);
+
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

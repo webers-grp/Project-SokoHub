@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $delStmt = $pdo->prepare(
                     "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes)
-                     VALUES (:oid, 'Kutus Market', :dropoff, :fee, 'pending', 'Awaiting rider claim')"
+                     VALUES (:oid, 'Kutus Market', :dropoff, :fee, 'pending', 'Awaiting merchant rider assignment')"
                 );
                 $delStmt->execute([
                     ':oid'     => $orderId,
