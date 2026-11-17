@@ -9,11 +9,13 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
 require_once __DIR__ . '/../../includes/payments.php';
+require_once __DIR__ . '/../../includes/telephony.php';
 init_session();
 $user = require_role(['seller', 'delivery', 'buyer', 'admin']);
 $pdo = get_db_connection();
 Kyc::ensureSchema();
 Payments::ensureSchema();
+Telephony::ensureSchema();
 
 $role = $user['role'];
 $userId = (int) $user['id'];
@@ -50,10 +52,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['seller', 'deliver
 
         $res = Kyc::assignRiderToDelivery($deliveryId, $riderId, $userId, $role);
         if ($res['ok']) {
-            set_flash('success', "Order {$res['order_code']} successfully dispatched to rider {$res['rider_desc']}.");
+            $msg = "Order {$res['order_code']} successfully dispatched to rider {$res['rider_desc']}.";
+            if (!empty($res['telephony']['dispatched'])) {
+                $chs = implode(' & ', array_keys($res['telephony']['channels'] ?? ['sms' => true]));
+                $msg .= " (Rider was offline: automated {$chs} dispatch alert sent).";
+            }
+            set_flash('success', $msg);
         } else {
             set_flash('error', $res['error'] ?? 'Failed to assign rider to delivery.');
         }
+        redirect('pages/dashboard/deliveries.php');
+    }
+
+    // Step 5: Update offline telephony alert preference (SMS, Call, Both, None)
+    if ($action === 'update_telephony_preference') {
+        $pref = (string) ($_POST['offline_alert_preference'] ?? 'both');
+        Telephony::updateAlertPreference($userId, $pref);
+        set_flash('success', 'Offline dispatch alert preference updated successfully.');
         redirect('pages/dashboard/deliveries.php');
     }
 
@@ -335,14 +350,28 @@ require_once __DIR__ . '/../../includes/header.php';
                             : 'You are currently hidden from merchant dispatch lists. Turn On Duty when you are ready to receive deliveries.' ?>
                     </p>
                 </div>
-                <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="margin: 0;">
-                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="action" value="toggle_availability">
-                    <button type="submit" class="btn <?= $isOnDuty ? 'btn-outline' : 'btn-primary' ?> btn-sm">
-                        <?= icon($isOnDuty ? 'pause-circle' : 'play-circle', 'lucide-xs') ?>
-                        <span><?= $isOnDuty ? 'Switch to Off Duty' : 'Go On Duty (Receive Deliveries)' ?></span>
-                    </button>
-                </form>
+                <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+                    <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="margin: 0; display: flex; gap: 0.35rem; align-items: center;">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="update_telephony_preference">
+                        <label class="small muted" style="margin: 0; font-size: 0.78rem;">Offline Alerts:</label>
+                        <select name="offline_alert_preference" class="form-control" style="padding: 0.2rem 0.4rem; font-size: 0.78rem; width: auto;" onchange="this.form.submit()">
+                            <?php $curPref = $riderProfile['offline_alert_preference'] ?? 'both'; ?>
+                            <option value="both" <?= $curPref === 'both' ? 'selected' : '' ?>>SMS &amp; Voice Call</option>
+                            <option value="sms" <?= $curPref === 'sms' ? 'selected' : '' ?>>SMS Only</option>
+                            <option value="call" <?= $curPref === 'call' ? 'selected' : '' ?>>Voice Call Only</option>
+                            <option value="none" <?= $curPref === 'none' ? 'selected' : '' ?>>Disabled</option>
+                        </select>
+                    </form>
+                    <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="margin: 0;">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="toggle_availability">
+                        <button type="submit" class="btn <?= $isOnDuty ? 'btn-outline' : 'btn-primary' ?> btn-sm">
+                            <?= icon($isOnDuty ? 'pause-circle' : 'play-circle', 'lucide-xs') ?>
+                            <span><?= $isOnDuty ? 'Switch to Off Duty' : 'Go On Duty (Receive Deliveries)' ?></span>
+                        </button>
+                    </form>
+                </div>
             </div>
         <?php endif; ?>
     <?php elseif ($role === 'seller'): ?>

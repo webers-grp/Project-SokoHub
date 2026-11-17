@@ -27,6 +27,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('buyer', 'seller', 'delivery', 'admin') NOT NULL DEFAULT 'buyer',
     status ENUM('active', 'suspended') NOT NULL DEFAULT 'active',
+    last_seen_at DATETIME NULL,
+    offline_alert_preference ENUM('both', 'sms', 'call', 'none') NOT NULL DEFAULT 'both',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -184,6 +186,27 @@ CREATE TABLE contact_messages (
     message TEXT NOT NULL,
     status ENUM('new', 'read', 'resolved') NOT NULL DEFAULT 'new',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Offline Telephony Dispatch Alerts (SMS & Automated Voice Calls)
+CREATE TABLE telephony_logs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    recipient_name VARCHAR(120) NULL,
+    recipient_role VARCHAR(20) NULL,
+    phone VARCHAR(20) NOT NULL,
+    channel ENUM('sms', 'call', 'both') NOT NULL,
+    purpose ENUM('new_order', 'delivery_assignment', 'payment_alert', 'system') NOT NULL,
+    message TEXT NOT NULL,
+    call_text TEXT NULL,
+    status ENUM('queued', 'sent', 'delivered', 'failed', 'simulated') NOT NULL DEFAULT 'sent',
+    provider VARCHAR(40) NOT NULL DEFAULT 'simulator',
+    provider_ref VARCHAR(80) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_telephony_user (user_id),
+    INDEX idx_telephony_channel (channel),
+    INDEX idx_telephony_status (status),
+    CONSTRAINT fk_telephony_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

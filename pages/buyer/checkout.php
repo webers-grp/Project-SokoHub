@@ -184,6 +184,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->commit();
                 $_SESSION['cart'] = [];
+
+                // Step 5: Notify offline merchants via Telephony (SMS / Automated Voice Call)
+                require_once __DIR__ . '/../../includes/telephony.php';
+                Telephony::ensureSchema();
+                $sellerIds = array_unique(array_map(fn($vi) => (int) $vi['seller_id'], $verifiedItems));
+                foreach ($sellerIds as $sid) {
+                    Telephony::notifyOfflineSellerOnNewOrder($sid, $orderCode, $grandTotal, $old['delivery_town']);
+                }
+
                 set_flash('success', 'Order ' . $orderCode . ' placed successfully! Pure Digital Pay-on-Delivery: Your assigned delivery rider will prompt phone ' . $cleanMpesa . ' via Safaricom M-Pesa STK push upon arrival.');
                 redirect('pages/buyer/orders.php');
             } catch (Throwable $e) {

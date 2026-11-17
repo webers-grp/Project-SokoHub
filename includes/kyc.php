@@ -26,6 +26,16 @@ class Kyc
         try {
             $pdo = get_db_connection();
 
+            // 0. Ensure users table has last_seen_at and offline_alert_preference
+            $lsCheck = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_seen_at'")->fetch();
+            if (!$lsCheck) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN last_seen_at DATETIME NULL");
+            }
+            $prefCheck = $pdo->query("SHOW COLUMNS FROM users LIKE 'offline_alert_preference'")->fetch();
+            if (!$prefCheck) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN offline_alert_preference ENUM('both', 'sms', 'call', 'none') NOT NULL DEFAULT 'both'");
+            }
+
             // 1. Ensure seller_profiles has KYC columns
             $colCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'verification_status'")->fetch();
             if (!$colCheck) {
@@ -236,14 +246,14 @@ class Kyc
             $pdo = get_db_connection();
             if ($role === 'seller') {
                 $stmt = $pdo->prepare('
-                    SELECT sp.*, u.full_name, u.email, u.phone AS user_phone, "seller" AS role_title
+                    SELECT sp.*, u.full_name, u.email, u.phone AS user_phone, u.offline_alert_preference, "seller" AS role_title
                     FROM seller_profiles sp
                     INNER JOIN users u ON sp.user_id = u.id
                     WHERE sp.user_id = :uid LIMIT 1
                 ');
             } elseif ($role === 'delivery') {
                 $stmt = $pdo->prepare('
-                    SELECT dp.*, u.full_name, u.email, u.phone AS user_phone, "delivery" AS role_title,
+                    SELECT dp.*, u.full_name, u.email, u.phone AS user_phone, u.offline_alert_preference, "delivery" AS role_title,
                            dp.transport_method AS business_name, dp.service_area AS town
                     FROM delivery_profiles dp
                     INNER JOIN users u ON dp.user_id = u.id
@@ -551,12 +561,24 @@ class Kyc
 
             $pdo->commit();
 
+            // Step 5: Notify offline delivery rider via Telephony (SMS / Automated Voice Call)
+            require_once __DIR__ . '/telephony.php';
+            Telephony::ensureSchema();
+            $telephonyRes = Telephony::notifyOfflineRiderOnAssignment(
+                $riderId,
+                $del['order_code'],
+                (float) ($del['delivery_fee'] ?? 150.00),
+                $del['pickup_town'] ?? 'Kutus Market',
+                $del['dropoff_address'] ?? 'Kirinyaga'
+            );
+
             return [
                 'ok'         => true,
                 'order_code' => $del['order_code'],
                 'rider_name' => $rider['full_name'],
                 'plate'      => $rider['vehicle_plate_number'],
                 'rider_desc' => $riderDesc,
+                'telephony'  => $telephonyRes,
             ];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {

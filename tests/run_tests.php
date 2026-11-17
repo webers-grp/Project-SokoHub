@@ -15,6 +15,7 @@ require_once __DIR__ . '/../includes/notifications.php';
 require_once __DIR__ . '/../includes/payouts.php';
 require_once __DIR__ . '/../includes/bulk_import.php';
 require_once __DIR__ . '/../includes/payments.php';
+require_once __DIR__ . '/../includes/telephony.php';
 
 $passed = 0;
 $failed = 0;
@@ -34,6 +35,10 @@ function assert_true(bool $condition, string $label): void
 // 1. Database Connectivity & Seed Verification
 $dbCheck = test_db_connection();
 assert_true($dbCheck['ok'] === true, 'TC-01: PDO MySQL connection succeeds');
+Kyc::ensureSchema();
+Payments::ensureSchema();
+Telephony::ensureSchema();
+$dbCheck = test_db_connection();
 assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: Core schema tables exist (' . count($dbCheck['tables']) . ' tables)');
 
 $pdo = get_db_connection();
@@ -888,6 +893,93 @@ $pdo->prepare('DELETE FROM payments WHERE order_id = :oid')->execute([':oid' => 
 $pdo->prepare('DELETE FROM deliveries WHERE id = :id')->execute([':id' => $podDeliveryId]);
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $podOrderId]);
 $pdo->prepare("DELETE FROM audit_logs WHERE action IN ('payment.stk_prompted', 'payment.stk_completed')")->execute();
+
+// 18. Step 5: Offline Telephony Dispatch Alerts (SMS & Automated Voice Calls)
+// 18a. Schema initialization
+Telephony::ensureSchema();
+$telTbl = $pdo->query("SHOW TABLES LIKE 'telephony_logs'")->fetch();
+$lsCol = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_seen_at'")->fetch();
+$prefCol = $pdo->query("SHOW COLUMNS FROM users LIKE 'offline_alert_preference'")->fetch();
+assert_true(
+    !empty($telTbl) && !empty($lsCol) && !empty($prefCol),
+    'TC-18a: Telephony::ensureSchema() creates telephony_logs table, last_seen_at, and offline_alert_preference columns'
+);
+
+// 18b. Touch activity marks user online
+Telephony::touchUserActivity($kycSellerId);
+$isOfflineOnline = Telephony::isUserOffline($kycSellerId, 5);
+assert_true($isOfflineOnline === false, 'TC-18b: Telephony::touchUserActivity() marks user active online (isUserOffline = false)');
+
+// 18c. Set user offline
+Telephony::setUserOffline($kycSellerId, 30);
+$isOfflineTrue = Telephony::isUserOffline($kycSellerId, 5);
+assert_true($isOfflineTrue === true, 'TC-18c: Telephony::setUserOffline() marks user as offline when inactivity exceeds threshold');
+
+// 18d. Online seller does NOT receive offline telephony alert
+Telephony::touchUserActivity($kycSellerId);
+$onlineAlertRes = Telephony::notifyOfflineSellerOnNewOrder($kycSellerId, 'ORD-ONLINE-01', 850.00, 'Kutus');
+assert_true(
+    $onlineAlertRes['dispatched'] === false && $onlineAlertRes['offline'] === false,
+    'TC-18d: Telephony skips offline alerts when the merchant is actively online in session'
+);
+
+// 18e. Offline seller receives SMS & automated voice call
+Telephony::setUserOffline($kycSellerId, 25);
+Telephony::updateAlertPreference($kycSellerId, 'both');
+$offlineSellerRes = Telephony::notifyOfflineSellerOnNewOrder($kycSellerId, 'ORD-TEL-TEST-01', 1850.00, 'Kutus Market');
+assert_true(
+    $offlineSellerRes['dispatched'] === true &&
+    !empty($offlineSellerRes['channels']['sms']['ok']) &&
+    !empty($offlineSellerRes['channels']['call']['ok']),
+    'TC-18e: Telephony dispatches both SMS and automated voice call alerts to offline merchant on new customer order'
+);
+
+// 18f. Offline rider receives job allocation dispatch alert
+Telephony::setUserOffline($kycRiderId, 20);
+Telephony::updateAlertPreference($kycRiderId, 'both');
+$offlineRiderRes = Telephony::notifyOfflineRiderOnAssignment($kycRiderId, 'ORD-TEL-TEST-01', 150.00, 'Kutus Market', 'Kerugoya Plaza');
+assert_true(
+    $offlineRiderRes['dispatched'] === true &&
+    !empty($offlineRiderRes['channels']['sms']['ok']) &&
+    !empty($offlineRiderRes['channels']['call']['ok']),
+    'TC-18f: Telephony dispatches both SMS and automated voice call alerts to offline delivery rider upon assignment'
+);
+
+// 18g. Alert channel preference filtering (SMS only)
+Telephony::setUserOffline($kycRiderId, 15);
+Telephony::updateAlertPreference($kycRiderId, 'sms');
+$smsOnlyRes = Telephony::notifyOfflineRiderOnAssignment($kycRiderId, 'ORD-TEL-TEST-02', 150.00, 'Kutus Market', 'Kerugoya Plaza');
+assert_true(
+    $smsOnlyRes['dispatched'] === true &&
+    isset($smsOnlyRes['channels']['sms']) &&
+    !isset($smsOnlyRes['channels']['call']),
+    'TC-18g: Telephony respects user preference when set to SMS Only (voice call omitted)'
+);
+
+// 18h. Alert channel preference filtering (Disabled / None)
+Telephony::setUserOffline($kycRiderId, 15);
+Telephony::updateAlertPreference($kycRiderId, 'none');
+$noneRes = Telephony::notifyOfflineRiderOnAssignment($kycRiderId, 'ORD-TEL-TEST-03', 150.00, 'Kutus Market', 'Kerugoya Plaza');
+assert_true(
+    $noneRes['dispatched'] === false,
+    'TC-18h: Telephony suppresses dispatch alerts when user preference is set to None / Disabled'
+);
+
+// Restore default preference
+Telephony::updateAlertPreference($kycRiderId, 'both');
+Telephony::touchUserActivity($kycRiderId);
+Telephony::touchUserActivity($kycSellerId);
+
+// 18i. Telephony logs persistence & retrieval
+$logs = Telephony::getLogs($kycSellerId, 5);
+assert_true(
+    !empty($logs) && (int) $logs[0]['user_id'] === $kycSellerId && !empty($logs[0]['provider_ref']),
+    'TC-18i: Telephony::getLogs() retrieves persisted alert audit records with carrier references'
+);
+
+// Clean up telephony logs
+$pdo->prepare('DELETE FROM telephony_logs WHERE user_id IN (:sid, :rid)')->execute([':sid' => $kycSellerId, ':rid' => $kycRiderId]);
+$pdo->prepare("DELETE FROM audit_logs WHERE action IN ('telephony.sms_dispatched', 'telephony.call_placed', 'telephony.preference_updated')")->execute();
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
