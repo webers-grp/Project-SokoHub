@@ -15,6 +15,15 @@ $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->
 $presetImages = get_preset_product_images();
 $errors = [];
 
+// Verify seller payout profile requirement
+$hasPayoutConfigured = true;
+if (!$isAdmin) {
+    $profCheck = $pdo->prepare('SELECT payout_type, payout_account FROM seller_profiles WHERE user_id = :uid LIMIT 1');
+    $profCheck->execute([':uid' => $userId]);
+    $sellerProf = $profCheck->fetch();
+    $hasPayoutConfigured = !empty($sellerProf['payout_account']);
+}
+
 // Handle Delete Action (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -96,6 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
         $form['image_path'] = $chosenPreset;
 
         $errors = validate_product_fields($_POST);
+
+        if (!$isAdmin && !$hasPayoutConfigured) {
+            $errors[] = 'You must configure your M-Pesa Receive Payments payout destination before publishing products.';
+        }
 
         if (empty($errors) && isset($_FILES['image_file'])) {
             [$uploadedPath, $uploadErr] = handle_product_image_upload($_FILES['image_file'], $form['image_path']);
@@ -189,10 +202,29 @@ require_once __DIR__ . '/../../includes/header.php';
             <h1><?= $editingProduct ? 'Edit Product #' . (int) $editingProduct['id'] : 'Product Inventory Management (CRUD)' ?></h1>
             <p class="muted">Create, view, update, and delete marketplace listings stored in MySQL.</p>
         </div>
-        <?php if ($editingProduct): ?>
-            <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
-        <?php endif; ?>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="<?= e(url('pages/dashboard/seller_payout_settings.php')) ?>" class="btn btn-outline">
+                <?= icon('wallet', 'lucide-xs', 'emerald') ?>
+                <span>Receive Payments Settings</span>
+            </a>
+            <?php if ($editingProduct): ?>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">Cancel Edit / Add New</a>
+            <?php endif; ?>
+        </div>
     </div>
+
+    <?php if (!$isAdmin && !$hasPayoutConfigured): ?>
+        <div class="alert alert-warning" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <?= icon('alert-triangle', 'lucide-sm', 'amber') ?>
+                <div>
+                    <strong>Payout Destination Required to Publish</strong>
+                    <p class="small muted" style="margin-top: 0.2rem;">You must set up your M-Pesa payout channel (Till, Paybill, or Pochi) before your products can be published.</p>
+                </div>
+            </div>
+            <a href="<?= e(url('pages/dashboard/seller_payout_settings.php')) ?>" class="btn btn-primary btn-sm">Set Up Payouts Now</a>
+        </div>
+    <?php endif; ?>
 
     <div class="card">
         <h2 style="margin-bottom: 1rem; color: var(--green-dark);">

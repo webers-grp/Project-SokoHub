@@ -157,25 +157,29 @@ function get_transport_methods(): array
 function get_status_badge(string $status): array
 {
     return match ($status) {
-        'pending'    => ['label' => 'Pending', 'class' => 'badge-warning'],
-        'confirmed'  => ['label' => 'Confirmed', 'class' => 'badge-info'],
-        'processing' => ['label' => 'Processing', 'class' => 'badge-info'],
-        'assigned'   => ['label' => 'Assigned', 'class' => 'badge-info'],
-        'picked_up'  => ['label' => 'Picked Up', 'class' => 'badge-primary'],
-        'in_transit' => ['label' => 'In Transit', 'class' => 'badge-primary'],
-        'shipped'    => ['label' => 'Shipped', 'class' => 'badge-primary'],
-        'delivered'  => ['label' => 'Delivered', 'class' => 'badge-success'],
-        'paid'       => ['label' => 'Paid', 'class' => 'badge-success'],
-        'active'     => ['label' => 'Active', 'class' => 'badge-success'],
-        'resolved'   => ['label' => 'Resolved', 'class' => 'badge-success'],
-        'read'       => ['label' => 'Read', 'class' => 'badge-info'],
-        'new'        => ['label' => 'New', 'class' => 'badge-warning'],
-        'unpaid'     => ['label' => 'Unpaid', 'class' => 'badge-warning'],
+        'pending'          => ['label' => 'Pending', 'class' => 'badge-warning'],
+        'confirmed'        => ['label' => 'Confirmed', 'class' => 'badge-info'],
+        'processing'       => ['label' => 'Processing', 'class' => 'badge-info'],
+        'assigned'         => ['label' => 'Assigned', 'class' => 'badge-info'],
+        'picked_up'        => ['label' => 'Picked Up', 'class' => 'badge-primary'],
+        'in_transit'       => ['label' => 'In Transit', 'class' => 'badge-primary'],
+        'out_for_delivery' => ['label' => 'Out for Delivery', 'class' => 'badge-primary'],
+        'shipped'          => ['label' => 'Shipped', 'class' => 'badge-primary'],
+        'delivered'        => ['label' => 'Delivered', 'class' => 'badge-success'],
+        'paid'             => ['label' => 'Paid', 'class' => 'badge-success'],
+        'pending_cod'      => ['label' => 'Pending (COD)', 'class' => 'badge-warning'],
+        'succeeded'        => ['label' => 'Succeeded', 'class' => 'badge-success'],
+        'active'           => ['label' => 'Active', 'class' => 'badge-success'],
+        'resolved'         => ['label' => 'Resolved', 'class' => 'badge-success'],
+        'read'             => ['label' => 'Read', 'class' => 'badge-info'],
+        'new'              => ['label' => 'New', 'class' => 'badge-warning'],
+        'unpaid'           => ['label' => 'Unpaid', 'class' => 'badge-warning'],
+        'timeout'          => ['label' => 'Timeout', 'class' => 'badge-danger'],
         'cancelled',
         'failed',
         'archived',
-        'suspended'  => ['label' => ucfirst($status), 'class' => 'badge-danger'],
-        default      => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'badge-neutral'],
+        'suspended'        => ['label' => ucfirst($status), 'class' => 'badge-danger'],
+        default            => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'badge-neutral'],
     };
 }
 
@@ -214,6 +218,7 @@ function get_nav_items(?array $user): array
 
         if (in_array($user['role'], ['seller', 'admin'], true)) {
             $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'icon' => 'package', 'match' => ['manage_products.php']];
+            $items[] = ['label' => 'Payouts', 'href' => 'pages/dashboard/payouts.php', 'icon' => 'wallet', 'match' => ['payouts.php', 'seller_payout_settings.php', 'payments_admin.php']];
         }
 
         $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'icon' => 'receipt', 'match' => ['orders.php', 'checkout.php']];

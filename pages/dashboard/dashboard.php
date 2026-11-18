@@ -147,9 +147,17 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('package') ?>
                     <span>Manage Products</span>
                 </a>
+                <a href="<?= e(url('pages/dashboard/seller_payout_settings.php')) ?>" class="btn btn-outline">
+                    <?= icon('wallet') ?>
+                    <span>Receive Payments</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline">
+                    <?= icon('receipt') ?>
+                    <span>Payouts Ledger</span>
+                </a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
                     <?= icon('bar-chart-2') ?>
-                    <span>Sales &amp; Stock Reports</span>
+                    <span>Reports</span>
                 </a>
             <?php elseif ($role === 'delivery'): ?>
                 <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">
@@ -161,13 +169,22 @@ require_once __DIR__ . '/../../includes/header.php';
                     <span>Delivery Report</span>
                 </a>
             <?php else: ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                <a href="<?= e(url('pages/dashboard/payments_admin.php')) ?>" class="btn btn-primary">
+                    <?= icon('credit-card') ?>
+                    <span>M-Pesa Transactions</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline">
+                    <?= icon('receipt') ?>
+                    <span>Settlement Ledger</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">
                     <?= icon('package') ?>
-                    <span>Manage Catalog</span>
+                    <span>Catalog</span>
                 </a>
                 <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">
                     <?= icon('message-square') ?>
-                    <span>Support Inquiries</span>
+                    <span>Support</span>
+                </a>
                 </a>
                 <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
                     <?= icon('bar-chart-3') ?>

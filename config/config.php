@@ -15,6 +15,63 @@ if (!defined('APP_NAME')) {
 }
 
 /**
+ * Load environment variables from .env file into PHP environment.
+ */
+function load_env_file(?string $path = null): void
+{
+    static $loaded = false;
+    if ($loaded && $path === null) {
+        return;
+    }
+
+    $file = $path ?: (APP_ROOT . '/.env');
+    if (!is_file($file) || !is_readable($file)) {
+        return;
+    }
+
+    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) {
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        if (!str_contains($line, '=')) {
+            continue;
+        }
+
+        [$key, $val] = explode('=', $line, 2);
+        $key = trim($key);
+        $val = trim($val);
+
+        // Strip inline comments: KEY=val # comment
+        if (preg_match('/^(.*?)\s+#.*$/', $val, $matches)) {
+            $val = trim($matches[1]);
+        }
+
+        // Unquote strings
+        if ((str_starts_with($val, '"') && str_ends_with($val, '"')) ||
+            (str_starts_with($val, "'") && str_ends_with($val, "'"))) {
+            $val = substr($val, 1, -1);
+        }
+
+        if (getenv($key) === false || getenv($key) === '') {
+            putenv("{$key}={$val}");
+            $_ENV[$key] = $val;
+            $_SERVER[$key] = $val;
+        }
+    }
+
+    $loaded = true;
+}
+
+load_env_file();
+
+/**
  * Automatically detect base URL prefix whether hosted at domain root
  * (InfinityFree, PHP built-in server, Render) or in a subfolder (XAMPP htdocs/Project-SokoHub).
  */
