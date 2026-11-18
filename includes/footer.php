@@ -1,8 +1,10 @@
 <?php
 /**
- * SokoHub Shared Footer
+ * SokoHub Shared Footer & Sticky Mobile Bottom Navigation
  */
 $lastVisitCookie = $_COOKIE['sokohub_last_visit'] ?? null;
+$footerUser = current_user();
+$footerCartCount = cart_count();
 ?>
 <footer class="site-footer">
     <div class="container footer-grid">
@@ -48,6 +50,35 @@ $lastVisitCookie = $_COOKIE['sokohub_last_visit'] ?? null;
     </div>
 </footer>
 
+<!-- Sticky Mobile Bottom Navigation Bar -->
+<nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <a href="<?= e(url('index.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">
+        <span class="mobile-nav-icon">🏠</span>
+        <span class="mobile-nav-label">Home</span>
+    </a>
+    <a href="<?= e(url('pages/public/products.php')) ?>" class="mobile-nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['products.php', 'product_details.php']) ? 'active' : '' ?>">
+        <span class="mobile-nav-icon">🛍️</span>
+        <span class="mobile-nav-label">Shop</span>
+    </a>
+    <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'cart.php' ? 'active' : '' ?>">
+        <span class="mobile-nav-icon" style="position: relative;">
+            🛒
+            <?php if ($footerCartCount > 0): ?>
+                <span class="mobile-cart-badge"><?= $footerCartCount ?></span>
+            <?php endif; ?>
+        </span>
+        <span class="mobile-nav-label">Cart</span>
+    </a>
+    <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'wishlist.php' ? 'active' : '' ?>">
+        <span class="mobile-nav-icon">❤️</span>
+        <span class="mobile-nav-label">Wishlist</span>
+    </a>
+    <a href="<?= e(url($footerUser !== null ? 'pages/auth/profile.php' : 'pages/auth/login.php')) ?>" class="mobile-nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['profile.php', 'login.php', 'dashboard.php']) ? 'active' : '' ?>">
+        <span class="mobile-nav-icon">👤</span>
+        <span class="mobile-nav-label"><?= $footerUser !== null ? 'Account' : 'Login' ?></span>
+    </a>
+</nav>
+
 <script src="<?= e(url('assets/js/lucide.min.js?v=' . filemtime(__DIR__ . '/../assets/js/lucide.min.js'))) ?>"></script>
 <script>
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
@@ -59,6 +90,27 @@ $lastVisitCookie = $_COOKIE['sokohub_last_visit'] ?? null;
             }
         });
     }
+
+    // Theme Switcher Logic
+    (function() {
+        var btn = document.getElementById('themeToggleBtn');
+        var icon = document.getElementById('themeToggleIcon');
+        if (!btn || !icon) return;
+
+        function updateIcon() {
+            var isDark = document.documentElement.classList.contains('dark-mode');
+            icon.textContent = isDark ? '☀️' : '🌙';
+        }
+
+        updateIcon();
+
+        btn.addEventListener('click', function() {
+            document.documentElement.classList.toggle('dark-mode');
+            var isDark = document.documentElement.classList.contains('dark-mode');
+            localStorage.setItem('sokohub_theme', isDark ? 'dark' : 'light');
+            updateIcon();
+        });
+    })();
 </script>
 <script src="<?= e(url('assets/js/app.js?v=' . filemtime(__DIR__ . '/../assets/js/app.js'))) ?>"></script>
 </body>

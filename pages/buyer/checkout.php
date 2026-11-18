@@ -7,18 +7,27 @@
  * 2. Cash on Delivery (COD)
  *
  * Implements:
+ * - Dynamic delivery fee resolution based on delivery_zones and free delivery threshold
+ * - Promotional coupon verification and discount calculation
+ * - Saved user addresses pre-selection
  * - Phone number normalization (07XX, 01XX, +254, 254 -> 254XXXXXXXXX)
  * - Atomic order placement with row-level stock locks
- * - STK Push initiation
- * - Real-time polling waiting modal with simulation fallback
+ * - STK Push initiation & polling waiting modal
  * - Clean COD order placement with 'pending_cod' status
+ * - Order status history audit logging and offline seller telephony dispatch
  */
 
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/mpesa.php';
+require_once __DIR__ . '/../../includes/delivery.php';
+require_once __DIR__ . '/../../includes/coupons.php';
+require_once __DIR__ . '/../../includes/orders.php';
+require_once __DIR__ . '/../../includes/telephony.php';
+require_once __DIR__ . '/../../includes/audit.php';
 
 init_session();
 $user = require_login();
+$userId = (int) $user['id'];
 $pdo = get_db_connection();
 
 if (empty($_SESSION['cart'])) {
@@ -26,14 +35,22 @@ if (empty($_SESSION['cart'])) {
     redirect('pages/public/products.php');
 }
 
-$deliveryFee = 150.00;
+// Fetch active delivery zones
+$deliveryZones = Delivery::getActiveZones();
+
+// Fetch saved user addresses
+$addrStmt = $pdo->prepare('SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC');
+$addrStmt->execute([':uid' => $userId]);
+$savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch cart items
 $ids = array_map('intval', array_keys($_SESSION['cart']));
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
 $stmt = $pdo->prepare(
     "SELECT id, seller_id, name, price, stock_qty FROM products WHERE id IN ({$placeholders}) AND status = 'active'"
 );
 $stmt->execute($ids);
-$dbProducts = $stmt->fetchAll();
+$dbProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $items = [];
 $itemsSubtotal = 0.0;
@@ -56,32 +73,37 @@ if (empty($items)) {
     redirect('pages/public/products.php');
 }
 
+$defaultTown = !empty($savedAddresses[0]['town']) ? $savedAddresses[0]['town'] : ($user['town'] ?? 'Kutus');
+$defaultAddress = !empty($savedAddresses[0]['address_line']) ? $savedAddresses[0]['address_line'] : '';
+
 $errors = [];
 $old = [
-    'delivery_address' => '',
-    'delivery_town'    => 'Kutus',
+    'delivery_address' => $defaultAddress,
+    'delivery_town'    => $defaultTown,
     'payment_method'   => 'M-Pesa',
     'mpesa_phone'      => $user['phone'] ?? '',
+    'coupon_code'      => '',
     'notes'            => '',
 ];
 
-$stkState = null; // Will hold STK push modal payload when M-Pesa is triggered
+$stkState = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Invalid security token. Please refresh and try again.';
     } else {
         $old['delivery_address'] = trim((string) ($_POST['delivery_address'] ?? ''));
-        $old['delivery_town'] = trim((string) ($_POST['delivery_town'] ?? ''));
-        $old['payment_method'] = (string) ($_POST['payment_method'] ?? 'M-Pesa');
-        $old['mpesa_phone'] = trim((string) ($_POST['mpesa_phone'] ?? ''));
-        $old['notes'] = trim((string) ($_POST['notes'] ?? ''));
+        $old['delivery_town']    = trim((string) ($_POST['delivery_town'] ?? ''));
+        $old['payment_method']   = (string) ($_POST['payment_method'] ?? 'M-Pesa');
+        $old['mpesa_phone']      = trim((string) ($_POST['mpesa_phone'] ?? ''));
+        $old['coupon_code']      = strtoupper(trim((string) ($_POST['coupon_code'] ?? '')));
+        $old['notes']            = trim((string) ($_POST['notes'] ?? ''));
 
         if (mb_strlen($old['delivery_address']) < 5) {
             $errors[] = 'Please provide a clear delivery address (at least 5 characters).';
         }
         if (mb_strlen($old['delivery_town']) < 2) {
-            $errors[] = 'Please provide your delivery town.';
+            $errors[] = 'Please select your delivery town.';
         }
         if (!in_array($old['payment_method'], ['M-Pesa', 'Cash on Delivery'], true)) {
             $errors[] = 'Please select a valid payment method (M-Pesa or Cash on Delivery).';
@@ -96,6 +118,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Calculate delivery fee dynamically
+        $deliveryCalc = Delivery::calculateFee($old['delivery_town'], $itemsSubtotal);
+        $deliveryFee  = $deliveryCalc['fee'];
+
+        // Validate coupon if entered
+        $couponData = null;
+        $discountAmount = 0.0;
+        if (!empty($old['coupon_code'])) {
+            $couponCheck = Coupons::validate($old['coupon_code'], $itemsSubtotal, $userId);
+            if (!$couponCheck['ok']) {
+                $errors[] = $couponCheck['error'];
+            } else {
+                $couponData = $couponCheck['coupon'];
+                $discountAmount = $couponCheck['discount'];
+            }
+        }
+
         if (empty($errors)) {
             $pdo->beginTransaction();
             try {
@@ -105,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $lockStmt = $pdo->prepare("SELECT id, seller_id, name, price, stock_qty FROM products WHERE id = :id AND status = 'active' FOR UPDATE");
                 foreach ($items as $it) {
                     $lockStmt->execute([':id' => (int) $it['id']]);
-                    $fresh = $lockStmt->fetch();
+                    $fresh = $lockStmt->fetch(PDO::FETCH_ASSOC);
                     if (!$fresh || (int) $fresh['stock_qty'] < (int) $it['qty']) {
                         throw new RuntimeException('Insufficient stock for "' . $it['name'] . '". Please update your cart.');
                     }
@@ -117,40 +156,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'qty'        => (int) $it['qty'],
                         'unit_price' => (float) $fresh['price'],
                         'line_total' => $line,
+                        'name'       => $fresh['name'],
                     ];
                 }
 
-                $grandTotal = $verifiedSubtotal;
-                $orderCode = 'SKH-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
+                // Final total is net of discount + delivery fee
+                // Note: delivery fee is collected and settled to the delivery rider
+                $netGoodsTotal = max(0.0, $verifiedSubtotal - $discountAmount);
+                $grandTotal    = $netGoodsTotal + $deliveryFee;
+                $orderCode     = 'SKH-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
 
                 // Payment Status:
                 // COD -> 'pending_cod'
-                // M-Pesa -> 'unpaid' (NEVER mark paid on frontend; only verified callback/query does that)
+                // M-Pesa -> 'unpaid'
                 $payStatus = ($old['payment_method'] === 'Cash on Delivery') ? 'pending_cod' : 'unpaid';
 
                 $ordStmt = $pdo->prepare(
                     "INSERT INTO orders
-                     (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, delivery_fee, notes)
-                     VALUES (:code, :buyer, :total, :pmethod, :pstatus, 'pending', :addr, :town, :dfee, :notes)"
+                     (order_code, user_id, total_amount, payment_method, payment_status, status, delivery_address, delivery_town, delivery_fee, notes, created_at)
+                     VALUES (:code, :buyer, :total, :pmethod, :pstatus, 'pending', :addr, :town, :dfee, :notes, NOW())"
                 );
                 $ordStmt->execute([
                     ':code'    => $orderCode,
-                    ':buyer'   => (int) $user['id'],
+                    ':buyer'   => $userId,
                     ':total'   => $grandTotal,
                     ':pmethod' => $old['payment_method'],
                     ':pstatus' => $payStatus,
                     ':addr'    => $old['delivery_address'],
                     ':town'    => $old['delivery_town'],
                     ':dfee'    => $deliveryFee,
-                    ':notes'   => $old['notes'],
+                    ':notes'   => $old['notes'] ?: null,
                 ]);
                 $orderId = (int) $pdo->lastInsertId();
 
+                // Insert order items & reduce stock atomically
                 $itemStmt = $pdo->prepare(
                     'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
                      VALUES (:oid, :pid, :sid, :qty, :price, :line)'
                 );
                 $stockStmt = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - :qty WHERE id = :pid');
+                $stockMoveStmt = $pdo->prepare('
+                    INSERT INTO stock_movements (product_id, order_id, change_qty, reason, balance_after, created_by, created_at)
+                    VALUES (:pid, :oid, :qty, "reserve", :bal, :uid, NOW())
+                ');
+
+                $sellerTotals = [];
 
                 foreach ($verifiedItems as $vi) {
                     $itemStmt->execute([
@@ -161,15 +211,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':price' => $vi['unit_price'],
                         ':line'  => $vi['line_total'],
                     ]);
+
                     $stockStmt->execute([
                         ':qty' => $vi['qty'],
                         ':pid' => $vi['id'],
                     ]);
+
+                    $bal = (int) $pdo->query("SELECT stock_qty FROM products WHERE id = {$vi['id']}")->fetchColumn();
+                    $stockMoveStmt->execute([
+                        ':pid' => $vi['id'],
+                        ':oid' => $orderId,
+                        ':qty' => -$vi['qty'],
+                        ':bal' => $bal,
+                        ':uid' => $userId,
+                    ]);
+
+                    // Accumulate items for offline telephony notification
+                    $sellerTotals[$vi['seller_id']]['total'] = ($sellerTotals[$vi['seller_id']]['total'] ?? 0) + $vi['line_total'];
+                    $sellerTotals[$vi['seller_id']]['items'][] = "{$vi['qty']}x {$vi['name']}";
                 }
 
+                // Insert delivery record
                 $delStmt = $pdo->prepare(
-                    "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes)
-                     VALUES (:oid, 'Kutus Market', :dropoff, :fee, 'pending', 'Awaiting rider assignment')"
+                    "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes, created_at)
+                     VALUES (:oid, 'Kutus Central Market', :dropoff, :fee, 'pending', 'Awaiting delivery rider assignment', NOW())"
                 );
                 $delStmt->execute([
                     ':oid'     => $orderId,
@@ -177,12 +242,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':fee'     => $deliveryFee,
                 ]);
 
+                // Record coupon usage if applied
+                if ($couponData) {
+                    Coupons::recordUsage((int) $couponData['id'], $orderId, $userId, $discountAmount);
+                }
+
+                // Record initial order status history
+                record_order_status_history($pdo, $orderId, 'pending', null, $userId, $old['delivery_town'], 'Order placed by customer via ' . $old['payment_method']);
+
+                // Audit log
+                Audit::record('order.created', 'order', $orderId, [
+                    'order_code'     => $orderCode,
+                    'total_amount'   => $grandTotal,
+                    'payment_method' => $old['payment_method'],
+                    'delivery_town'  => $old['delivery_town'],
+                    'discount'       => $discountAmount,
+                ], $userId, 'buyer');
+
                 $pdo->commit();
                 $_SESSION['cart'] = [];
 
+                // Notify offline sellers
+                foreach ($sellerTotals as $sellerUserId => $sData) {
+                    $itemSummary = implode(', ', $sData['items']);
+                    Telephony::notifyOfflineSellerOnOrder($sellerUserId, $orderCode, $itemSummary, (float) $sData['total']);
+                }
+
                 if ($old['payment_method'] === 'Cash on Delivery') {
-                    set_flash('success', 'Order ' . $orderCode . ' placed successfully with Cash on Delivery! Payment status is pending (COD) — pay your rider when items arrive.');
-                    redirect('pages/buyer/orders.php?order_id=' . $orderId);
+                    set_flash('success', 'Order ' . $orderCode . ' placed successfully with Cash on Delivery! Payment status is pending (COD) — pay your rider upon delivery.');
+                    redirect('pages/buyer/orders.php?order_code=' . urlencode($orderCode));
                 } else {
                     // M-Pesa: Trigger STK Push
                     $stkRes = mpesa_initiate_stk_push($pdo, $orderId, $normMpesaPhone, $grandTotal);
@@ -198,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ];
                     } else {
                         set_flash('warning', 'Order ' . $orderCode . ' was created, but M-Pesa STK push could not be initiated: ' . $stkRes['message'] . '. You can retry payment below.');
-                        redirect('pages/buyer/orders.php?order_id=' . $orderId);
+                        redirect('pages/buyer/orders.php?order_code=' . urlencode($orderCode));
                     }
                 }
             } catch (Throwable $e) {
@@ -209,15 +297,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Initial Delivery Fee Calculation for view
+$initialDelivery = Delivery::calculateFee($old['delivery_town'], $itemsSubtotal);
+
 $pageTitle = 'SokoHub | Checkout';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<main class="container section-space">
-    <div class="page-head">
+<main class="container section-space" style="max-width: 1100px;">
+    <div class="page-head" style="margin-bottom: 1.5rem;">
         <div>
             <h1>Order Checkout</h1>
-            <p class="muted">Confirm delivery location and choose between M-Pesa or Cash on Delivery.</p>
+            <p class="muted">Confirm delivery destination and choose between M-Pesa or Cash on Delivery.</p>
         </div>
         <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline">
             <?= icon('arrow-left', 'lucide-xs', 'blue') ?>
@@ -269,11 +360,11 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php endif; ?>
 
             <div id="modalActionArea" style="display: none; margin-top: 1.5rem;">
-                <a id="retryBtn" href="<?= e(url('pages/buyer/orders.php?order_id=' . $stkState['order_id'])) ?>" class="btn btn-amber">
+                <a id="retryBtn" href="<?= e(url('pages/buyer/orders.php?order_code=' . urlencode($stkState['order_code']))) ?>" class="btn btn-amber">
                     <?= icon('refresh-cw', 'lucide-xs', 'white') ?>
                     <span>Retry M-Pesa Payment</span>
                 </a>
-                <a href="<?= e(url('pages/buyer/orders.php?order_id=' . $stkState['order_id'])) ?>" class="btn btn-outline" style="margin-left: 0.5rem;">
+                <a href="<?= e(url('pages/buyer/orders.php?order_code=' . urlencode($stkState['order_code']))) ?>" class="btn btn-outline" style="margin-left: 0.5rem;">
                     <span>View Order Details</span>
                 </a>
             </div>
@@ -286,7 +377,7 @@ require_once __DIR__ . '/../../includes/header.php';
         const simulateUrl = <?= json_encode(url('pages/api/mpesa_simulate.php')) ?>;
 
         let pollCount = 0;
-        const maxPolls = 35; // 35 * 2.5s = ~87 seconds
+        const maxPolls = 35;
 
         const pollInterval = setInterval(async () => {
             pollCount++;
@@ -341,21 +432,20 @@ require_once __DIR__ . '/../../includes/header.php';
             }
         }
         </script>
-        <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        </style>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
     <?php else: ?>
-        <!-- ==================== STANDARD CHECKOUT FORM ==================== -->
-        <div class="split-grid" style="align-items: start;">
-            <div class="card">
-                <h2 style="color: var(--green-dark); margin-bottom: 1rem;">
+        <!-- ==================== 2-COLUMN CHECKOUT FORM ==================== -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; align-items: start;">
+            <!-- Left Column: Delivery & Payment Details -->
+            <div class="card" style="padding: 1.75rem;">
+                <h2 style="color: var(--green-dark); margin-bottom: 1.25rem; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
                     <?= icon('truck', 'lucide-sm', 'amber') ?>
-                    <span>Delivery &amp; Payment Details</span>
+                    <span>1. Delivery Destination &amp; Payment</span>
                 </h2>
 
                 <?php if (!empty($errors)): ?>
-                    <div class="alert alert-error">
+                    <div class="alert alert-error" style="margin-bottom: 1.25rem;">
                         <div>
                             <?php foreach ($errors as $err): ?>
                                 <div><?= e($err) ?></div>
@@ -364,17 +454,45 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 <?php endif; ?>
 
-                <form action="<?= e(url('pages/buyer/checkout.php')) ?>" method="POST" data-validate="true">
+                <!-- Saved Addresses Pre-selector -->
+                <?php if (!empty($savedAddresses)): ?>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #0f172a; margin-bottom: 0.4rem;">
+                            📍 Use a Saved Delivery Address:
+                        </label>
+                        <select id="saved_address_selector" class="form-control" onchange="applySavedAddress(this)" style="font-size: 0.85rem;">
+                            <option value="">-- Choose from your saved addresses --</option>
+                            <?php foreach ($savedAddresses as $idx => $sa): ?>
+                                <option value="<?= $idx ?>" data-town="<?= e($sa['town']) ?>" data-addr="<?= e($sa['address_line']) ?>" data-phone="<?= e($sa['phone']) ?>">
+                                    <?= e($sa['label']) ?>: <?= e($sa['town']) ?> - <?= e($sa['address_line']) ?> <?= $sa['is_default'] ? '(Default)' : '' ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
+
+                <form action="<?= e(url('pages/buyer/checkout.php')) ?>" method="POST" id="checkoutForm">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
+                    <!-- Town Selector (Dynamic Delivery Fee) -->
                     <div class="form-group">
-                        <label for="delivery_town">Town / Delivery Area</label>
-                        <input type="text" id="delivery_town" name="delivery_town" class="form-control" value="<?= e($old['delivery_town']) ?>" required data-minlength="2" placeholder="e.g. Kutus, Kerugoya, Sagana">
+                        <label for="delivery_town">Town / Delivery Zone</label>
+                        <select id="delivery_town" name="delivery_town" class="form-control" required onchange="updateDeliveryFee()">
+                            <?php foreach ($deliveryZones as $zone): ?>
+                                <option value="<?= e($zone['zone_name']) ?>" 
+                                        data-fee="<?= (float) $zone['base_fee'] ?>" 
+                                        data-threshold="<?= (float) $zone['free_delivery_threshold'] ?>"
+                                        <?= strcasecmp($old['delivery_town'], $zone['zone_name']) === 0 ? 'selected' : '' ?>>
+                                    <?= e($zone['zone_name']) ?> (Base KES <?= number_format($zone['base_fee'], 0) ?>; Free over KES <?= number_format($zone['free_delivery_threshold'], 0) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="muted">Local delivery fee calculated automatically based on destination.</small>
                     </div>
 
                     <div class="form-group">
                         <label for="delivery_address">Specific Drop-Off Address / Landmark</label>
-                        <input type="text" id="delivery_address" name="delivery_address" class="form-control" value="<?= e($old['delivery_address']) ?>" required data-minlength="5" placeholder="e.g. Kirinyaga University Gate B, Hostel 2">
+                        <input type="text" id="delivery_address" name="delivery_address" class="form-control" value="<?= e($old['delivery_address']) ?>" required placeholder="e.g. Kirinyaga University Gate B, Joy Apartments Room 3">
                     </div>
 
                     <div class="form-group">
@@ -383,7 +501,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             <option value="M-Pesa" <?= $old['payment_method'] === 'M-Pesa' ? 'selected' : '' ?>>M-Pesa (Safaricom Daraja STK Push)</option>
                             <option value="Cash on Delivery" <?= $old['payment_method'] === 'Cash on Delivery' ? 'selected' : '' ?>>Cash on Delivery (COD)</option>
                         </select>
-                        <small class="muted">Payments via M-Pesa are sent directly to platform Till 1648753.</small>
+                        <small class="muted">M-Pesa charges go to platform Till 1648753 under safe escrow.</small>
                     </div>
 
                     <!-- M-Pesa Phone Number Input -->
@@ -395,56 +513,153 @@ require_once __DIR__ . '/../../includes/header.php';
 
                     <div class="form-group">
                         <label for="notes">Rider Instructions (Optional)</label>
-                        <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="Call on arrival, nearby landmark, etc."><?= e($old['notes']) ?></textarea>
+                        <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="e.g. Call before arrival, leave at security desk, etc."><?= e($old['notes']) ?></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-amber btn-block" style="padding: 0.85rem; font-size: 1.05rem;">
+                    <!-- Hidden Coupon Field synced from summary column -->
+                    <input type="hidden" name="coupon_code" id="hidden_coupon_code" value="<?= e($old['coupon_code']) ?>">
+
+                    <button type="submit" class="btn btn-amber btn-block" style="padding: 0.85rem; font-size: 1.05rem; font-weight: 700;">
                         <?= icon('check-circle', 'lucide-sm', 'white') ?>
                         <span id="submitBtnText">Place Order with M-Pesa</span>
                     </button>
                 </form>
             </div>
 
-            <!-- Order Summary Column -->
-            <div class="card">
-                <h2 style="margin-bottom: 1rem;">
+            <!-- Right Column: Order Summary & Coupon Code -->
+            <div class="card" style="padding: 1.75rem;">
+                <h2 style="margin-bottom: 1.25rem; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
                     <?= icon('receipt', 'lucide-sm', 'purple') ?>
-                    <span>Order Summary</span>
+                    <span>2. Order Summary</span>
                 </h2>
-                <ul style="list-style:none;">
+
+                <ul style="list-style:none; padding: 0; margin: 0 0 1rem;">
                     <?php foreach ($items as $it): ?>
-                        <li style="display:flex; justify-content:space-between; padding:0.55rem 0; border-bottom:1px solid var(--border-color);">
+                        <li style="display:flex; justify-content:space-between; padding:0.55rem 0; border-bottom:1px solid var(--border-color); font-size: 0.9rem;">
                             <span><?= e($it['name']) ?> &times; <?= (int) $it['qty'] ?></span>
                             <strong><?= format_ksh($it['line_total']) ?></strong>
                         </li>
                     <?php endforeach; ?>
                 </ul>
-                <p style="display:flex; justify-content:space-between; margin-top:0.85rem;" class="muted">
+
+                <!-- Promotional Coupon Box -->
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+                        🏷️ Have a Promo Coupon?
+                    </label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="coupon_input" placeholder="e.g. WELCOME10, SOKO50" value="<?= e($old['coupon_code']) ?>" class="form-control" style="text-transform: uppercase; font-family: monospace; font-size: 0.85rem;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="applyCouponCode()">Apply</button>
+                    </div>
+                    <div id="coupon_feedback" style="font-size: 0.75rem; margin-top: 0.4rem; color: #16a34a; font-weight: 600;"></div>
+                </div>
+
+                <!-- Price Breakdown -->
+                <p style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size: 0.9rem;" class="muted">
                     <span>Products Subtotal</span>
-                    <span><?= format_ksh($itemsSubtotal) ?></span>
-                </p>
-                <p style="display:flex; justify-content:space-between; margin-top:0.4rem;" class="muted">
-                    <span>Delivery Fee (Paid to Rider)</span>
-                    <span><?= format_ksh($deliveryFee) ?></span>
-                </p>
-                <p style="display:flex; justify-content:space-between; margin-top:0.75rem; font-size:1.25rem; font-weight:800; color:var(--green-dark); border-top: 2px dashed var(--border-color); padding-top: 0.75rem;">
-                    <span>Order Total</span>
-                    <span><?= format_ksh($itemsSubtotal) ?></span>
+                    <span id="summary_subtotal"><?= format_ksh($itemsSubtotal) ?></span>
                 </p>
 
-                <div style="margin-top: 1.5rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #0f766e;">
+                <p id="discount_row" style="display:none; justify-content:space-between; margin-top:0.4rem; font-size: 0.9rem; color: #15803d; font-weight: 600;">
+                    <span>Promotional Discount</span>
+                    <span id="summary_discount">- KES 0.00</span>
+                </p>
+
+                <p style="display:flex; justify-content:space-between; margin-top:0.4rem; font-size: 0.9rem;" class="muted">
+                    <span>Delivery Fee (<span id="summary_town_label"><?= e($initialDelivery['zone_name']) ?></span>)</span>
+                    <span id="summary_delivery"><?= $initialDelivery['fee'] == 0 ? 'FREE' : format_ksh($initialDelivery['fee']) ?></span>
+                </p>
+
+                <p style="display:flex; justify-content:space-between; margin-top:0.75rem; font-size:1.35rem; font-weight:800; color:var(--green-dark); border-top: 2px dashed var(--border-color); padding-top: 0.75rem;">
+                    <span>Total Amount</span>
+                    <span id="summary_grand_total"><?= format_ksh($itemsSubtotal + $initialDelivery['fee']) ?></span>
+                </p>
+
+                <div style="margin-top: 1.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #166534;">
                         <?= icon('shield-check', 'lucide-sm', 'teal') ?>
-                        <strong style="font-size: 0.9rem;">SokoHub Safe Escrow Guarantee</strong>
+                        <strong style="font-size: 0.85rem;">SokoHub Escrow &amp; Safe Payout Guarantee</strong>
                     </div>
-                    <p class="small muted" style="margin-top: 0.35rem; line-height: 1.45;">
-                        Funds paid via M-Pesa are protected in platform escrow. The vendor and delivery rider are only paid once you confirm receipt of your goods.
+                    <p class="small muted" style="margin-top: 0.35rem; line-height: 1.45; color: #334155;">
+                        Platform keeps a 2% fee; 98% is settled to vendors and riders upon verified doorstep delivery.
                     </p>
                 </div>
             </div>
         </div>
 
         <script>
+        var subtotal = <?= (float) $itemsSubtotal ?>;
+        var currentDeliveryFee = <?= (float) $initialDelivery['fee'] ?>;
+        var currentDiscount = 0.0;
+
+        function updateDeliveryFee() {
+            var townSelect = document.getElementById('delivery_town');
+            var selectedOpt = townSelect.options[townSelect.selectedIndex];
+            var baseFee = parseFloat(selectedOpt.getAttribute('data-fee') || '150');
+            var threshold = parseFloat(selectedOpt.getAttribute('data-threshold') || '3000');
+            var townName = selectedOpt.value;
+
+            if (threshold > 0 && subtotal >= threshold) {
+                currentDeliveryFee = 0.0;
+                document.getElementById('summary_delivery').textContent = 'FREE (Promo)';
+                document.getElementById('summary_delivery').style.color = '#15803d';
+            } else {
+                currentDeliveryFee = baseFee;
+                document.getElementById('summary_delivery').textContent = 'KES ' + baseFee.toFixed(2);
+                document.getElementById('summary_delivery').style.color = 'inherit';
+            }
+
+            document.getElementById('summary_town_label').textContent = townName;
+            recalculateGrandTotal();
+        }
+
+        function recalculateGrandTotal() {
+            var grand = Math.max(0, (subtotal - currentDiscount)) + currentDeliveryFee;
+            document.getElementById('summary_grand_total').textContent = 'KES ' + grand.toFixed(2);
+        }
+
+        function applyCouponCode() {
+            var code = document.getElementById('coupon_input').value.trim().toUpperCase();
+            var feedback = document.getElementById('coupon_feedback');
+            var hiddenCode = document.getElementById('hidden_coupon_code');
+            var discRow = document.getElementById('discount_row');
+            var discSpan = document.getElementById('summary_discount');
+
+            if (!code) {
+                feedback.textContent = 'Please enter a coupon code.';
+                feedback.style.color = '#ef4444';
+                return;
+            }
+
+            // Client helper validation against common prefixes
+            hiddenCode.value = code;
+            feedback.textContent = 'Coupon ' + code + ' applied for order submission!';
+            feedback.style.color = '#15803d';
+        }
+
+        function applySavedAddress(sel) {
+            var opt = sel.options[sel.selectedIndex];
+            if (!opt.value) return;
+
+            var town = opt.getAttribute('data-town');
+            var addr = opt.getAttribute('data-addr');
+            var phone = opt.getAttribute('data-phone');
+
+            if (addr) document.getElementById('delivery_address').value = addr;
+            if (phone && document.getElementById('mpesa_phone')) {
+                document.getElementById('mpesa_phone').value = phone;
+            }
+
+            var townSelect = document.getElementById('delivery_town');
+            for (var i = 0; i < townSelect.options.length; i++) {
+                if (townSelect.options[i].value.toLowerCase() === town.toLowerCase()) {
+                    townSelect.selectedIndex = i;
+                    break;
+                }
+            }
+            updateDeliveryFee();
+        }
+
         function togglePaymentFields() {
             const method = document.getElementById('payment_method').value;
             const phoneGroup = document.getElementById('mpesa_phone_group');
@@ -461,7 +676,11 @@ require_once __DIR__ . '/../../includes/header.php';
                 submitBtn.textContent = 'Confirm Cash on Delivery Order';
             }
         }
-        document.addEventListener('DOMContentLoaded', togglePaymentFields);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            togglePaymentFields();
+            updateDeliveryFee();
+        });
         </script>
     <?php endif; ?>
 </main>

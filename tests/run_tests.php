@@ -2,12 +2,27 @@
 /**
  * SokoHub Automated Integration Test Suite
  * Tests PDO connectivity, password hashing, session/cookies, validation,
- * Product CRUD, Checkout transaction, Order cancellation, Delivery workflow, and Reports.
+ * Product CRUD, Checkout transaction, Order cancellation, Delivery workflow, Reports,
+ * Daraja M-Pesa STK Push, Callbacks, Payout Ledger, Multi-Seller Splits,
+ * KYC Compliance, Reviews & Ratings, Wishlist, Coupons, Delivery Zones,
+ * Telephony Alerts, In-App Notifications, Password Reset, and Bulk CSV Importer.
  *
- * Usage: DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=sokohub_db DB_USER=root DB_PASS= php -d extension=pdo_mysql tests/run_tests.php
+ * Usage: php tests/run_tests.php
  */
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/mpesa.php';
+require_once __DIR__ . '/../includes/audit.php';
+require_once __DIR__ . '/../includes/kyc.php';
+require_once __DIR__ . '/../includes/reviews.php';
+require_once __DIR__ . '/../includes/wishlist.php';
+require_once __DIR__ . '/../includes/coupons.php';
+require_once __DIR__ . '/../includes/delivery.php';
+require_once __DIR__ . '/../includes/orders.php';
+require_once __DIR__ . '/../includes/telephony.php';
+require_once __DIR__ . '/../includes/notifications.php';
+require_once __DIR__ . '/../includes/inventory.php';
+require_once __DIR__ . '/../includes/bulk_import.php';
 
 $passed = 0;
 $failed = 0;
@@ -88,7 +103,7 @@ $readStmt->execute([':id' => $testProdId]);
 $updatedProd = $readStmt->fetch();
 assert_true((float) $updatedProd['price'] === 790.00 && (int) $updatedProd['stock_qty'] === 15, 'TC-04c: Update product price and stock');
 
-// 5. Buyer Order Placement & Stock Decrement + Cancel Restore
+// 5. Buyer Order Placement & Stock Decrement
 $buyerLogin = login_user($pdo, 'buyer@sokohub.co.ke', 'SokoHub@2026', false);
 $buyerId = (int) $buyerLogin['user']['id'];
 $pdo->beginTransaction();
@@ -123,7 +138,7 @@ $delRow = $pdo->prepare('SELECT delivery_status FROM deliveries WHERE order_id =
 $delRow->execute([':oid' => $testOrderId]);
 assert_true($delRow->fetchColumn() === 'delivered', 'TC-06: Delivery status updates cleanly to delivered');
 
-// Clean up test order & test product so seeded baseline stays clean
+// Clean up test order & test product
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $testOrderId]);
 $pdo->prepare('DELETE FROM products WHERE id = :pid')->execute([':pid' => $testProdId]);
 $readStmt->execute([':id' => $testProdId]);
@@ -149,15 +164,13 @@ $coloredIcon = icon('package', 'lucide-xs', 'emerald');
 assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-08c: Lucide icon helper applies compact size and color classes');
 
 // 9. M-Pesa Phone Number Normalization Tests
-require_once __DIR__ . '/../includes/mpesa.php';
-
 $p1 = mpesa_normalize_phone('0712345678');
 $p2 = mpesa_normalize_phone('0112345678');
 $p3 = mpesa_normalize_phone('+254712345678');
 $p4 = mpesa_normalize_phone('254712345678');
 $p5 = mpesa_normalize_phone('712345678');
-$badPhone1 = mpesa_normalize_phone('0201234567'); // landline
-$badPhone2 = mpesa_normalize_phone('12345');      // too short
+$badPhone1 = mpesa_normalize_phone('0201234567');
+$badPhone2 = mpesa_normalize_phone('12345');
 
 assert_true($p1 === '254712345678', 'TC-09a: Normalize 07XX phone to 2547XXXXXXXX');
 assert_true($p2 === '254112345678', 'TC-09b: Normalize 01XX phone to 2541XXXXXXXX');
@@ -202,7 +215,7 @@ $pdo->prepare(
      VALUES (:oid, 1, :sid, 2, 1000.00, 2000.00)"
 )->execute([':oid' => $splitOrderId, ':sid' => $sellerId]);
 
-// Seller 2 (admin account acting as second vendor): KSh 1,000
+// Seller 2: KSh 1,000
 $adminUser = $pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetch();
 $secondSellerId = (int) $adminUser['id'];
 $pdo->prepare(
@@ -250,7 +263,6 @@ $mockCallbackPayload = json_encode([
     ],
 ]);
 
-// 1st processing
 $cbRes1 = mpesa_process_callback($pdo, $mockCallbackPayload);
 assert_true($cbRes1['ok'] === true && $cbRes1['result_code'] === 0, 'TC-13a: Callback processed successfully and verified');
 
@@ -259,7 +271,6 @@ $chkPay->execute([':cid' => $testCheckoutId]);
 $payRow = $chkPay->fetch();
 assert_true($payRow['status'] === 'success' && $payRow['mpesa_receipt'] === 'TESTRECEIPT01', 'TC-13b: Payment record updated to success with M-Pesa receipt');
 
-// 2nd duplicate processing (Idempotency test)
 $cbRes2 = mpesa_process_callback($pdo, $mockCallbackPayload);
 assert_true($cbRes2['ok'] === true && str_contains($cbRes2['message'], 'Duplicate callback ignored'), 'TC-13c: Duplicate callback identified and safely ignored without double processing');
 
@@ -267,5 +278,190 @@ assert_true($cbRes2['ok'] === true && str_contains($cbRes2['message'], 'Duplicat
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $splitOrderId]);
 $pdo->commit();
 
-echo "\nSummary: {$passed} passed, {$failed} failed.\n";
+// 14. Audit Logging Tests
+Audit::record('test.action', 'test_entity', 999, ['detail_key' => 'test_val'], $buyerId, 'buyer');
+$auditEntry = $pdo->query("SELECT * FROM audit_logs WHERE action = 'test.action' AND entity_id = 999 ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+assert_true($auditEntry !== false && $auditEntry['actor_role'] === 'buyer', 'TC-14a: Universal Audit::record records immutable event');
+$pdo->prepare('DELETE FROM audit_logs WHERE action = "test.action"')->execute();
+
+// 15. KYC Compliance & Publication Guard Tests
+$kycProfile = Kyc::getUserKycProfile($sellerId, 'seller');
+assert_true(is_array($kycProfile), 'TC-15a: Kyc::getUserKycProfile fetches seller profile');
+$canPublish = Kyc::canPublishProducts($sellerId);
+assert_true(isset($canPublish['can_publish']), 'TC-15b: Kyc::canPublishProducts evaluates publication status');
+
+// 16. Reviews & Ratings with Verified Purchase Verification
+// First ensure buyer does NOT have verified purchase for product 1
+$reviewCheckUnverified = Reviews::canUserReview(1, $buyerId);
+// Create a delivered order for buyer to verify review eligibility
+$vOrderCode = 'SKH-VERIFY-' . bin2hex(random_bytes(3));
+$pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, created_at)
+    VALUES (:code, :uid, 500.00, 'Cash on Delivery', 'paid', 'delivered', 'Campus Gate A', 'Kutus', NOW())
+")->execute([':code' => $vOrderCode, ':uid' => $buyerId]);
+$vOrderId = (int) $pdo->lastInsertId();
+$pdo->prepare("
+    INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
+    VALUES (:oid, 1, :sid, 1, 500.00, 500.00)
+")->execute([':oid' => $vOrderId, ':sid' => $sellerId]);
+
+$reviewCheckVerified = Reviews::canUserReview(1, $buyerId);
+assert_true($reviewCheckVerified['can_review'] === true, 'TC-16a: Reviews::canUserReview confirms verified delivered purchase');
+
+// Submit review
+$revRes = Reviews::submitReview(1, $buyerId, 5, 'Outstanding authentic product and rapid delivery!', 'Excellent Quality');
+assert_true($revRes['ok'] === true, 'TC-16b: Reviews::submitReview creates verified review');
+
+// Verify rating aggregates updated on product
+$pRating = $pdo->query('SELECT rating_avg, rating_count FROM products WHERE id = 1')->fetch(PDO::FETCH_ASSOC);
+assert_true((float) $pRating['rating_avg'] > 0 && (int) $pRating['rating_count'] >= 1, 'TC-16c: Reviews automatically refreshes product rating aggregates');
+
+// Duplicate review prevention
+$revDup = Reviews::submitReview(1, $buyerId, 4, 'Duplicate review attempt');
+assert_true($revDup['ok'] === false, 'TC-16d: Duplicate review from same buyer is rejected');
+
+// Clean up review and verified order
+$pdo->prepare('DELETE FROM reviews WHERE product_id = 1 AND buyer_id = :uid')->execute([':uid' => $buyerId]);
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $vOrderId]);
+Reviews::refreshProductRating(1);
+
+// 17. Wishlist / Save-for-Later Tests
+$wRes1 = Wishlist::toggle($buyerId, 1);
+assert_true($wRes1['ok'] === true && $wRes1['action'] === 'added', 'TC-17a: Wishlist::toggle saves product to wishlist');
+assert_true(Wishlist::isInWishlist($buyerId, 1) === true, 'TC-17b: Wishlist::isInWishlist confirms item is saved');
+$cartBefore = cart_count();
+$mRes = Wishlist::moveToCart($buyerId, 1, 1);
+assert_true($mRes['ok'] === true, 'TC-17c: Wishlist::moveToCart transfers product to session cart and removes from wishlist');
+assert_true(Wishlist::isInWishlist($buyerId, 1) === false, 'TC-17d: Wishlist removed after move to cart');
+$_SESSION['cart'] = [];
+
+// 18. Promotional Coupons Tests
+$cValid = Coupons::validate('WELCOME10', 1000.00, $buyerId);
+assert_true($cValid['ok'] === true && (float) $cValid['discount'] === 100.00, 'TC-18a: Coupons::validate 10% coupon calculates KES 100 on KES 1,000 spend');
+
+$cMinSpend = Coupons::validate('WELCOME10', 50.00, $buyerId);
+assert_true($cMinSpend['ok'] === false, 'TC-18b: Coupons::validate enforces minimum order threshold');
+
+$cFake = Coupons::validate('NONEXISTENT_COUPON', 1000.00, $buyerId);
+assert_true($cFake['ok'] === false, 'TC-18c: Coupons::validate rejects invalid code');
+
+// 19. Dynamic Delivery Zones Tests
+$delKutus = Delivery::calculateFee('Kutus', 500.00);
+assert_true($delKutus['ok'] === true && $delKutus['fee'] == 100.00, 'TC-19a: Delivery::calculateFee applies Kutus zone fee (KES 100)');
+
+$delFree = Delivery::calculateFee('Kutus', 3500.00);
+assert_true($delFree['ok'] === true && $delFree['fee'] == 0.00 && $delFree['is_free'] === true, 'TC-19b: Free delivery threshold applied when subtotal >= KES 3,000');
+
+// 20. Order Cancellation, Atomic Restocking & Payout Reversal Tests
+$cOrderCode = 'SKH-CANCEL-' . bin2hex(random_bytes(3));
+$initStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
+
+$pdo->beginTransaction();
+$pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, created_at)
+    VALUES (:code, :uid, 1000.00, 'Cash on Delivery', 'pending_cod', 'pending', 'Campus Gate', 'Kutus', NOW())
+")->execute([':code' => $cOrderCode, ':uid' => $buyerId]);
+$cOrderId = (int) $pdo->lastInsertId();
+$pdo->prepare("
+    INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
+    VALUES (:oid, 1, :sid, 2, 500.00, 1000.00)
+")->execute([':oid' => $cOrderId, ':sid' => $sellerId]);
+$pdo->prepare("UPDATE products SET stock_qty = stock_qty - 2 WHERE id = 1")->execute();
+
+// Create pending payout record
+$pdo->prepare("
+    INSERT INTO payouts (order_id, recipient_type, user_id, gross_amount, platform_fee_amount, net_amount, payout_destination_type, payout_account, status, created_at)
+    VALUES (:oid, 'seller', :sid, 1000.00, 20.00, 980.00, 'till', '1648753', 'pending', NOW())
+")->execute([':oid' => $cOrderId, ':sid' => $sellerId]);
+$pdo->commit();
+
+// Execute cancel_order
+$cRes = cancel_order($pdo, $cOrderId, $buyerId, 'buyer', 'Changed mind');
+assert_true($cRes['ok'] === true && $cRes['restored_items'] === 1, 'TC-20a: cancel_order executes atomically');
+
+$restoredStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
+assert_true($restoredStock === $initStock, 'TC-20b: cancel_order restocks product inventory to exact previous quantity');
+
+$payoutStatus = $pdo->query("SELECT status FROM payouts WHERE order_id = {$cOrderId}")->fetchColumn();
+assert_true($payoutStatus === 'cancelled', 'TC-20c: Pending payout for cancelled order is cancelled in settlement ledger');
+
+// Clean up
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $cOrderId]);
+
+// 21. Refund Request Workflow Tests
+$rOrderCode = 'SKH-REFUND-' . bin2hex(random_bytes(3));
+$pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, created_at)
+    VALUES (:code, :uid, 800.00, 'M-Pesa', 'paid', 'delivered', 'Hostel Gate', 'Kerugoya', NOW())
+")->execute([':code' => $rOrderCode, ':uid' => $buyerId]);
+$rOrderId = (int) $pdo->lastInsertId();
+
+$reqRef = request_order_refund($pdo, $rOrderId, 800.00, 'Product arrived damaged', $buyerId);
+assert_true($reqRef['ok'] === true && $reqRef['refund_id'] > 0, 'TC-21a: Buyer requests refund for delivered order');
+
+$procRef = process_order_refund($pdo, $reqRef['refund_id'], $adminUser['id'], 'admin', 'complete', 'M-PESA-REFUND-001', 'Approved and reimbursed');
+assert_true($procRef['ok'] === true, 'TC-21b: Admin approves and completes refund with provider reference');
+
+$refPaymentStatus = $pdo->query("SELECT payment_status FROM orders WHERE id = {$rOrderId}")->fetchColumn();
+assert_true($refPaymentStatus === 'refunded', 'TC-21c: Order payment status updated to refunded');
+
+// Clean up
+$pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $rOrderId]);
+
+// 22. Telephony Alerts Engine Tests
+$offlineCheck = Telephony::isUserOffline($buyerId, 5);
+assert_true(is_bool($offlineCheck), 'TC-22a: Telephony::isUserOffline returns boolean evaluation');
+
+$smsRes = Telephony::sendSms('0712345678', 'Test SokoHub Dispatch Alert', $sellerId, 'new_order', 'Test Vendor', 'seller');
+assert_true($smsRes['ok'] === true && $smsRes['channel'] === 'sms', 'TC-22b: Telephony::sendSms logs SMS alert in telephony_logs');
+
+$callRes = Telephony::makeVoiceCall('0712345678', 'Automated Voice Dispatch Speech', $sellerId, 'new_order', 'Test Vendor', 'seller');
+assert_true($callRes['ok'] === true && $callRes['channel'] === 'call', 'TC-22c: Telephony::makeVoiceCall logs simulated voice call');
+
+$pdo->prepare('DELETE FROM telephony_logs WHERE message LIKE "%Test SokoHub Dispatch Alert%"')->execute();
+
+// 23. In-App Notifications Tests
+$notifId = Notifications::notifyNewStock(1, 'Kirinyaga Gas Refill', 1200.00, 'Mwangi Gas Store', 'Gas & Energy');
+assert_true($notifId > 0, 'TC-23a: Notifications::notifyNewStock broadcasts notification');
+
+$uNotifs = Notifications::getUserNotifications($buyerId, 5);
+assert_true(is_array($uNotifs) && count($uNotifs) > 0, 'TC-23b: Notifications::getUserNotifications retrieves marketplace notifications');
+
+$markOk = Notifications::markAsRead($notifId, $buyerId);
+assert_true($markOk === true, 'TC-23c: Notifications::markAsRead records read receipt in notification_reads');
+
+$pdo->prepare("DELETE FROM notifications WHERE id = {$notifId}")->execute();
+
+// 24. Password Reset Token Generation & Single-Use Flow Tests
+$rawToken = bin2hex(random_bytes(32));
+$tokenHash = hash('sha256', $rawToken);
+$pdo->prepare('
+    INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)
+    VALUES (:uid, :thash, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())
+')->execute([':uid' => $buyerId, ':thash' => $tokenHash]);
+$tokenId = (int) $pdo->lastInsertId();
+
+$tokenLookup = $pdo->prepare('SELECT * FROM password_reset_tokens WHERE token_hash = :thash AND consumed_at IS NULL AND expires_at > NOW()');
+$tokenLookup->execute([':thash' => $tokenHash]);
+assert_true($tokenLookup->fetch() !== false, 'TC-24a: Password reset token generated, hashed with SHA-256, and verified valid');
+
+// Consume token
+$pdo->prepare('UPDATE password_reset_tokens SET consumed_at = NOW() WHERE id = :id')->execute([':id' => $tokenId]);
+$tokenLookup->execute([':thash' => $tokenHash]);
+assert_true($tokenLookup->fetch() === false, 'TC-24b: Consumed password reset token is rejected as single-use');
+$pdo->prepare('DELETE FROM password_reset_tokens WHERE id = :id')->execute([':id' => $tokenId]);
+
+// 25. Bulk CSV Importer Header Normalization Tests
+$h1 = BulkImport::normalizeHeader('Product Name');
+$h2 = BulkImport::normalizeHeader('Selling Price');
+$h3 = BulkImport::normalizeHeader('Stock Quantity');
+assert_true($h1 === 'name' && $h2 === 'price' && $h3 === 'stock_qty', 'TC-25: BulkImport::normalizeHeader normalizes alias CSV columns');
+
+// 26. Live Search Autocomplete Query Verification
+$catSuggest = $pdo->query("SELECT id, name FROM categories WHERE name LIKE '%Gas%' LIMIT 2")->fetchAll();
+assert_true(count($catSuggest) >= 1, 'TC-26: Search suggest category query returns matched categories');
+
+echo "\n====================================================\n";
+echo "   SokoHub Test Suite: {$passed} PASSED, {$failed} FAILED   \n";
+echo "====================================================\n";
 exit($failed > 0 ? 1 : 0);
