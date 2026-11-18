@@ -29,7 +29,7 @@ try {
 
     // 1. Suggest matched categories
     $catStmt = $pdo->prepare('
-        SELECT id, name
+        SELECT id, name, slug
         FROM categories
         WHERE name LIKE :term
         ORDER BY name ASC
@@ -38,10 +38,12 @@ try {
     $catStmt->execute([':term' => $term]);
     $matchedCategories = [];
     while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)) {
+        $slug = !empty($cat['slug']) ? $cat['slug'] : (string) $cat['id'];
         $matchedCategories[] = [
             'id'   => (int) $cat['id'],
             'name' => $cat['name'],
-            'url'  => 'pages/public/products.php?category=' . (int) $cat['id'],
+            'slug' => $slug,
+            'url'  => 'pages/public/products.php?category=' . urlencode($slug),
         ];
     }
 
@@ -63,12 +65,14 @@ try {
         INNER JOIN users u ON u.id = p.seller_id
         LEFT JOIN seller_profiles sp ON sp.user_id = u.id
         WHERE p.status = "active"
-          AND (p.name LIKE :term OR p.description LIKE :term OR c.name LIKE :term)
+          AND (p.name LIKE :term1 OR p.description LIKE :term2 OR c.name LIKE :term3)
         ORDER BY (p.name LIKE :exact) DESC, p.rating_avg DESC, p.id DESC
         LIMIT 6
     ');
     $prodStmt->execute([
-        ':term'  => $term,
+        ':term1' => $term,
+        ':term2' => $term,
+        ':term3' => $term,
         ':exact' => $query . '%',
     ]);
 

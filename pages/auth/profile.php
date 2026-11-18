@@ -15,7 +15,7 @@ require_once __DIR__ . '/../../includes/audit.php';
 require_once __DIR__ . '/../../includes/telephony.php';
 
 init_session();
-$user = require_auth();
+$user = require_login();
 $userId = (int) $user['id'];
 $pdo = get_db_connection();
 

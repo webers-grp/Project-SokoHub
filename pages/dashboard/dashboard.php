@@ -21,14 +21,14 @@ $kpis = [];
 $recentRows = [];
 
 if ($role === 'buyer') {
-    $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount), 0) AS spent FROM orders WHERE user_id = :id AND status <> "cancelled"');
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount), 0) AS spent FROM orders WHERE buyer_id = :id AND order_status <> "cancelled"');
     $stmt->execute([':id' => $userId]);
     $agg = $stmt->fetch();
 
     $activeDelStmt = $pdo->prepare(
         "SELECT COUNT(*) FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
-         WHERE o.user_id = :id AND d.delivery_status IN ('pending','assigned','in_transit')"
+         WHERE o.buyer_id = :id AND d.delivery_status IN ('pending','assigned','in_transit')"
     );
     $activeDelStmt->execute([':id' => $userId]);
 
@@ -40,10 +40,10 @@ if ($role === 'buyer') {
     ];
 
     $recStmt = $pdo->prepare(
-        'SELECT o.order_code, o.total_amount, o.status AS order_status, o.created_at, d.delivery_status
+        'SELECT o.order_code, o.total_amount, o.order_status, o.created_at, d.delivery_status
          FROM orders o
          LEFT JOIN deliveries d ON d.order_id = o.id
-         WHERE o.user_id = :id
+         WHERE o.buyer_id = :id
          ORDER BY o.created_at DESC
          LIMIT 5'
     );
@@ -59,7 +59,7 @@ if ($role === 'buyer') {
         "SELECT COALESCE(SUM(oi.line_total), 0) AS rev, COALESCE(SUM(oi.quantity), 0) AS units
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
-         WHERE oi.seller_id = :id AND o.status <> 'cancelled'"
+         WHERE oi.seller_id = :id AND o.order_status <> 'cancelled'"
     );
     $revStmt->execute([':id' => $userId]);
     $rev = $revStmt->fetch();
@@ -75,7 +75,7 @@ if ($role === 'buyer') {
     ];
 
     $recStmt = $pdo->prepare(
-        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, o.status AS order_status, o.created_at
+        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, o.order_status, o.created_at
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
          INNER JOIN products p ON p.id = oi.product_id
@@ -86,12 +86,12 @@ if ($role === 'buyer') {
     $recStmt->execute([':id' => $userId]);
     $recentRows = $recStmt->fetchAll();
 } elseif ($role === 'delivery') {
-    $avail = (int) $pdo->query("SELECT COUNT(*) FROM deliveries WHERE delivery_agent_id IS NULL AND delivery_status = 'pending'")->fetchColumn();
+    $avail = (int) $pdo->query("SELECT COUNT(*) FROM deliveries WHERE delivery_person_id IS NULL AND delivery_status = 'pending'")->fetchColumn();
 
-    $mineActive = $pdo->prepare("SELECT COUNT(*) FROM deliveries WHERE delivery_agent_id = :id AND delivery_status IN ('assigned','in_transit')");
+    $mineActive = $pdo->prepare("SELECT COUNT(*) FROM deliveries WHERE delivery_person_id = :id AND delivery_status IN ('assigned','in_transit')");
     $mineActive->execute([':id' => $userId]);
 
-    $mineDone = $pdo->prepare("SELECT COUNT(*) AS cnt, COALESCE(SUM(delivery_fee), 0) AS fees FROM deliveries WHERE delivery_agent_id = :id AND delivery_status = 'delivered'");
+    $mineDone = $pdo->prepare("SELECT COUNT(*) AS cnt, COALESCE(SUM(delivery_fee), 0) AS fees FROM deliveries WHERE delivery_person_id = :id AND delivery_status = 'delivered'");
     $mineDone->execute([':id' => $userId]);
     $done = $mineDone->fetch();
 
@@ -106,7 +106,7 @@ if ($role === 'buyer') {
         "SELECT o.order_code, d.pickup_town, d.dropoff_address, d.delivery_fee, d.delivery_status
          FROM deliveries d
          INNER JOIN orders o ON o.id = d.order_id
-         WHERE d.delivery_agent_id = :id OR d.delivery_agent_id IS NULL
+         WHERE d.delivery_person_id = :id OR d.delivery_person_id IS NULL
          ORDER BY d.id DESC
          LIMIT 6"
     );
@@ -116,14 +116,14 @@ if ($role === 'buyer') {
     $kpis = [
         ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users', 'color' => 'cyan'],
         ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
         ['label' => 'Pending KYC Audits', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM seller_profiles WHERE verification_status = 'pending'")->fetchColumn(), 'icon' => 'shield-alert', 'color' => 'amber'],
     ];
 
     $recentRows = $pdo->query(
-        'SELECT o.order_code, u.full_name AS buyer_name, o.total_amount, o.status AS order_status, o.created_at
+        'SELECT o.order_code, u.full_name AS buyer_name, o.total_amount, o.order_status, o.created_at
          FROM orders o
-         INNER JOIN users u ON u.id = o.user_id
+         INNER JOIN users u ON u.id = o.buyer_id
          ORDER BY o.created_at DESC
          LIMIT 6'
     )->fetchAll();

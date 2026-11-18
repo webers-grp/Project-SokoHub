@@ -1,6 +1,6 @@
 <?php
 /**
- * SokoHub Sign In Page (Upgraded from Main/Login&Signup/login.html)
+ * SokoHub Sign In Page (Kilimall-style redesign)
  * Uses session_start(), password_verify(), and Remember-Me HTTP cookies.
  */
 require_once __DIR__ . '/../../includes/auth.php';
@@ -47,79 +47,275 @@ $pageTitle = 'SokoHub | Sign In';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<main class="container section-space">
-    <div class="auth-split">
-        <div class="auth-aside">
+<style>
+.auth-page-wrap {
+    min-height: calc(100vh - 160px);
+    background: #F5F5F5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+.auth-container {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    max-width: 900px;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.auth-brand-panel {
+    background: #E8192C;
+    padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-align: center;
+}
+.auth-brand-panel img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 50%;
+    background: #fff;
+    padding: 6px;
+    margin-bottom: 1.25rem;
+}
+.auth-brand-panel h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 0.75rem;
+    color: #fff;
+}
+.auth-brand-panel p {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.6;
+    margin: 0 0 2rem;
+}
+.trust-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+.trust-badge {
+    background: rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.95);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.auth-form-panel {
+    background: #fff;
+    padding: 2.5rem 2rem;
+}
+.auth-form-panel h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #333;
+    margin: 0 0 0.35rem;
+}
+.auth-form-panel .subtitle {
+    font-size: 0.88rem;
+    color: #666;
+    margin: 0 0 1.5rem;
+}
+.kili-input-group {
+    margin-bottom: 1.1rem;
+}
+.kili-input-group label {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.3rem;
+}
+.kili-input-group input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #E0E0E0;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    color: #333;
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.kili-input-group input:focus {
+    outline: none;
+    border-color: #E8192C;
+}
+.kili-btn-primary {
+    display: block;
+    width: 100%;
+    padding: 0.8rem;
+    background: #E8192C;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 1.25rem;
+    transition: background 0.2s;
+}
+.kili-btn-primary:hover { background: #C0122A; }
+.kili-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.kili-checkbox-row label { font-size: 0.83rem; color: #666; margin: 0; }
+.auth-error-box {
+    background: #fff5f5;
+    border: 1px solid #fecaca;
+    border-left: 4px solid #E8192C;
+    border-radius: 3px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.84rem;
+    color: #b91c1c;
+}
+.social-proof {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.82rem;
+    color: #999;
+}
+.social-proof strong { color: #E8192C; }
+.demo-section {
+    margin-top: 1.5rem;
+    background: #FFF8F8;
+    border: 1px dashed #E8192C;
+    border-radius: 3px;
+    padding: 1rem;
+}
+.demo-section .demo-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #E8192C;
+    margin-bottom: 0.5rem;
+}
+.demo-btns-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.demo-btn {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #E8192C;
+    background: #fff;
+    color: #E8192C;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.demo-btn:hover { background: #E8192C; color: #fff; }
+.auth-links {
+    margin-top: 1rem;
+    font-size: 0.84rem;
+    color: #666;
+    text-align: center;
+}
+.auth-links a { color: #E8192C; font-weight: 600; text-decoration: none; }
+@media (max-width: 700px) {
+    .auth-container { grid-template-columns: 1fr; }
+    .auth-brand-panel { padding: 2rem 1.5rem; }
+}
+</style>
+
+<div class="auth-page-wrap">
+    <div class="auth-container">
+        <!-- Brand Panel -->
+        <div class="auth-brand-panel">
             <img src="<?= e(url('assets/img/sokohub-logo.jpg')) ?>" alt="SokoHub Logo">
             <h2>Welcome Back to SokoHub</h2>
-            <p style="margin-top: 0.75rem;">Sign in to manage your storefront, place orders, track deliveries, and view live marketplace analytics.</p>
+            <p>Your trusted local marketplace for fresh produce, gas refills, electronics, and more across Kirinyaga.</p>
+            <div class="trust-badges">
+                <div class="trust-badge">✓ Secure M-Pesa Payments</div>
+                <div class="trust-badge">✓ Local Kirinyaga Vendors</div>
+                <div class="trust-badge">✓ Fast Doorstep Delivery</div>
+                <div class="trust-badge">🛡️ 10,000+ Buyers Trust SokoHub</div>
+            </div>
         </div>
 
-        <div class="auth-body">
+        <!-- Form Panel -->
+        <div class="auth-form-panel">
             <h1>Sign In</h1>
-            <p class="muted" style="margin-bottom: 1.25rem;">Continue to your SokoHub account</p>
+            <p class="subtitle">Continue to your SokoHub account</p>
 
             <?php if (!empty($errors)): ?>
-                <div class="alert alert-error">
-                    <div>
-                        <?php foreach ($errors as $err): ?>
-                            <div><?= e($err) ?></div>
-                        <?php endforeach; ?>
-                    </div>
+                <div class="auth-error-box">
+                    <?php foreach ($errors as $err): ?>
+                        <div><?= e($err) ?></div>
+                    <?php endforeach; ?>
                 </div>
             <?php endif; ?>
 
             <form action="<?= e(url('pages/auth/login.php')) ?>" method="POST" data-validate="true">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
-                <div class="form-group">
+                <div class="kili-input-group">
                     <label for="login_email">Email Address</label>
-                    <input type="email" id="login_email" name="email" class="form-control" value="<?= e($emailInput) ?>" required placeholder="Enter your email">
+                    <input type="email" id="login_email" name="email" value="<?= e($emailInput) ?>" required placeholder="Enter your email">
                 </div>
 
-                <div class="form-group">
+                <div class="kili-input-group">
                     <label for="login_password">Password</label>
-                    <input type="password" id="login_password" name="password" class="form-control" required placeholder="Enter your password">
+                    <input type="password" id="login_password" name="password" required placeholder="Enter your password">
                 </div>
 
-                <div class="checkbox-row">
+                <div class="kili-checkbox-row">
                     <input type="checkbox" id="remember_me" name="remember_me" value="1" <?= $rememberedEmail !== '' ? 'checked' : '' ?>>
-                    <label for="remember_me" style="margin: 0;">Remember my email on this browser (Cookie)</label>
+                    <label for="remember_me">Remember my email on this browser</label>
                 </div>
 
-                <button type="submit" class="btn btn-amber btn-block">
-                    <?= icon('log-in') ?>
-                    <span>Login to SokoHub</span>
-                </button>
+                <div style="text-align:right; margin-top:0.25rem;">
+                    <a href="<?= e(url('pages/auth/forgot_password.php')) ?>" style="font-size:0.82rem; color:#E8192C; text-decoration:none;">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="kili-btn-primary">Sign In to SokoHub</button>
             </form>
 
-            <p class="small muted" style="margin-top: 1rem;">
-                Don't have an account? <a href="<?= e(url('pages/auth/register.php')) ?>"><?= icon('user-plus', 'lucide-sm') ?> Create one here</a>
-            </p>
+            <div class="social-proof">
+                🛒 Join <strong>10,000+</strong> buyers already shopping on SokoHub
+            </div>
 
-            <div class="demo-box">
-                <strong class="small"><?= icon('key', 'lucide-sm', 'amber') ?> Quick Demo Accounts (Password: <code>SokoHub@2026</code>)</strong>
-                <div class="demo-btns">
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('shopping-bag', 'lucide-xs', 'blue') ?>
-                        <span>Buyer</span>
-                    </button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('store', 'lucide-xs', 'amber') ?>
-                        <span>Seller</span>
-                    </button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('truck', 'lucide-xs', 'emerald') ?>
-                        <span>Delivery</span>
-                    </button>
-                    <button type="button" class="btn btn-outline btn-sm" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">
-                        <?= icon('shield-check', 'lucide-xs', 'purple') ?>
-                        <span>Admin</span>
-                    </button>
+            <div class="auth-links">
+                Don't have an account? <a href="<?= e(url('pages/auth/register.php')) ?>">Create one here</a>
+            </div>
+
+            <!-- Demo Accounts -->
+            <div class="demo-section">
+                <div class="demo-title">🔑 Quick Demo Accounts (Password: SokoHub@2026)</div>
+                <div class="demo-btns-row">
+                    <button type="button" class="demo-btn" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">Buyer</button>
+                    <button type="button" class="demo-btn" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">Seller</button>
+                    <button type="button" class="demo-btn" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">Delivery</button>
+                    <button type="button" class="demo-btn" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">Admin</button>
                 </div>
             </div>
         </div>
     </div>
-</main>
+</div>
+
+<script>
+document.querySelectorAll('[data-demo-email]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('login_email').value = this.dataset.demoEmail;
+        document.getElementById('login_password').value = this.dataset.demoPass;
+    });
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

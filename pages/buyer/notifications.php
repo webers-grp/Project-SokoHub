@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/notifications.php';
 
 init_session();
-$user = require_auth();
+$user = require_login();
 $userId = (int) $user['id'];
 
 // Handle Actions

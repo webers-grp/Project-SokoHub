@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':id' => $orderId]);
         $ord = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$ord || ($role !== 'admin' && (int) $ord['user_id'] !== $userId)) {
+        if (!$ord || ($role !== 'admin' && (int) $ord['buyer_id'] !== $userId)) {
             set_flash('error', 'Order not found or unauthorized.');
             redirect('pages/buyer/orders.php');
         }
@@ -161,7 +161,7 @@ $baseOrderSql = '
            ra.full_name AS rider_name,
            ra.phone AS rider_phone,
            dp.transport_method AS rider_transport,
-           dp.vehicle_plate_number AS rider_plate,
+           COALESCE(dp.vehicle_plate, dp.license_number) AS rider_plate,
            p.mpesa_receipt, 
            p.status AS mpesa_status, 
            p.checkout_request_id,
@@ -178,7 +178,7 @@ $baseOrderSql = '
 ';
 
 if ($role === 'buyer') {
-    $stmt = $pdo->prepare($baseOrderSql . ' WHERE o.user_id = :uid ORDER BY o.created_at DESC');
+    $stmt = $pdo->prepare($baseOrderSql . ' WHERE o.buyer_id = :uid ORDER BY o.created_at DESC');
     $stmt->execute([':uid' => $userId]);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } elseif ($role === 'seller') {

@@ -186,6 +186,14 @@ function require_login(): array
 }
 
 /**
+ * Compatibility alias for require_login().
+ */
+function require_auth(): array
+{
+    return require_login();
+}
+
+/**
  * Require that the authenticated user holds one of the allowed roles.
  */
 function require_role(array $allowedRoles): array
