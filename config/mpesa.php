@@ -38,6 +38,10 @@ function get_mpesa_config(): array
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $callbackUrl = $proto . $_SERVER['HTTP_HOST'] . url('pages/api/mpesa_callback.php');
     }
+    // Safaricom Daraja strictly mandates a valid HTTPS URL. If blank or local HTTP, provide public HTTPS fallback
+    if ($callbackUrl === '' || !str_starts_with(strtolower($callbackUrl), 'https://')) {
+        $callbackUrl = 'https://sokohub.co.ke/pages/api/mpesa_callback.php';
+    }
 
     // Default Result & Timeout URLs for B2C/B2B
     $resultUrl = trim((string) getenv('MPESA_RESULT_URL'));
@@ -45,11 +49,17 @@ function get_mpesa_config(): array
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $resultUrl = $proto . $_SERVER['HTTP_HOST'] . url('pages/api/mpesa_payout_callback.php');
     }
+    if ($resultUrl === '' || !str_starts_with(strtolower($resultUrl), 'https://')) {
+        $resultUrl = 'https://sokohub.co.ke/pages/api/mpesa_payout_callback.php';
+    }
 
     $timeoutUrl = trim((string) getenv('MPESA_TIMEOUT_URL'));
     if ($timeoutUrl === '' && !empty($_SERVER['HTTP_HOST'])) {
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $timeoutUrl = $proto . $_SERVER['HTTP_HOST'] . url('pages/api/mpesa_payout_timeout.php');
+    }
+    if ($timeoutUrl === '' || !str_starts_with(strtolower($timeoutUrl), 'https://')) {
+        $timeoutUrl = 'https://sokohub.co.ke/pages/api/mpesa_payout_timeout.php';
     }
 
     $platformFeePercent = (float) (getenv('PLATFORM_FEE_PERCENT') !== false && getenv('PLATFORM_FEE_PERCENT') !== '' ? getenv('PLATFORM_FEE_PERCENT') : 2.0);

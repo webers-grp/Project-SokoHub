@@ -173,8 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $ordStmt = $pdo->prepare(
                     "INSERT INTO orders
-                     (order_code, user_id, total_amount, payment_method, payment_status, status, delivery_address, delivery_town, delivery_fee, notes, created_at)
-                     VALUES (:code, :buyer, :total, :pmethod, :pstatus, 'pending', :addr, :town, :dfee, :notes, NOW())"
+                     (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, delivery_fee, discount_amount, coupon_id, notes, created_at)
+                     VALUES (:code, :buyer, :total, :pmethod, :pstatus, 'pending', :addr, :town, :dfee, :disc, :cid, :notes, NOW())"
                 );
                 $ordStmt->execute([
                     ':code'    => $orderCode,
@@ -185,6 +185,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':addr'    => $old['delivery_address'],
                     ':town'    => $old['delivery_town'],
                     ':dfee'    => $deliveryFee,
+                    ':disc'    => $discountAmount,
+                    ':cid'     => $couponData ? (int) $couponData['id'] : null,
                     ':notes'   => $old['notes'] ?: null,
                 ]);
                 $orderId = (int) $pdo->lastInsertId();
@@ -233,8 +235,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Insert delivery record
                 $delStmt = $pdo->prepare(
-                    "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes, created_at)
-                     VALUES (:oid, 'Kutus Central Market', :dropoff, :fee, 'pending', 'Awaiting delivery rider assignment', NOW())"
+                    "INSERT INTO deliveries (order_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes)
+                     VALUES (:oid, 'Kutus Central Market', :dropoff, :fee, 'pending', 'Awaiting delivery rider assignment')"
                 );
                 $delStmt->execute([
                     ':oid'     => $orderId,
@@ -479,11 +481,17 @@ require_once __DIR__ . '/../../includes/header.php';
                         <label for="delivery_town">Town / Delivery Zone</label>
                         <select id="delivery_town" name="delivery_town" class="form-control" required onchange="updateDeliveryFee()">
                             <?php foreach ($deliveryZones as $zone): ?>
-                                <option value="<?= e($zone['zone_name']) ?>" 
-                                        data-fee="<?= (float) $zone['base_fee'] ?>" 
-                                        data-threshold="<?= (float) $zone['free_delivery_threshold'] ?>"
-                                        <?= strcasecmp($old['delivery_town'], $zone['zone_name']) === 0 ? 'selected' : '' ?>>
-                                    <?= e($zone['zone_name']) ?> (Base KES <?= number_format($zone['base_fee'], 0) ?>; Free over KES <?= number_format($zone['free_delivery_threshold'], 0) ?>)
+                                <?php
+                                    $isSel = (strcasecmp($old['delivery_town'], $zone['town_name']) === 0 || strcasecmp($old['delivery_town'], $zone['zone_name']) === 0);
+                                    $zoneFee = (float) $zone['delivery_fee'];
+                                ?>
+                                <option value="<?= e($zone['town_name']) ?>" 
+                                        data-fee="<?= $zoneFee ?>" 
+                                        data-threshold="3000"
+                                        data-town="<?= e($zone['town_name']) ?>"
+                                        data-zone="<?= e($zone['zone_name']) ?>"
+                                        <?= $isSel ? 'selected' : '' ?>>
+                                    <?= e($zone['town_name']) ?> (<?= e($zone['zone_name']) ?> &mdash; KES <?= number_format($zoneFee, 0) ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -590,40 +598,63 @@ require_once __DIR__ . '/../../includes/header.php';
         <script>
         var subtotal = <?= (float) $itemsSubtotal ?>;
         var currentDeliveryFee = <?= (float) $initialDelivery['fee'] ?>;
-        var currentDiscount = 0.0;
+        var currentDiscount = <?= (float) $discountAmount ?>;
 
         function updateDeliveryFee() {
             var townSelect = document.getElementById('delivery_town');
+            if (!townSelect || townSelect.selectedIndex < 0) return;
             var selectedOpt = townSelect.options[townSelect.selectedIndex];
-            var baseFee = parseFloat(selectedOpt.getAttribute('data-fee') || '150');
-            var threshold = parseFloat(selectedOpt.getAttribute('data-threshold') || '3000');
-            var townName = selectedOpt.value;
+            if (!selectedOpt) return;
+
+            var rawFee = selectedOpt.getAttribute('data-fee');
+            var baseFee = parseFloat(rawFee !== null && rawFee !== '' ? rawFee : '150');
+            if (isNaN(baseFee)) baseFee = 150.0;
+
+            var rawThreshold = selectedOpt.getAttribute('data-threshold');
+            var threshold = parseFloat(rawThreshold !== null && rawThreshold !== '' ? rawThreshold : '3000');
+            if (isNaN(threshold)) threshold = 3000.0;
+
+            var townName = selectedOpt.getAttribute('data-town') || selectedOpt.value;
+            var zoneName = selectedOpt.getAttribute('data-zone') || '';
+
+            var feeSpan = document.getElementById('summary_delivery');
+            var townSpan = document.getElementById('summary_town_label');
 
             if (threshold > 0 && subtotal >= threshold) {
                 currentDeliveryFee = 0.0;
-                document.getElementById('summary_delivery').textContent = 'FREE (Promo)';
-                document.getElementById('summary_delivery').style.color = '#15803d';
+                if (feeSpan) {
+                    feeSpan.textContent = 'FREE (Promo)';
+                    feeSpan.style.color = '#15803d';
+                }
             } else {
                 currentDeliveryFee = baseFee;
-                document.getElementById('summary_delivery').textContent = 'KES ' + baseFee.toFixed(2);
-                document.getElementById('summary_delivery').style.color = 'inherit';
+                if (feeSpan) {
+                    feeSpan.textContent = 'KES ' + baseFee.toFixed(2);
+                    feeSpan.style.color = 'inherit';
+                }
             }
 
-            document.getElementById('summary_town_label').textContent = townName;
+            if (townSpan) {
+                townSpan.textContent = zoneName ? (townName + ' - ' + zoneName) : townName;
+            }
             recalculateGrandTotal();
         }
 
         function recalculateGrandTotal() {
-            var grand = Math.max(0, (subtotal - currentDiscount)) + currentDeliveryFee;
-            document.getElementById('summary_grand_total').textContent = 'KES ' + grand.toFixed(2);
+            var fee = isNaN(currentDeliveryFee) ? 0 : currentDeliveryFee;
+            var disc = isNaN(currentDiscount) ? 0 : currentDiscount;
+            var sub = isNaN(subtotal) ? 0 : subtotal;
+            var grand = Math.max(0, (sub - disc)) + fee;
+            var grandSpan = document.getElementById('summary_grand_total');
+            if (grandSpan) {
+                grandSpan.textContent = 'KES ' + grand.toFixed(2);
+            }
         }
 
         function applyCouponCode() {
             var code = document.getElementById('coupon_input').value.trim().toUpperCase();
             var feedback = document.getElementById('coupon_feedback');
             var hiddenCode = document.getElementById('hidden_coupon_code');
-            var discRow = document.getElementById('discount_row');
-            var discSpan = document.getElementById('summary_discount');
 
             if (!code) {
                 feedback.textContent = 'Please enter a coupon code.';
@@ -631,7 +662,6 @@ require_once __DIR__ . '/../../includes/header.php';
                 return;
             }
 
-            // Client helper validation against common prefixes
             hiddenCode.value = code;
             feedback.textContent = 'Coupon ' + code + ' applied for order submission!';
             feedback.style.color = '#15803d';
@@ -639,22 +669,28 @@ require_once __DIR__ . '/../../includes/header.php';
 
         function applySavedAddress(sel) {
             var opt = sel.options[sel.selectedIndex];
-            if (!opt.value) return;
+            if (!opt || !opt.value) return;
 
-            var town = opt.getAttribute('data-town');
-            var addr = opt.getAttribute('data-addr');
-            var phone = opt.getAttribute('data-phone');
+            var town = (opt.getAttribute('data-town') || '').trim();
+            var addr = (opt.getAttribute('data-addr') || '').trim();
+            var phone = (opt.getAttribute('data-phone') || '').trim();
 
-            if (addr) document.getElementById('delivery_address').value = addr;
+            if (addr && document.getElementById('delivery_address')) {
+                document.getElementById('delivery_address').value = addr;
+            }
             if (phone && document.getElementById('mpesa_phone')) {
                 document.getElementById('mpesa_phone').value = phone;
             }
 
             var townSelect = document.getElementById('delivery_town');
-            for (var i = 0; i < townSelect.options.length; i++) {
-                if (townSelect.options[i].value.toLowerCase() === town.toLowerCase()) {
-                    townSelect.selectedIndex = i;
-                    break;
+            if (townSelect && town) {
+                for (var i = 0; i < townSelect.options.length; i++) {
+                    var val = townSelect.options[i].value;
+                    var tAttr = townSelect.options[i].getAttribute('data-town') || '';
+                    if (val.toLowerCase() === town.toLowerCase() || tAttr.toLowerCase() === town.toLowerCase()) {
+                        townSelect.selectedIndex = i;
+                        break;
+                    }
                 }
             }
             updateDeliveryFee();

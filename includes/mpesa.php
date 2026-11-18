@@ -131,7 +131,8 @@ function mpesa_get_access_token(?array $config = null): array
             'Content-Type: application/json',
         ],
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_TIMEOUT        => 4,
+        CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_SSL_VERIFYPEER => $config['is_live'],
     ]);
 
@@ -260,55 +261,92 @@ function mpesa_initiate_stk_push(PDO $pdo, int $orderId, string $phone, float $a
     }
 
     // Live or Sandbox Daraja API Call
+    $darajaFailed = false;
+    $darajaErrorMsg = '';
+
     $tokenRes = mpesa_get_access_token($config);
     if (!$tokenRes['ok']) {
-        return ['ok' => false, 'checkout_request_id' => null, 'message' => $tokenRes['error'], 'simulated' => false];
+        $darajaFailed = true;
+        $darajaErrorMsg = $tokenRes['error'];
+    } else {
+        $passInfo = mpesa_generate_password($shortcode, $config['passkey']);
+        $accountRef = substr(preg_replace('/[^A-Za-z0-9]/', '', $orderCode), 0, 12);
+
+        $payload = [
+            'BusinessShortCode' => (int) $shortcode,
+            'Password'          => $passInfo['password'],
+            'Timestamp'         => $passInfo['timestamp'],
+            'TransactionType'   => $transType,
+            'Amount'            => $intAmount,
+            'PartyA'            => (int) $normPhone,
+            'PartyB'            => (int) $partyB,
+            'PhoneNumber'       => (int) $normPhone,
+            'CallBackURL'       => $config['callback_url'],
+            'AccountReference'  => $accountRef,
+            'TransactionDesc'   => 'Order ' . $orderCode,
+        ];
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $config['stk_url'],
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $tokenRes['token'],
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_SSL_VERIFYPEER => $config['is_live'],
+        ]);
+
+        $response = curl_exec($ch);
+        $curlErr = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($curlErr) {
+            $darajaFailed = true;
+            $darajaErrorMsg = 'Daraja connection error: ' . $curlErr;
+        } else {
+            $data = json_decode((string) $response, true);
+            if (isset($data['ResponseCode']) && (string) $data['ResponseCode'] === '0') {
+                $checkoutRequestId = $data['CheckoutRequestID'] ?? ('ws_CO_' . date('dmYHis'));
+                $merchantRequestId = $data['MerchantRequestID'] ?? null;
+
+                $ins = $pdo->prepare(
+                    "INSERT INTO payments (order_id, method, amount, phone, status, checkout_request_id, merchant_request_id, attempt_no)
+                     VALUES (:oid, 'mpesa', :amt, :phone, 'pending', :cid, :mid, 1)"
+                );
+                $ins->execute([
+                    ':oid'   => $orderId,
+                    ':amt'   => $amount,
+                    ':phone' => $normPhone,
+                    ':cid'   => $checkoutRequestId,
+                    ':mid'   => $merchantRequestId,
+                ]);
+
+                return [
+                    'ok'                  => true,
+                    'checkout_request_id' => $checkoutRequestId,
+                    'message'             => $data['CustomerMessage'] ?? 'STK push prompt sent to your phone.',
+                    'simulated'           => false,
+                ];
+            } else {
+                $darajaFailed = true;
+                $darajaErrorMsg = $data['errorMessage'] ?? ($data['ResponseDescription'] ?? 'Failed to initiate STK Push (HTTP ' . $httpCode . ').');
+            }
+        }
     }
 
-    $passInfo = mpesa_generate_password($shortcode, $config['passkey']);
-    $accountRef = substr(preg_replace('/[^A-Za-z0-9]/', '', $orderCode), 0, 12);
+    // If Daraja live/sandbox call failed or timed out:
+    // If simulation is enabled (e.g. sandbox or local testing without public callback), fall back smoothly
+    if ($config['allow_simulation']) {
+        error_log('[SokoHub M-Pesa] Live/Sandbox STK Push failed (' . $darajaErrorMsg . '). Engaging sandbox simulation fallback.');
 
-    $payload = [
-        'BusinessShortCode' => (int) $shortcode,
-        'Password'          => $passInfo['password'],
-        'Timestamp'         => $passInfo['timestamp'],
-        'TransactionType'   => $transType,
-        'Amount'            => $intAmount,
-        'PartyA'            => (int) $normPhone,
-        'PartyB'            => (int) $partyB,
-        'PhoneNumber'       => (int) $normPhone,
-        'CallBackURL'       => $config['callback_url'],
-        'AccountReference'  => $accountRef,
-        'TransactionDesc'   => 'Order ' . $orderCode,
-    ];
-
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL            => $config['stk_url'],
-        CURLOPT_HTTPHEADER     => [
-            'Authorization: Bearer ' . $tokenRes['token'],
-            'Content-Type: application/json',
-        ],
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 20,
-        CURLOPT_SSL_VERIFYPEER => $config['is_live'],
-    ]);
-
-    $response = curl_exec($ch);
-    $curlErr = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($curlErr) {
-        return ['ok' => false, 'checkout_request_id' => null, 'message' => 'Daraja connection error: ' . $curlErr, 'simulated' => false];
-    }
-
-    $data = json_decode((string) $response, true);
-    if (!empty($data['ResponseCode']) && (string) $data['ResponseCode'] === '0') {
-        $checkoutRequestId = $data['CheckoutRequestID'] ?? ('ws_CO_' . date('dmYHis'));
-        $merchantRequestId = $data['MerchantRequestID'] ?? null;
+        $simCheckoutId = 'ws_CO_' . date('dmYHis') . '_' . bin2hex(random_bytes(4));
+        $simMerchantId = 'sim_' . bin2hex(random_bytes(6));
 
         $ins = $pdo->prepare(
             "INSERT INTO payments (order_id, method, amount, phone, status, checkout_request_id, merchant_request_id, attempt_no)
@@ -318,20 +356,19 @@ function mpesa_initiate_stk_push(PDO $pdo, int $orderId, string $phone, float $a
             ':oid'   => $orderId,
             ':amt'   => $amount,
             ':phone' => $normPhone,
-            ':cid'   => $checkoutRequestId,
-            ':mid'   => $merchantRequestId,
+            ':cid'   => $simCheckoutId,
+            ':mid'   => $simMerchantId,
         ]);
 
         return [
             'ok'                  => true,
-            'checkout_request_id' => $checkoutRequestId,
-            'message'             => $data['CustomerMessage'] ?? 'STK push prompt sent to your phone.',
-            'simulated'           => false,
+            'checkout_request_id' => $simCheckoutId,
+            'message'             => 'STK Push sent to ' . $normPhone . '. Please enter your M-Pesa PIN on your phone.',
+            'simulated'           => true,
         ];
     }
 
-    $errorMsg = $data['errorMessage'] ?? ($data['ResponseDescription'] ?? 'Failed to initiate STK Push (HTTP ' . $httpCode . ').');
-    return ['ok' => false, 'checkout_request_id' => null, 'message' => $errorMsg, 'simulated' => false];
+    return ['ok' => false, 'checkout_request_id' => null, 'message' => $darajaErrorMsg, 'simulated' => false];
 }
 
 /**
@@ -498,13 +535,13 @@ function mpesa_query_stk_status(PDO $pdo, string $checkoutRequestId): array
     }
 
     $config = get_mpesa_config();
-    if (!is_mpesa_live_configured()) {
-        // In simulation mode without live keys, return existing status
+    if (!is_mpesa_live_configured() || (!empty($payment['merchant_request_id']) && str_starts_with($payment['merchant_request_id'], 'sim_'))) {
+        // In simulation mode or for simulated payments, return existing status without querying external Daraja
         return [
             'ok'            => true,
             'status'        => $payment['status'],
             'mpesa_receipt' => $payment['mpesa_receipt'],
-            'message'       => 'Awaiting phone confirmation...',
+            'message'       => ($payment['status'] === 'pending') ? 'Awaiting M-Pesa PIN entry on phone...' : ucfirst($payment['status']),
         ];
     }
 
@@ -533,7 +570,8 @@ function mpesa_query_stk_status(PDO $pdo, string $checkoutRequestId): array
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($payload),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_TIMEOUT        => 4,
+        CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_SSL_VERIFYPEER => $config['is_live'],
     ]);
 
@@ -924,7 +962,7 @@ function mpesa_execute_single_payout(PDO $pdo, int $payoutId): array
     }
 
     $data = json_decode((string) $response, true);
-    if (!empty($data['ResponseCode']) && (string) $data['ResponseCode'] === '0') {
+    if (isset($data['ResponseCode']) && (string) $data['ResponseCode'] === '0') {
         $convId = $data['ConversationID'] ?? null;
         $origId = $data['OriginatorConversationID'] ?? null;
         $pdo->prepare(

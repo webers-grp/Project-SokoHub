@@ -133,6 +133,7 @@ CREATE TABLE deliveries (
     tracking_notes VARCHAR(255) NULL,
     assigned_at DATETIME NULL,
     delivered_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_delivery_person (delivery_person_id),
     INDEX idx_delivery_status (delivery_status),

@@ -126,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Fetch prev status
-        $prevSt = $pdo->query("SELECT status FROM orders WHERE id = {$orderId}")->fetchColumn();
+        $prevSt = $pdo->query("SELECT order_status FROM orders WHERE id = {$orderId}")->fetchColumn();
 
-        $pdo->prepare('UPDATE orders SET status = :st, updated_at = NOW() WHERE id = :id')->execute([
+        $pdo->prepare('UPDATE orders SET order_status = :st, updated_at = NOW() WHERE id = :id')->execute([
             ':st' => $newStatus,
             ':id' => $orderId,
         ]);
