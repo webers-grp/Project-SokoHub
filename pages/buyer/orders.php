@@ -152,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch orders according to role
 $baseOrderSql = '
     SELECT o.*, 
+           o.order_status AS status,
            u.full_name AS buyer_name, 
            u.phone AS buyer_phone,
            d.delivery_status, 
@@ -305,7 +306,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php foreach ($orders as $ord): ?>
                 <?php
                 $oid = (int) $ord['id'];
-                $st = $ord['status'];
+                $st = $ord['order_status'] ?? ($ord['status'] ?? 'pending');
                 $lineItems = $itemsByOrder[$oid] ?? [];
                 $history = $historyByOrder[$oid] ?? [];
                 $isPaid = ($ord['payment_status'] === 'paid');

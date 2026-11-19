@@ -262,12 +262,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], $userId, 'buyer');
 
                 $pdo->commit();
+                $orderCreated = true;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $errors[] = $e->getMessage();
+            }
+
+            if (!empty($orderCreated)) {
                 $_SESSION['cart'] = [];
 
-                // Notify offline sellers
-                foreach ($sellerTotals as $sellerUserId => $sData) {
-                    $itemSummary = implode(', ', $sData['items']);
-                    Telephony::notifyOfflineSellerOnOrder($sellerUserId, $orderCode, $itemSummary, (float) $sData['total']);
+                // Notify offline sellers safely
+                try {
+                    foreach ($sellerTotals as $sellerUserId => $sData) {
+                        $itemSummary = implode(', ', $sData['items']);
+                        Telephony::notifyOfflineSellerOnOrder($sellerUserId, $orderCode, $itemSummary, (float) $sData['total']);
+                    }
+                } catch (Throwable $te) {
+                    error_log('Telephony notification error: ' . $te->getMessage());
                 }
 
                 if ($old['payment_method'] === 'Cash on Delivery') {
@@ -275,25 +288,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     redirect('pages/buyer/orders.php?order_code=' . urlencode($orderCode));
                 } else {
                     // M-Pesa: Trigger STK Push
-                    $stkRes = mpesa_initiate_stk_push($pdo, $orderId, $normMpesaPhone, $grandTotal);
-                    if ($stkRes['ok']) {
-                        $stkState = [
-                            'order_id'            => $orderId,
-                            'order_code'          => $orderCode,
-                            'amount'              => $grandTotal,
-                            'phone'               => $normMpesaPhone,
-                            'checkout_request_id' => $stkRes['checkout_request_id'],
-                            'message'             => $stkRes['message'],
-                            'simulated'           => $stkRes['simulated'],
-                        ];
-                    } else {
-                        set_flash('warning', 'Order ' . $orderCode . ' was created, but M-Pesa STK push could not be initiated: ' . $stkRes['message'] . '. You can retry payment below.');
+                    try {
+                        $stkRes = mpesa_initiate_stk_push($pdo, $orderId, $normMpesaPhone, $grandTotal);
+                        if ($stkRes['ok']) {
+                            $stkState = [
+                                'order_id'            => $orderId,
+                                'order_code'          => $orderCode,
+                                'amount'              => $grandTotal,
+                                'phone'               => $normMpesaPhone,
+                                'checkout_request_id' => $stkRes['checkout_request_id'],
+                                'message'             => $stkRes['message'],
+                                'simulated'           => $stkRes['simulated'],
+                            ];
+                        } else {
+                            set_flash('warning', 'Order ' . $orderCode . ' was created, but M-Pesa STK push could not be initiated: ' . $stkRes['message'] . '. You can retry payment below.');
+                            redirect('pages/buyer/orders.php?order_code=' . urlencode($orderCode));
+                        }
+                    } catch (Throwable $pe) {
+                        error_log('M-Pesa STK push error: ' . $pe->getMessage());
+                        set_flash('warning', 'Order ' . $orderCode . ' was placed, but payment prompt failed. You can retry payment in your orders page.');
                         redirect('pages/buyer/orders.php?order_code=' . urlencode($orderCode));
                     }
                 }
-            } catch (Throwable $e) {
-                $pdo->rollBack();
-                $errors[] = $e->getMessage();
             }
         }
     }
