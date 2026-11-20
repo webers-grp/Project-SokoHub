@@ -53,16 +53,16 @@ $footerCartCount = cart_count();
 <!-- Sticky Mobile Bottom Navigation Bar -->
 <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
     <a href="<?= e(url('index.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">
-        <span class="mobile-nav-icon">🏠</span>
+        <span class="mobile-nav-icon"><?= icon('home', 'lucide-sm') ?></span>
         <span class="mobile-nav-label">Home</span>
     </a>
     <a href="<?= e(url('pages/public/products.php')) ?>" class="mobile-nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['products.php', 'product_details.php']) ? 'active' : '' ?>">
-        <span class="mobile-nav-icon">🛍️</span>
+        <span class="mobile-nav-icon"><?= icon('shopping-bag', 'lucide-sm') ?></span>
         <span class="mobile-nav-label">Shop</span>
     </a>
     <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'cart.php' ? 'active' : '' ?>">
         <span class="mobile-nav-icon" style="position: relative;">
-            🛒
+            <?= icon('shopping-cart', 'lucide-sm') ?>
             <?php if ($footerCartCount > 0): ?>
                 <span class="mobile-cart-badge"><?= $footerCartCount ?></span>
             <?php endif; ?>
@@ -70,45 +70,45 @@ $footerCartCount = cart_count();
         <span class="mobile-nav-label">Cart</span>
     </a>
     <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="mobile-nav-item <?= basename($_SERVER['PHP_SELF']) === 'wishlist.php' ? 'active' : '' ?>">
-        <span class="mobile-nav-icon">❤️</span>
+        <span class="mobile-nav-icon"><?= icon('heart', 'lucide-sm') ?></span>
         <span class="mobile-nav-label">Wishlist</span>
     </a>
     <a href="<?= e(url($footerUser !== null ? 'pages/auth/profile.php' : 'pages/auth/login.php')) ?>" class="mobile-nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['profile.php', 'login.php', 'dashboard.php']) ? 'active' : '' ?>">
-        <span class="mobile-nav-icon">👤</span>
+        <span class="mobile-nav-icon"><?= icon('user', 'lucide-sm') ?></span>
         <span class="mobile-nav-label"><?= $footerUser !== null ? 'Account' : 'Login' ?></span>
     </a>
 </nav>
 
 <script src="<?= e(url('assets/js/lucide.min.js?v=' . filemtime(__DIR__ . '/../assets/js/lucide.min.js'))) ?>"></script>
 <script>
-    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-        lucide.createIcons({
-            attrs: {
-                width: '13',
-                height: '13',
-                'stroke-width': '1.85'
-            }
-        });
+    function renderAppIcons() {
+        if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
+        }
     }
+    renderAppIcons();
 
     // Theme Switcher Logic
     (function() {
         var btn = document.getElementById('themeToggleBtn');
-        var icon = document.getElementById('themeToggleIcon');
-        if (!btn || !icon) return;
+        var iconWrap = document.getElementById('themeToggleIcon');
+        if (!btn || !iconWrap) return;
 
-        function updateIcon() {
+        function updateThemeIcon() {
             var isDark = document.documentElement.classList.contains('dark-mode');
-            icon.textContent = isDark ? '☀️' : '🌙';
+            iconWrap.innerHTML = isDark
+                ? '<i data-lucide="sun" class="lucide lucide-sm" aria-hidden="true"></i>'
+                : '<i data-lucide="moon" class="lucide lucide-sm" aria-hidden="true"></i>';
+            renderAppIcons();
         }
 
-        updateIcon();
+        updateThemeIcon();
 
         btn.addEventListener('click', function() {
             document.documentElement.classList.toggle('dark-mode');
             var isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('sokohub_theme', isDark ? 'dark' : 'light');
-            updateIcon();
+            updateThemeIcon();
         });
     })();
 </script>

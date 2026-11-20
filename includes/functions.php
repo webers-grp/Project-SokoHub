@@ -29,7 +29,29 @@ function icon(string $name, string $class = '', string $color = '', string $extr
         $classes .= ' ' . (str_starts_with($color, 'icon-') ? $color : 'icon-' . $color);
     }
     $attrs = $extraAttrs !== '' ? ' ' . $extraAttrs : '';
+    if (!str_contains($attrs, 'aria-')) {
+        $attrs .= ' aria-hidden="true"';
+    }
     return '<i data-lucide="' . e($name) . '" class="' . e($classes) . '"' . $attrs . '></i>';
+}
+
+/**
+ * Render standard 5-star rating using Lucide star vector icons.
+ * Generates accessible markup with zero emojis or unicode stars.
+ */
+function render_stars(float|int $rating, int $count = -1): string
+{
+    $rounded = min(5, max(0, (int) round((float) $rating)));
+    $html = '<span class="star-rating" aria-label="' . number_format((float) $rating, 1) . ' out of 5 stars">';
+    for ($i = 1; $i <= 5; $i++) {
+        $fillClass = ($i <= $rounded) ? 'star-filled' : 'star-empty';
+        $html .= icon('star', 'lucide-xs ' . $fillClass);
+    }
+    if ($count >= 0) {
+        $html .= '<span class="rating-count">(' . $count . ')</span>';
+    }
+    $html .= '</span>';
+    return $html;
 }
 
 /**

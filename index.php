@@ -41,16 +41,16 @@ require_once __DIR__ . '/includes/header.php';
 <section class="kili-hero">
     <div class="kili-hero-left">
         <div class="kili-hero-slider">
-            <button class="slider-arrow slider-prev" aria-label="Previous">&#8249;</button>
-            <button class="slider-arrow slider-next" aria-label="Next">&#8250;</button>
+            <button class="slider-arrow slider-prev" aria-label="Previous"><?= icon('chevron-left', 'lucide-sm') ?></button>
+            <button class="slider-arrow slider-next" aria-label="Next"><?= icon('chevron-right', 'lucide-sm') ?></button>
 
             <div class="kili-hero-content">
-                <span class="hero-tag">🔥 Limited Time Offer</span>
+                <span class="hero-tag"><?= icon('tag', 'lucide-xs') ?> Limited Time Offer</span>
                 <h1>Up to 50% OFF on<br>Electronics &amp; Gas!</h1>
-                <p>Shop the best local deals — fresh, affordable, and delivered to your door within Kirinyaga.</p>
+                <p>Shop the best local deals &mdash; fresh, affordable, and delivered to your door within Kirinyaga.</p>
                 <div class="hero-btn-row">
-                    <a href="<?= e(url('pages/public/products.php')) ?>" class="btn-hero-primary">Shop Now</a>
-                    <a href="<?= e(url('pages/public/products.php?sort=newest')) ?>" class="btn-hero-outline">New Arrivals</a>
+                    <a href="<?= e(url('pages/public/products.php')) ?>" class="btn-hero-primary"><?= icon('shopping-bag', 'lucide-xs') ?> <span>Shop Now</span></a>
+                    <a href="<?= e(url('pages/public/products.php?sort=newest')) ?>" class="btn-hero-outline"><?= icon('sparkles', 'lucide-xs') ?> <span>New Arrivals</span></a>
                 </div>
             </div>
         </div>
@@ -58,13 +58,18 @@ require_once __DIR__ . '/includes/header.php';
 
     <div class="kili-hero-right">
         <?php
-        $catIcons = ['⛽','📱','👗','🥦','🏠','💊','🔧','🎒'];
-        $i = 0;
+        $heroCatIcons = [
+            'gas'         => 'flame',
+            'electronics' => 'smartphone',
+            'clothes'     => 'shirt',
+            'food'        => 'apple',
+            'others'      => 'home',
+        ];
         foreach (array_slice($categories, 0, 4) as $cat):
-            $icon = $catIcons[$i++] ?? '🛒';
+            $catIcon = $heroCatIcons[$cat['slug']] ?? 'package';
         ?>
         <a href="<?= e(url('pages/public/products.php?category=' . urlencode($cat['slug']))) ?>" class="hero-cat-tile">
-            <span class="hero-cat-icon"><?= $icon ?></span>
+            <span class="hero-cat-icon"><?= icon($catIcon, 'lucide-sm') ?></span>
             <span><?= e($cat['name']) ?></span>
         </a>
         <?php endforeach; ?>
@@ -76,23 +81,23 @@ require_once __DIR__ . '/includes/header.php';
     <div class="container">
         <div class="quick-access-row">
             <a href="<?= e(url('pages/public/products.php?sort=newest')) ?>" class="quick-link">
-                <span class="qa-icon">⚡</span>
+                <span class="qa-icon"><?= icon('zap', 'lucide-sm') ?></span>
                 <span>Flash Sales</span>
             </a>
             <a href="<?= e(url('pages/auth/register.php')) ?>" class="quick-link">
-                <span class="qa-icon">🎁</span>
+                <span class="qa-icon"><?= icon('gift', 'lucide-sm') ?></span>
                 <span>New User</span>
             </a>
             <a href="<?= e(url('pages/public/products.php?sort=rating')) ?>" class="quick-link">
-                <span class="qa-icon">🏷️</span>
+                <span class="qa-icon"><?= icon('percent', 'lucide-sm') ?></span>
                 <span>Top Deals</span>
             </a>
             <a href="<?= e(url('pages/public/products.php')) ?>" class="quick-link">
-                <span class="qa-icon">📦</span>
+                <span class="qa-icon"><?= icon('grid', 'lucide-sm') ?></span>
                 <span>All Categories</span>
             </a>
             <a href="<?= e(url('pages/public/products.php?sort=price_asc')) ?>" class="quick-link">
-                <span class="qa-icon">🔖</span>
+                <span class="qa-icon"><?= icon('tag', 'lucide-sm') ?></span>
                 <span>Clearance</span>
             </a>
         </div>
@@ -102,14 +107,16 @@ require_once __DIR__ . '/includes/header.php';
 <!-- ═══════════════════════════════ FLASH DEALS ═══════════════════════════════ -->
 <section class="container section-space">
     <div class="flash-deals-header">
-        <span class="flash-title">⚡ FLASH DEALS</span>
+        <span class="flash-title"><?= icon('zap', 'lucide-sm') ?> FLASH DEALS</span>
         <div class="flash-countdown" id="flash-countdown">
             <span class="cd-label">Ends in:</span>
             <span class="cd-block" id="cd-h">00</span>:
             <span class="cd-block" id="cd-m">00</span>:
             <span class="cd-block" id="cd-s">00</span>
         </div>
-        <a href="<?= e(url('pages/public/products.php')) ?>" class="flash-see-all">See All →</a>
+        <a href="<?= e(url('pages/public/products.php')) ?>" class="flash-see-all">
+            <span>See All</span> <?= icon('arrow-right', 'lucide-xs') ?>
+        </a>
     </div>
 
     <?php if (empty($featuredProducts)): ?>
@@ -139,15 +146,14 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div class="product-rating">
-                        <?= str_repeat('★', min(5, (int) round((float) $product['rating_avg']))) ?><?= str_repeat('☆', max(0, 5 - (int) round((float) $product['rating_avg']))) ?>
-                        <span>(<?= (int) $product['rating_count'] ?>)</span>
+                        <?= render_stars((float) $product['rating_avg'], (int) $product['rating_count']) ?>
                     </div>
                     <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST">
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
                         <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="btn btn-primary btn-block">Add to Cart</button>
+                        <button type="submit" class="btn btn-primary btn-block"><?= icon('shopping-cart', 'lucide-xs') ?> <span>Add to Cart</span></button>
                     </form>
                 </div>
             </article>
@@ -160,22 +166,20 @@ require_once __DIR__ . '/includes/header.php';
 <section class="container section-space">
     <div class="section-heading">
         <h2>Shop by Category</h2>
-        <a href="<?= e(url('pages/public/products.php')) ?>" class="see-all-link">View All →</a>
+        <a href="<?= e(url('pages/public/products.php')) ?>" class="see-all-link"><span>View All</span> <?= icon('arrow-right', 'lucide-xs') ?></a>
     </div>
 
     <div class="kili-category-grid">
         <a href="<?= e(url('pages/public/products.php')) ?>" class="kili-cat-card">
-            <span class="kili-cat-emoji">🛒</span>
+            <span class="kili-cat-emoji"><?= icon('shopping-bag', 'lucide-sm') ?></span>
             <span>All Items</span>
         </a>
         <?php
-        $allIcons = ['⛽','📱','👗','🥦','🏠','💊','🔧','🎒','🖥️','🌽'];
-        $j = 0;
         foreach ($categories as $cat):
-            $emoji = $allIcons[$j++] ?? '📦';
+            $catIcon = $heroCatIcons[$cat['slug']] ?? 'package';
         ?>
         <a href="<?= e(url('pages/public/products.php?category=' . urlencode($cat['slug']))) ?>" class="kili-cat-card">
-            <span class="kili-cat-emoji"><?= $emoji ?></span>
+            <span class="kili-cat-emoji"><?= icon($catIcon, 'lucide-sm') ?></span>
             <span><?= e($cat['name']) ?></span>
         </a>
         <?php endforeach; ?>
@@ -187,21 +191,21 @@ require_once __DIR__ . '/includes/header.php';
     <div class="container">
         <div class="why-row">
             <div class="why-item">
-                <span class="why-icon">📲</span>
+                <span class="why-icon"><?= icon('smartphone', 'lucide-md') ?></span>
                 <div>
                     <strong>M-Pesa Payments</strong>
                     <p>Pay instantly and securely via M-Pesa or Cash on Delivery.</p>
                 </div>
             </div>
             <div class="why-item">
-                <span class="why-icon">🚴</span>
+                <span class="why-icon"><?= icon('bike', 'lucide-md') ?></span>
                 <div>
                     <strong>Fast Local Delivery</strong>
-                    <p>Dedicated riders deliver within 30–60 minutes in Kirinyaga.</p>
+                    <p>Dedicated riders deliver within 30&ndash;60 minutes in Kirinyaga.</p>
                 </div>
             </div>
             <div class="why-item">
-                <span class="why-icon">✅</span>
+                <span class="why-icon"><?= icon('shield-check', 'lucide-md') ?></span>
                 <div>
                     <strong>Verified Sellers</strong>
                     <p>Every vendor is screened and rated by real customers.</p>

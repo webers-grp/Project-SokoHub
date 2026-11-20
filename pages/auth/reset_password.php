@@ -90,7 +90,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="page-container" style="max-width: 480px; margin: 3rem auto; padding: 0 1rem;">
     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔐</div>
+            <div style="margin-bottom: 0.75rem; color: #ea580c; display: flex; justify-content: center;"><?= icon('shield-check', 'lucide-xl') ?></div>
             <h1 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem;">Set New Password</h1>
             <?php if ($tokenValid): ?>
                 <p style="font-size: 0.85rem; color: #64748b; margin: 0;">

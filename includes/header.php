@@ -44,11 +44,11 @@ try {
 }
 
 $categoryIconMap = [
-    'gas'         => '⛽',
-    'clothes'     => '👗',
-    'food'        => '🥦',
-    'electronics' => '📱',
-    'others'      => '🏠',
+    'gas'         => 'flame',
+    'clothes'     => 'shirt',
+    'food'        => 'apple',
+    'electronics' => 'smartphone',
+    'others'      => 'home',
 ];
 ?>
 <!DOCTYPE html>
@@ -57,6 +57,7 @@ $categoryIconMap = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
+    <link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
     <script>
         // Apply saved theme immediately before render
@@ -78,10 +79,10 @@ $categoryIconMap = [
     <div class="header-utility-bar">
         <div class="header-utility-inner">
             <div class="utility-left">
-                <span class="utility-flag">🇰🇪</span>
+                <span class="utility-badge" style="background: var(--brand-red); color: white; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.5px;">KENYA</span>
                 <span class="utility-text"><strong>Welcome to SokoHub!</strong> Free delivery on orders above KES 3,000 across Kirinyaga</span>
                 <span class="utility-separator">|</span>
-                <span class="utility-hotline">📞 Helpline: <strong>0700 100 001</strong></span>
+                <span class="utility-hotline"><?= icon('phone', 'lucide-xs') ?> Helpline: <strong>0700 100 001</strong></span>
             </div>
             <div class="utility-right">
                 <?php if ($authUser !== null): ?>
@@ -150,8 +151,8 @@ $categoryIconMap = [
                 <div class="header-account-dropdown">
                     <?php if ($authUser !== null): ?>
                         <a href="<?= e(url('pages/auth/profile.php')) ?>" class="header-action-item" title="Manage Account">
-                            <span class="action-icon">👤</span>
-                            <span class="action-label"><?= e(explode(' ', $authUser['full_name'])[0]) ?> ▾</span>
+                            <span class="action-icon"><?= icon('user', 'lucide-sm') ?></span>
+                            <span class="action-label"><?= e(explode(' ', $authUser['full_name'])[0]) ?> <?= icon('chevron-down', 'lucide-xs') ?></span>
                         </a>
                         <div class="header-account-menu">
                             <div class="account-menu-header">
@@ -198,8 +199,8 @@ $categoryIconMap = [
                         </div>
                     <?php else: ?>
                         <a href="<?= e(url('pages/auth/login.php')) ?>" class="header-action-item" title="Sign In">
-                            <span class="action-icon">👤</span>
-                            <span class="action-label">Account ▾</span>
+                            <span class="action-icon"><?= icon('user', 'lucide-sm') ?></span>
+                            <span class="action-label">Account <?= icon('chevron-down', 'lucide-xs') ?></span>
                         </a>
                         <div class="header-account-menu">
                             <div style="padding: 0.8rem 1rem;">
@@ -225,9 +226,9 @@ $categoryIconMap = [
                 </div>
 
                 <!-- Wishlist Action -->
-                <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="header-action-item" title="Saved Wishlist">
+                <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="header-action-item" title="Saved Wishlist" aria-label="View Saved Wishlist">
                     <span class="action-icon">
-                        ❤️
+                        <?= icon('heart', 'lucide-sm') ?>
                         <?php if ($wishlistCount > 0): ?>
                             <span class="header-action-badge"><?= $wishlistCount ?></span>
                         <?php endif; ?>
@@ -236,9 +237,9 @@ $categoryIconMap = [
                 </a>
 
                 <!-- Notifications Alerts Action -->
-                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="header-action-item" title="In-App Alerts">
+                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="header-action-item" title="In-App Alerts" aria-label="View Alerts and Notifications">
                     <span class="action-icon">
-                        🔔
+                        <?= icon('bell', 'lucide-sm') ?>
                         <?php if ($unreadNotificationsCount > 0): ?>
                             <span class="header-action-badge"><?= $unreadNotificationsCount ?></span>
                         <?php endif; ?>
@@ -247,9 +248,9 @@ $categoryIconMap = [
                 </a>
 
                 <!-- Shopping Cart Action (The Kilimall Kenya Cart Pill) -->
-                <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="header-cart-item" title="View Shopping Cart">
+                <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="header-cart-item" title="View Shopping Cart" aria-label="Shopping Cart">
                     <span class="cart-icon-wrap">
-                        🛒
+                        <?= icon('shopping-cart', 'lucide-sm') ?>
                         <span class="header-action-badge header-cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </span>
                     <div class="cart-label-wrap desktop-only">
@@ -260,7 +261,7 @@ $categoryIconMap = [
 
                 <!-- Dark / Light Mode Toggle Button -->
                 <button type="button" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Color Theme">
-                    <span id="themeToggleIcon">🌙</span>
+                    <span id="themeToggleIcon"><?= icon('moon', 'lucide-sm') ?></span>
                 </button>
 
             </div><!-- /.header-actions -->
@@ -275,47 +276,47 @@ $categoryIconMap = [
 
             <!-- Mobile Hamburger Button -->
             <button class="cat-nav-toggle" id="catNavToggle" type="button" aria-label="Open category menu">
-                ☰ Categories
+                <?= icon('menu', 'lucide-xs') ?> <span>Categories</span>
             </button>
 
             <!-- All Categories Mega Button -->
             <button class="all-categories-btn" id="allCategoriesBtn" type="button" aria-expanded="false" aria-controls="categorySidebar">
-                <span class="all-cat-icon">☰</span>
+                <span class="all-cat-icon"><?= icon('menu', 'lucide-sm') ?></span>
                 <span class="all-cat-text">ALL CATEGORIES</span>
-                <span class="all-cat-caret">▾</span>
+                <span class="all-cat-caret"><?= icon('chevron-down', 'lucide-xs') ?></span>
             </button>
 
             <!-- Primary Navigation Links -->
             <ul class="category-nav-links" id="navMenu">
                 <li>
                     <a href="<?= e(url('index.php')) ?>" class="<?= $currentScript === 'index.php' ? 'active' : '' ?>">
-                        🏠 Home
+                        <?= icon('home', 'lucide-xs') ?> <span>Home</span>
                     </a>
                 </li>
                 <li>
                     <a href="<?= e(url('pages/public/products.php?sort=rating')) ?>" class="flash-deals-nav-link">
-                        ⚡ Flash Deals
+                        <?= icon('zap', 'lucide-xs') ?> <span>Flash Deals</span>
                     </a>
                 </li>
                 <li>
                     <a href="<?= e(url('pages/public/products.php')) ?>" class="<?= $currentScript === 'products.php' && empty($_GET['category']) ? 'active' : '' ?>">
-                        🛍️ All Products
+                        <?= icon('shopping-bag', 'lucide-xs') ?> <span>All Products</span>
                     </a>
                 </li>
                 <?php foreach (array_slice($headerCategories, 0, 4) as $hCat): ?>
                     <?php
                     $isCatActive = ($currentScript === 'products.php' && (($_GET['category'] ?? '') === $hCat['slug'] || ($_GET['category'] ?? '') === (string)$hCat['id']));
-                    $catEmoji = $categoryIconMap[$hCat['slug']] ?? '📦';
+                    $catIcon = $categoryIconMap[$hCat['slug']] ?? 'package';
                     ?>
                     <li>
                         <a href="<?= e(url('pages/public/products.php?category=' . urlencode($hCat['slug']))) ?>" class="<?= $isCatActive ? 'active' : '' ?>">
-                            <?= $catEmoji ?> <?= e($hCat['name']) ?>
+                            <?= icon($catIcon, 'lucide-xs') ?> <span><?= e($hCat['name']) ?></span>
                         </a>
                     </li>
                 <?php endforeach; ?>
                 <li>
                     <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="<?= in_array($currentScript, ['orders.php', 'checkout.php'], true) ? 'active' : '' ?>">
-                        📦 Track Order
+                        <?= icon('truck', 'lucide-xs') ?> <span>Track Order</span>
                     </a>
                 </li>
             </ul>
@@ -323,7 +324,7 @@ $categoryIconMap = [
             <!-- Right Callout in Category Bar -->
             <div class="header-category-right desktop-only">
                 <a href="<?= e(url(is_logged_in() ? 'pages/dashboard/manage_products.php' : 'pages/auth/register_seller.php')) ?>" class="cat-bar-sell-btn">
-                    🏪 Open Shop on SokoHub &rarr;
+                    <?= icon('store', 'lucide-xs') ?> <span>Open Shop on SokoHub</span> <?= icon('arrow-right', 'lucide-xs') ?>
                 </a>
             </div>
 
@@ -338,21 +339,21 @@ $categoryIconMap = [
 <!-- Category Sidebar Drawer -->
 <aside class="category-sidebar" id="categorySidebar" role="navigation" aria-label="All Categories">
     <div class="category-sidebar-header">
-        <span>☰ All Product Categories</span>
-        <button class="category-sidebar-close" id="categorySidebarClose" aria-label="Close categories">✕</button>
+        <span><?= icon('grid', 'lucide-sm') ?> All Product Categories</span>
+        <button class="category-sidebar-close" id="categorySidebarClose" aria-label="Close categories"><?= icon('x', 'lucide-sm') ?></button>
     </div>
     <ul class="category-sidebar-list">
         <li>
             <a href="<?= e(url('pages/public/products.php')) ?>">
-                <span class="cat-side-icon">🏪</span>
+                <span class="cat-side-icon"><?= icon('store', 'lucide-sm') ?></span>
                 <span>All Marketplace Products</span>
             </a>
         </li>
         <?php foreach ($headerCategories as $cat): ?>
-            <?php $emoji = $categoryIconMap[$cat['slug']] ?? '📦'; ?>
+            <?php $catIcon = $categoryIconMap[$cat['slug']] ?? 'package'; ?>
             <li>
                 <a href="<?= e(url('pages/public/products.php?category=' . urlencode($cat['slug']))) ?>">
-                    <span class="cat-side-icon"><?= $emoji ?></span>
+                    <span class="cat-side-icon"><?= icon($catIcon, 'lucide-sm') ?></span>
                     <span><?= e($cat['name']) ?></span>
                 </a>
             </li>
@@ -360,13 +361,13 @@ $categoryIconMap = [
         <li class="sidebar-divider"></li>
         <li>
             <a href="<?= e(url('pages/public/products.php?sort=newest')) ?>">
-                <span class="cat-side-icon">✨</span>
+                <span class="cat-side-icon"><?= icon('sparkles', 'lucide-sm') ?></span>
                 <span>New Arrivals</span>
             </a>
         </li>
         <li>
             <a href="<?= e(url('pages/public/products.php?sort=price_asc')) ?>">
-                <span class="cat-side-icon">🏷️</span>
+                <span class="cat-side-icon"><?= icon('tag', 'lucide-sm') ?></span>
                 <span>Budget &amp; Clearance Deals</span>
             </a>
         </li>
@@ -456,7 +457,7 @@ $categoryIconMap = [
                             categories.forEach(function(cat) {
                                 var catUrl = '<?= e(url('pages/public/products.php')) ?>?category=' + encodeURIComponent(cat.slug || cat.id);
                                 html += '<a href="' + catUrl + '" class="search-suggest-category-item">';
-                                html += '<span>📂</span>';
+                                html += '<span class="suggest-folder-icon">' + (window.lucide ? '<i data-lucide="folder" class="lucide-xs"></i>' : '') + '</span>';
                                 html += '<strong>' + (cat.name || '') + '</strong>';
                                 html += '<span class="cat-tag-pill">Category</span>';
                                 html += '</a>';

@@ -331,10 +331,10 @@ require_once __DIR__ . '/../../includes/header.php';
         </h1>
         <div style="display:flex; gap:0.5rem; align-items:center;">
             <?php if (is_logged_in()): ?>
-                <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="btn btn-outline" style="font-size:0.82rem;">❤️ Wishlist</a>
+                <a href="<?= e(url('pages/buyer/wishlist.php')) ?>" class="btn btn-outline" style="font-size:0.82rem; display:inline-flex; align-items:center; gap:0.35rem;"><?= icon('heart', 'lucide-xs') ?> <span>Wishlist</span></a>
             <?php endif; ?>
             <?php if (is_logged_in() && in_array(current_user()['role'], ['seller', 'admin'], true)): ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary" style="font-size:0.82rem;">📦 My Products</a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary" style="font-size:0.82rem; display:inline-flex; align-items:center; gap:0.35rem;"><?= icon('package', 'lucide-xs') ?> <span>My Products</span></a>
             <?php endif; ?>
         </div>
     </div>
@@ -342,7 +342,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="catalog-wrap">
         <!-- ══ SIDEBAR ══ -->
         <aside class="kili-sidebar">
-            <div class="sidebar-title">🔍 Filter &amp; Sort</div>
+            <div class="sidebar-title" style="display:flex; align-items:center; gap:0.4rem;"><?= icon('filter', 'lucide-xs') ?> <span>Filter &amp; Sort</span></div>
             <form action="<?= e(url('pages/public/products.php')) ?>" method="GET" id="searchFilterForm">
 
                 <!-- Category links -->
@@ -399,7 +399,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <!-- Hidden search passthrough -->
                     <input type="hidden" name="q" value="<?= e($search) ?>">
                     <button type="submit" class="btn-apply-filter">Apply Filters</button>
-                    <a href="<?= e(url('pages/public/products.php')) ?>" class="btn-reset-filter">✕ Reset All</a>
+                    <a href="<?= e(url('pages/public/products.php')) ?>" class="btn-reset-filter" style="display:inline-flex; align-items:center; justify-content:center; gap:0.35rem;"><?= icon('rotate-ccw', 'lucide-xs') ?> <span>Reset All</span></a>
                 </div>
             </form>
         </aside>
@@ -432,9 +432,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Product grid -->
             <?php if (empty($products)): ?>
-                <div class="kili-no-products">
-                    <h3 style="margin:0 0 0.4rem;">No Products Found</h3>
-                    <p>Try clearing your keyword or switching category filters.</p>
+                <div class="kili-no-products empty-state" style="text-align:center; padding:3rem 1.5rem; background:white; border-radius:8px; border:1px solid #e2e8f0;">
+                    <div style="margin-bottom:0.75rem; color:#94a3b8;"><?= icon('package-search', 'lucide-xl') ?></div>
+                    <h3 style="margin:0 0 0.4rem; color:#0f172a;">No Products Found</h3>
+                    <p class="muted" style="margin-bottom:1.25rem;">Try clearing your keyword or switching category filters.</p>
+                    <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-outline btn-sm"><?= icon('rotate-ccw', 'lucide-xs') ?> <span>Clear Filters</span></a>
                 </div>
             <?php else: ?>
                 <div class="kili-product-grid">
@@ -452,8 +454,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="toggle_wishlist">
                             <input type="hidden" name="product_id" value="<?= $pid ?>">
-                            <button type="submit" class="wishlist-btn" style="background:rgba(255,255,255,0.9); border:none; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.15); font-size:0.9rem;" title="<?= $inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' ?>">
-                                <?= $inWishlist ? '❤️' : '🤍' ?>
+                            <button type="submit" class="wishlist-btn" style="background:rgba(255,255,255,0.92); border:1px solid #e2e8f0; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1); color:<?= $inWishlist ? '#e11d48' : '#94a3b8' ?>;" title="<?= $inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' ?>" aria-label="<?= $inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' ?>">
+                                <?= icon('heart', 'lucide-xs ' . ($inWishlist ? 'icon-rose' : '')) ?>
                             </button>
                         </form>
 
@@ -474,8 +476,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?php endif; ?>
                             </div>
                             <div class="product-rating">
-                                <?= str_repeat('★', min(5, (int) round((float) $product['rating_avg']))) ?><?= str_repeat('☆', max(0, 5 - (int) round((float) $product['rating_avg']))) ?>
-                                <span>(<?= (int) $product['rating_count'] ?>)</span>
+                                <?= render_stars((float) $product['rating_avg'], (int) $product['rating_count']) ?>
                             </div>
                             <?php if ($isOut): ?>
                                 <span style="color:#ef4444; font-size:0.75rem; font-weight:700;">Out of Stock</span>
@@ -551,7 +552,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     if (data.categories && data.categories.length > 0) {
                         html += '<div style="padding:0.5rem 0.75rem; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#64748b; text-transform:uppercase;">Categories</div>';
                         data.categories.forEach(function(c) {
-                            html += '<a href="<?= e(url('pages/public/products.php')) ?>?category=' + encodeURIComponent(c.id) + '" style="display:block; padding:0.5rem 0.75rem; text-decoration:none; color:#0f172a; font-size:0.85rem; border-bottom:1px solid #f1f5f9;">📁 ' + escapeHtml(c.name) + '</a>';
+                            html += '<a href="<?= e(url('pages/public/products.php')) ?>?category=' + encodeURIComponent(c.id) + '" style="display:flex; align-items:center; gap:0.4rem; padding:0.5rem 0.75rem; text-decoration:none; color:#0f172a; font-size:0.85rem; border-bottom:1px solid #f1f5f9;"><i data-lucide="tag" class="lucide lucide-xs" style="color:#64748b;"></i> <span>' + escapeHtml(c.name) + '</span></a>';
                         });
                     }
 

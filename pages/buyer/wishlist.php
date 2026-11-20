@@ -57,14 +57,14 @@ require_once __DIR__ . '/../../includes/header.php';
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <h1 style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    ❤️ Saved Wishlist (<?= count($items) ?>)
+                    <?= icon('heart', 'lucide-sm', '#ef4444') ?> <span>Saved Wishlist (<?= count($items) ?>)</span>
                 </h1>
                 <p style="color: #64748b; margin: 0.25rem 0 0; font-size: 0.9rem;">
                     Items you've bookmarked to buy later. Move them to your cart when you're ready to check out!
                 </p>
             </div>
-            <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline" style="font-size: 0.85rem;">
-                🛒 Go to Cart &rarr;
+            <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="btn btn-outline" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                <?= icon('shopping-cart', 'lucide-xs') ?> <span>Go to Cart</span> <?= icon('arrow-right', 'lucide-xs') ?>
             </a>
         </div>
     </div>
@@ -72,7 +72,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Items Grid -->
     <?php if (empty($items)): ?>
         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 3rem 1rem; text-align: center; color: #64748b;">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🤍</div>
+            <div style="margin-bottom: 0.5rem; color: #94a3b8; display: flex; justify-content: center;"><?= icon('heart-off', 'lucide-xl') ?></div>
             <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.25rem;">Your Wishlist is Empty</h3>
             <p style="font-size: 0.85rem; margin: 0 0 1.25rem;">Browse products on the marketplace and click the heart icon to save items for later.</p>
             <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.9rem;">
@@ -102,8 +102,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="remove">
                             <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
-                            <button type="submit" style="background: white; border: none; border-radius: 9999px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15);" title="Remove from wishlist">
-                                ❌
+                            <button type="submit" style="background: white; border: none; border-radius: 9999px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15);" title="Remove from wishlist" aria-label="Remove from wishlist">
+                                <?= icon('x', 'lucide-xs', '#64748b') ?>
                             </button>
                         </form>
                     </div>
@@ -121,9 +121,8 @@ require_once __DIR__ . '/../../includes/header.php';
 
                         <!-- Rating & Scarcity -->
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-                            <div style="font-size: 0.8rem; color: #eab308; font-weight: 600;">
-                                ★ <?= number_format((float) $item['rating_avg'], 1) ?>
-                                <span style="color: #94a3b8; font-size: 0.75rem;">(<?= (int) $item['rating_count'] ?>)</span>
+                            <div>
+                                <?= render_stars((float) $item['rating_avg'], (int) $item['rating_count']) ?>
                             </div>
                             <?php if ($isOut): ?>
                                 <span style="background: #fee2e2; color: #b91c1c; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">Out of Stock</span>
@@ -151,8 +150,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="action" value="move_to_cart">
                                 <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
-                                <button type="submit" class="btn btn-primary btn-sm" <?= $isOut ? 'disabled' : '' ?> style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
-                                    🛒 Move to Cart
+                                <button type="submit" class="btn btn-primary btn-sm" <?= $isOut ? 'disabled' : '' ?> style="font-size: 0.8rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                    <?= icon('shopping-cart', 'lucide-xs') ?> <span>Move to Cart</span>
                                 </button>
                             </form>
                         </div>

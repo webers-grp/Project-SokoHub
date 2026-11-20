@@ -137,7 +137,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="role-cards-grid">
             <!-- Buyer Card -->
             <div class="role-card-kili">
-                <div class="role-card-icon buyer-icon">🛍️</div>
+                <div class="role-card-icon buyer-icon"><?= icon('shopping-bag', 'lucide-lg') ?></div>
                 <h2>Buyer / Customer</h2>
                 <p>Browse verified local listings, compare prices, checkout securely, and track your deliveries in real time.</p>
                 <a href="<?= e(url('pages/auth/register_buyer.php')) ?>" class="role-cta-btn red">Register as Buyer</a>
@@ -145,7 +145,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Seller Card -->
             <div class="role-card-kili">
-                <div class="role-card-icon seller-icon">🏪</div>
+                <div class="role-card-icon seller-icon"><?= icon('store', 'lucide-lg') ?></div>
                 <h2>Seller / Vendor</h2>
                 <p>List products with stock tracking, manage customer orders, and analyze sales &amp; inventory reports.</p>
                 <a href="<?= e(url('pages/auth/register_seller.php')) ?>" class="role-cta-btn orange">Register as Seller</a>
@@ -153,7 +153,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Delivery Card -->
             <div class="role-card-kili">
-                <div class="role-card-icon rider-icon">🛵</div>
+                <div class="role-card-icon rider-icon"><?= icon('bike', 'lucide-lg') ?></div>
                 <h2>Delivery Personnel</h2>
                 <p>Claim local delivery requests across Kutus and Kerugoya, update transit status, and track fulfillment.</p>
                 <a href="<?= e(url('pages/auth/register_delivery.php')) ?>" class="role-cta-btn green">Join Delivery Team</a>

@@ -296,7 +296,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <?php if (empty($orders)): ?>
         <div class="card" style="text-align: center; padding: 3rem 1rem;">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📦</div>
+            <div style="margin-bottom: 0.5rem; color: #94a3b8; display: flex; justify-content: center;"><?= icon('package-search', 'lucide-xl') ?></div>
             <h3 style="font-size: 1.2rem; color: #0f172a; margin: 0 0 0.5rem;">No Orders Found</h3>
             <p class="muted" style="margin: 0 0 1.25rem;">You haven't placed any marketplace orders yet.</p>
             <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">Start Shopping</a>
@@ -315,11 +315,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 // Visual Stepper Milestone Determination
                 $steps = [
-                    'pending'          => ['label' => 'Order Placed', 'icon' => '📝'],
-                    'confirmed'        => ['label' => 'Confirmed',    'icon' => '✓'],
-                    'processing'       => ['label' => 'Packaging',    'icon' => '📦'],
-                    'out_for_delivery' => ['label' => 'Out for Delivery', 'icon' => '🛵'],
-                    'delivered'        => ['label' => 'Delivered',    'icon' => '🎉'],
+                    'pending'          => ['label' => 'Order Placed',     'icon' => 'file-text'],
+                    'confirmed'        => ['label' => 'Confirmed',        'icon' => 'check-circle-2'],
+                    'processing'       => ['label' => 'Packaging',        'icon' => 'package'],
+                    'out_for_delivery' => ['label' => 'Out for Delivery', 'icon' => 'truck'],
+                    'delivered'        => ['label' => 'Delivered',        'icon' => 'party-popper'],
                 ];
 
                 $stepKeys = array_keys($steps);
@@ -350,16 +350,16 @@ require_once __DIR__ . '/../../includes/header.php';
                             </div>
                             <div style="font-size: 0.8rem;">
                                 <?php if ($isPaid): ?>
-                                    <span style="color: #15803d; font-weight: 700;">✓ <?= $isCod ? 'Cash Collected' : 'Paid via M-Pesa' ?></span>
+                                    <span style="color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><?= icon('check', 'lucide-xs') ?> <?= $isCod ? 'Cash Collected' : 'Paid via M-Pesa' ?></span>
                                     <?php if (!empty($ord['mpesa_receipt'])): ?>
                                         <span style="font-family: monospace; color: #047857;">(<?= e($ord['mpesa_receipt']) ?>)</span>
                                     <?php endif; ?>
                                 <?php elseif ($isCodPending): ?>
-                                    <span style="color: #b45309; font-weight: 700;">⏳ Pending (Pay Cash on Delivery)</span>
+                                    <span style="color: #b45309; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><?= icon('clock', 'lucide-xs') ?> Pending (Pay Cash on Delivery)</span>
                                 <?php elseif ($isCancelled): ?>
-                                    <span style="color: #b91c1c; font-weight: 700;">✕ <?= ucfirst($st) ?></span>
+                                    <span style="color: #b91c1c; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><?= icon('x', 'lucide-xs') ?> <?= ucfirst($st) ?></span>
                                 <?php else: ?>
-                                    <span style="color: #ef4444; font-weight: 700;">✕ Unpaid</span>
+                                    <span style="color: #ef4444; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><?= icon('x', 'lucide-xs') ?> Unpaid</span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -388,7 +388,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     ?>
                                     <div style="display: flex; flex-direction: column; align-items: center; position: relative; z-index: 3; width: 80px; text-align: center;">
                                         <div style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; background: <?= $isPassed ? '#16a34a' : '#f8fafc' ?>; color: <?= $isPassed ? 'white' : '#94a3b8' ?>; border: 3px solid <?= $isCurrent ? '#86efac' : ($isPassed ? '#16a34a' : '#cbd5e1') ?>; box-shadow: <?= $isCurrent ? '0 0 0 4px rgba(22, 163, 74, 0.2)' : 'none' ?>;">
-                                            <?= $steps[$sKey]['icon'] ?>
+                                            <?= icon($steps[$sKey]['icon'], 'lucide-sm', $isPassed ? 'white' : 'currentColor') ?>
                                         </div>
                                         <span style="font-size: 0.75rem; margin-top: 0.5rem; font-weight: <?= $isCurrent ? '700' : '600' ?>; color: <?= $isCurrent ? '#0f172a' : ($isPassed ? '#15803d' : '#94a3b8') ?>;">
                                             <?= e($steps[$sKey]['label']) ?>
@@ -428,8 +428,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             </h4>
                             <?php if (!empty($ord['rider_name'])): ?>
                                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; font-size: 0.85rem;">
-                                    <div style="font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">
-                                        🛵 Rider: <?= e($ord['rider_name']) ?>
+                                    <div style="font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 6px;">
+                                        <?= icon('bike', 'lucide-xs') ?> Rider: <?= e($ord['rider_name']) ?>
                                     </div>
                                     <div style="color: #334155; margin-bottom: 0.25rem;">
                                         Phone: <a href="tel:<?= e($ord['rider_phone']) ?>" style="color: #16a34a; font-weight: 600; text-decoration: none;"><?= e($ord['rider_phone']) ?></a>
@@ -492,8 +492,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <!-- Request Refund (Delivered orders) -->
                             <?php if ($st === 'delivered' && empty($ord['refund_status']) && ($role === 'buyer' || $role === 'admin')): ?>
                                 <details style="position: relative;">
-                                    <summary class="btn btn-outline btn-sm" style="width: 100%; cursor: pointer;">
-                                        ↩️ Request Refund
+                                    <summary class="btn btn-outline btn-sm" style="width: 100%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <?= icon('corner-up-left', 'lucide-xs') ?> <span>Request Refund</span>
                                     </summary>
                                     <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-top: 0.5rem;">
                                         <form method="POST" action="">

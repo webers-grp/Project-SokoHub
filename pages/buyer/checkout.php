@@ -475,8 +475,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 <!-- Saved Addresses Pre-selector -->
                 <?php if (!empty($savedAddresses)): ?>
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
-                        <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #0f172a; margin-bottom: 0.4rem;">
-                            📍 Use a Saved Delivery Address:
+                        <label style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem; color: #0f172a; margin-bottom: 0.4rem;">
+                            <?= icon('map-pin', 'lucide-xs') ?> <span>Use a Saved Delivery Address:</span>
                         </label>
                         <select id="saved_address_selector" class="form-control" onchange="applySavedAddress(this)" style="font-size: 0.85rem;">
                             <option value="">-- Choose from your saved addresses --</option>
@@ -568,8 +568,8 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <!-- Promotional Coupon Box -->
                 <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
-                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
-                        🏷️ Have a Promo Coupon?
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+                        <?= icon('tag', 'lucide-xs') ?> <span>Have a Promo Coupon?</span>
                     </label>
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="text" id="coupon_input" placeholder="e.g. WELCOME10, SOKO50" value="<?= e($old['coupon_code']) ?>" class="form-control" style="text-transform: uppercase; font-family: monospace; font-size: 0.85rem;">

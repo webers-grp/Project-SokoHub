@@ -186,7 +186,10 @@ require_once __DIR__ . '/../../includes/header.php';
     color: #b91c1c;
 }
 .social-proof {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     margin-top: 1.5rem;
     font-size: 0.82rem;
     color: #999;
@@ -200,6 +203,9 @@ require_once __DIR__ . '/../../includes/header.php';
     padding: 1rem;
 }
 .demo-section .demo-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: 0.78rem;
     font-weight: 700;
     color: #E8192C;
@@ -242,10 +248,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <h2>Welcome Back to SokoHub</h2>
             <p>Your trusted local marketplace for fresh produce, gas refills, electronics, and more across Kirinyaga.</p>
             <div class="trust-badges">
-                <div class="trust-badge">✓ Secure M-Pesa Payments</div>
-                <div class="trust-badge">✓ Local Kirinyaga Vendors</div>
-                <div class="trust-badge">✓ Fast Doorstep Delivery</div>
-                <div class="trust-badge">🛡️ 10,000+ Buyers Trust SokoHub</div>
+                <div class="trust-badge"><?= icon('shield-check', 'lucide-xs') ?> <span>Secure M-Pesa Payments</span></div>
+                <div class="trust-badge"><?= icon('map-pin', 'lucide-xs') ?> <span>Local Kirinyaga Vendors</span></div>
+                <div class="trust-badge"><?= icon('truck', 'lucide-xs') ?> <span>Fast Doorstep Delivery</span></div>
+                <div class="trust-badge"><?= icon('users', 'lucide-xs') ?> <span>10,000+ Buyers Trust SokoHub</span></div>
             </div>
         </div>
 
@@ -288,7 +294,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </form>
 
             <div class="social-proof">
-                🛒 Join <strong>10,000+</strong> buyers already shopping on SokoHub
+                <?= icon('shopping-bag', 'lucide-xs') ?> <span>Join <strong>10,000+</strong> buyers already shopping on SokoHub</span>
             </div>
 
             <div class="auth-links">
@@ -297,7 +303,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Demo Accounts -->
             <div class="demo-section">
-                <div class="demo-title">🔑 Quick Demo Accounts (Password: SokoHub@2026)</div>
+                <div class="demo-title"><?= icon('key-round', 'lucide-xs') ?> <span>Quick Demo Accounts (Password: SokoHub@2026)</span></div>
                 <div class="demo-btns-row">
                     <button type="button" class="demo-btn" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">Buyer</button>
                     <button type="button" class="demo-btn" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">Seller</button>

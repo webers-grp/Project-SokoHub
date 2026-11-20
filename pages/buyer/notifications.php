@@ -51,7 +51,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <span style="color: #0f172a; font-weight: 600;">Notifications</span>
             </nav>
             <h1 style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                🔔 Notification Center
+                <?= icon('bell', 'lucide-sm') ?> <span>Notification Center</span>
                 <?php if ($unreadCount > 0): ?>
                     <span style="background: #ef4444; color: white; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 9999px;">
                         <?= $unreadCount ?> new
@@ -67,8 +67,8 @@ require_once __DIR__ . '/../../includes/header.php';
             <form method="POST" action="" style="margin: 0;">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="mark_all_read">
-                <button type="submit" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                    ✓ Mark All as Read
+                <button type="submit" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 6px;">
+                    <?= icon('check-check', 'lucide-xs') ?> <span>Mark All as Read</span>
                 </button>
             </form>
         <?php endif; ?>
@@ -77,7 +77,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Notification List -->
     <?php if (empty($notifications)): ?>
         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 3rem 1rem; text-align: center; color: #64748b;">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📭</div>
+            <div style="margin-bottom: 0.5rem; color: #94a3b8; display: flex; justify-content: center;"><?= icon('bell-off', 'lucide-xl') ?></div>
             <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.25rem;">No Notifications Yet</h3>
             <p style="font-size: 0.85rem; margin: 0;">You're completely up to date! When sellers add items or your orders update, you'll see them here.</p>
         </div>
@@ -86,38 +86,38 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php foreach ($notifications as $n): ?>
                 <?php
                 $isRead = !empty($n['is_read']);
-                $icon = '📢';
+                $icon = 'bell';
                 $badgeBg = '#f1f5f9';
                 $badgeFg = '#475569';
 
                 switch ($n['type']) {
                     case 'new_seller':
-                        $icon = '🏪';
+                        $icon = 'store';
                         $badgeBg = '#e0f2fe';
                         $badgeFg = '#0369a1';
                         break;
                     case 'new_stock':
-                        $icon = '✨';
+                        $icon = 'sparkles';
                         $badgeBg = '#dcfce7';
                         $badgeFg = '#15803d';
                         break;
                     case 'restock':
-                        $icon = '📦';
+                        $icon = 'package';
                         $badgeBg = '#fef3c7';
                         $badgeFg = '#b45309';
                         break;
                     case 'order':
-                        $icon = '🛍️';
+                        $icon = 'shopping-bag';
                         $badgeBg = '#ede9fe';
                         $badgeFg = '#6d28d9';
                         break;
                     default:
-                        $icon = 'ℹ️';
+                        $icon = 'info';
                 }
                 ?>
                 <div style="background: <?= $isRead ? '#ffffff' : '#f8fafc' ?>; border: 1px solid <?= $isRead ? '#e2e8f0' : '#cbd5e1' ?>; border-left: 5px solid <?= $isRead ? '#94a3b8' : '#16a34a' ?>; border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between;">
                     <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                        <span style="font-size: 1.5rem; line-height: 1;"><?= $icon ?></span>
+                        <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: <?= $badgeBg ?>; color: <?= $badgeFg ?>; flex-shrink: 0;"><?= icon($icon, 'lucide-sm') ?></span>
                         <div>
                             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
                                 <span style="background: <?= $badgeBg ?>; color: <?= $badgeFg ?>; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 9999px; text-transform: uppercase;">

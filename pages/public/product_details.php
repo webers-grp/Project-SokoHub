@@ -360,7 +360,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <div class="container detail-wrap">
     <!-- Breadcrumb -->
     <nav class="kili-breadcrumb">
-        <a href="<?= e(url('index.php')) ?>">🏠 Home</a>
+        <a href="<?= e(url('index.php')) ?>" style="display:inline-flex; align-items:center; gap:0.25rem;"><?= icon('home', 'lucide-xs') ?> <span>Home</span></a>
         <span class="bc-sep">/</span>
         <a href="<?= e(url('pages/public/products.php')) ?>">Products</a>
         <span class="bc-sep">/</span>
@@ -383,8 +383,8 @@ require_once __DIR__ . '/../../includes/header.php';
             <form method="POST" action="" style="position:absolute; top:0.75rem; right:0.75rem; margin:0;">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="toggle_wishlist">
-                <button type="submit" style="background:rgba(255,255,255,0.9); border:none; border-radius:50%; width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.2); font-size:1.1rem;" title="<?= $inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' ?>">
-                    <?= $inWishlist ? '❤️' : '🤍' ?>
+                <button type="submit" style="background:rgba(255,255,255,0.92); border:1px solid #e2e8f0; border-radius:50%; width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.15); color:<?= $inWishlist ? '#e11d48' : '#94a3b8' ?>;" title="<?= $inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' ?>" aria-label="<?= $inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' ?>">
+                    <?= icon('heart', 'lucide-sm ' . ($inWishlist ? 'icon-rose' : '')) ?>
                 </button>
             </form>
         </div>
@@ -413,9 +413,9 @@ require_once __DIR__ . '/../../includes/header.php';
             <!-- Rating row -->
             <div class="detail-rating-row">
                 <span class="detail-stars">
-                    <?= str_repeat('★', min(5, (int) round((float) $product['rating_avg']))) ?><?= str_repeat('☆', max(0, 5 - (int) round((float) $product['rating_avg']))) ?>
+                    <?= render_stars((float) $product['rating_avg']) ?>
                 </span>
-                <span style="font-weight:700; color:#333;"><?= number_format((float) $product['rating_avg'], 1) ?></span>
+                <span style="font-weight:700; color:#333; margin-left:0.35rem;"><?= number_format((float) $product['rating_avg'], 1) ?></span>
                 <span class="detail-rating-count">(<?= (int) $product['rating_count'] ?> review<?= (int) $product['rating_count'] === 1 ? '' : 's' ?>)</span>
                 <a href="#reviews" class="detail-rating-link">Read reviews</a>
             </div>
@@ -430,10 +430,10 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <!-- Seller info -->
-            <div class="detail-seller-box">
-                🏪 Sold by <strong><?= e($product['business_name'] ?: $product['owner_name']) ?></strong>
-                &bull; 📍 <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?><br>
-                🚴 Dispatch: Within 30–60 min for local Kirinyaga orders
+            <div class="detail-seller-box" style="line-height:1.6;">
+                <span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('store', 'lucide-xs') ?> Sold by <strong><?= e($product['business_name'] ?: $product['owner_name']) ?></strong></span>
+                &bull; <span style="display:inline-flex; align-items:center; gap:0.2rem;"><?= icon('map-pin', 'lucide-xs') ?> <?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?></span><br>
+                <span style="display:inline-flex; align-items:center; gap:0.3rem; color:#475569;"><?= icon('truck', 'lucide-xs') ?> Dispatch: Within 30&ndash;60 min for local Kirinyaga orders</span>
             </div>
 
             <!-- Add to Cart / Out of Stock -->
@@ -446,7 +446,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <label class="qty-label" for="quantity">Qty:</label>
                         <input type="number" id="quantity" name="quantity" class="qty-input" value="1" min="1" max="<?= $stockQty ?>" required>
                     </div>
-                    <button type="submit" class="btn-add-cart">🛒 Add to Cart</button>
+                    <button type="submit" class="btn-add-cart" style="display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;"><?= icon('shopping-cart', 'lucide-sm') ?> <span>Add to Cart</span></button>
                 </form>
             <?php else: ?>
                 <div style="background:#FFEBEE; border:1px solid #FFCDD2; color:#C62828; border-radius:var(--radius-sm); padding:0.75rem 1rem; font-size:0.9rem; font-weight:600; text-align:center;">
@@ -458,8 +458,9 @@ require_once __DIR__ . '/../../includes/header.php';
             <form method="POST" action="">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="toggle_wishlist">
-                <button type="submit" class="btn-wishlist-outline">
-                    <?= $inWishlist ? '❤️ Remove from Wishlist' : '🤍 Save to Wishlist' ?>
+                <button type="submit" class="btn-wishlist-outline" style="display:inline-flex; align-items:center; justify-content:center; gap:0.4rem;">
+                    <?= icon('heart', 'lucide-xs ' . ($inWishlist ? 'icon-rose' : '')) ?>
+                    <span><?= $inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' ?></span>
                 </button>
             </form>
         </div>
@@ -468,9 +469,9 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- ══ TABS: Description | Reviews | Seller Info ══ -->
     <div class="detail-tabs-wrap">
         <div class="tab-nav" role="tablist">
-            <button class="tab-btn active" onclick="showTab('desc', this)" role="tab">📋 Description</button>
-            <button class="tab-btn" onclick="showTab('reviews', this)" role="tab" id="reviews-tab-btn">⭐ Reviews (<?= (int) $product['rating_count'] ?>)</button>
-            <button class="tab-btn" onclick="showTab('seller', this)" role="tab">🏪 Seller Info</button>
+            <button class="tab-btn active" onclick="showTab('desc', this)" role="tab" style="display:inline-flex; align-items:center; gap:0.4rem;"><?= icon('file-text', 'lucide-xs') ?> <span>Description</span></button>
+            <button class="tab-btn" onclick="showTab('reviews', this)" role="tab" id="reviews-tab-btn" style="display:inline-flex; align-items:center; gap:0.4rem;"><?= icon('star', 'lucide-xs') ?> <span>Reviews (<?= (int) $product['rating_count'] ?>)</span></button>
+            <button class="tab-btn" onclick="showTab('seller', this)" role="tab" style="display:inline-flex; align-items:center; gap:0.4rem;"><?= icon('store', 'lucide-xs') ?> <span>Seller Info</span></button>
         </div>
 
         <!-- Description -->
@@ -485,7 +486,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="rating-summary">
                     <div class="rating-big"><?= number_format((float) $product['rating_avg'], 1) ?></div>
                     <div class="rating-stars-big">
-                        <?= str_repeat('★', min(5, (int) round((float) $product['rating_avg']))) ?><?= str_repeat('☆', max(0, 5 - (int) round((float) $product['rating_avg']))) ?>
+                        <?= render_stars((float) $product['rating_avg']) ?>
                     </div>
                     <div class="rating-based">Based on <?= $totalReviews ?> review<?= $totalReviews !== 1 ? 's' : '' ?></div>
 
@@ -495,7 +496,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             $pct = $totalReviews > 0 ? round(($cnt / $totalReviews) * 100) : 0;
                         ?>
                         <div class="rb-row">
-                            <span class="rb-label"><?= $star ?>★</span>
+                            <span class="rb-label" style="display:inline-flex; align-items:center; gap:2px;"><?= $star ?> <?= icon('star', 'lucide-xs star-filled') ?></span>
                             <div class="rb-bar-wrap">
                                 <div class="rb-bar-fill" style="width:<?= $pct ?>%;"></div>
                             </div>
@@ -509,6 +510,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div>
                     <?php if (empty($reviews)): ?>
                         <div style="text-align:center; color:var(--text-muted); padding:2rem 0;">
+                            <div style="margin-bottom:0.5rem; color:#94a3b8;"><?= icon('message-square', 'lucide-lg') ?></div>
                             <p style="font-weight:600; margin-bottom:0.25rem;">No reviews yet.</p>
                             <p style="font-size:0.85rem;">Be the first verified customer to leave feedback!</p>
                         </div>
@@ -519,10 +521,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <div class="review-header">
                                     <div>
                                         <span class="reviewer-name"><?= e($rev['buyer_name']) ?></span>
-                                        <span class="verified-badge">✓ Verified Purchase</span>
+                                        <span class="verified-badge" style="display:inline-flex; align-items:center; gap:0.25rem;"><?= icon('shield-check', 'lucide-xs') ?> <span>Verified Purchase</span></span>
                                     </div>
                                     <div class="review-stars">
-                                        <?= str_repeat('★', (int) $rev['rating']) ?><?= str_repeat('☆', 5 - (int) $rev['rating']) ?>
+                                        <?= render_stars((float) $rev['rating']) ?>
                                     </div>
                                 </div>
                                 <?php if (!empty($rev['review_title'])): ?>
@@ -537,7 +539,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                     <!-- Write a Review -->
                     <div class="write-review-card">
-                        <h3 class="write-review-title">✍️ Leave a Verified Review</h3>
+                        <h3 class="write-review-title" style="display:flex; align-items:center; gap:0.4rem;"><?= icon('edit-3', 'lucide-sm') ?> <span>Leave a Verified Review</span></h3>
                         <?php if ($reviewEligibility['can_review']): ?>
                             <form method="POST" action="">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
@@ -546,11 +548,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <div style="margin-bottom:0.75rem;">
                                     <label style="display:block; font-weight:600; font-size:0.82rem; color:var(--text-muted); margin-bottom:0.25rem;">Rating (1–5 Stars)</label>
                                     <select name="rating" class="form-control" style="width:100%;" required>
-                                        <option value="5">★★★★★ — 5 Stars (Excellent)</option>
-                                        <option value="4">★★★★☆ — 4 Stars (Very Good)</option>
-                                        <option value="3">★★★☆☆ — 3 Stars (Average)</option>
-                                        <option value="2">★★☆☆☆ — 2 Stars (Below Average)</option>
-                                        <option value="1">★☆☆☆☆ — 1 Star (Poor)</option>
+                                        <option value="5">5 Stars &mdash; Excellent</option>
+                                        <option value="4">4 Stars &mdash; Very Good</option>
+                                        <option value="3">3 Stars &mdash; Average</option>
+                                        <option value="2">2 Stars &mdash; Below Average</option>
+                                        <option value="1">1 Star &mdash; Poor</option>
                                     </select>
                                 </div>
 
@@ -564,7 +566,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <textarea name="review_text" rows="3" placeholder="Tell other shoppers about your experience..." class="form-control" style="width:100%;" required minlength="5"></textarea>
                                 </div>
 
-                                <button type="submit" class="btn-add-cart" style="font-size:0.95rem; padding:0.7rem;">Publish Verified Review</button>
+                                <button type="submit" class="btn-add-cart" style="font-size:0.95rem; padding:0.7rem; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem;"><?= icon('check', 'lucide-sm') ?> <span>Publish Verified Review</span></button>
                             </form>
                         <?php else: ?>
                             <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:1rem; font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
@@ -572,7 +574,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?= e($reviewEligibility['reason']) ?>
                                 <?php if (!is_logged_in()): ?>
                                     <div style="margin-top:0.5rem;">
-                                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-outline btn-sm">Log in to Review</a>
+                                        <a href="<?= e(url('pages/auth/login.php')) ?>" class="btn btn-outline btn-sm" style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('log-in', 'lucide-xs') ?> <span>Log in to Review</span></a>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -585,23 +587,23 @@ require_once __DIR__ . '/../../includes/header.php';
         <!-- Seller Info -->
         <div id="tab-seller" class="tab-panel">
             <div style="max-width:520px;">
-                <h3 style="font-size:1rem; font-weight:800; color:var(--text-main); margin:0 0 0.75rem;">🏪 <?= e($product['business_name'] ?: $product['owner_name']) ?></h3>
+                <h3 style="font-size:1rem; font-weight:800; color:var(--text-main); margin:0 0 0.75rem; display:flex; align-items:center; gap:0.4rem;"><?= icon('store', 'lucide-sm') ?> <span><?= e($product['business_name'] ?: $product['owner_name']) ?></span></h3>
                 <table style="border-collapse:collapse; width:100%; font-size:0.85rem;">
                     <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); white-space:nowrap;">👤 Seller Name</td>
+                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); white-space:nowrap; display:flex; align-items:center; gap:0.3rem;"><?= icon('user', 'lucide-xs') ?> Seller Name</td>
                         <td style="padding:0.4rem 0; font-weight:600; color:var(--text-main);"><?= e($product['owner_name']) ?></td>
                     </tr>
                     <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);">📍 Location</td>
+                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('map-pin', 'lucide-xs') ?> Location</span></td>
                         <td style="padding:0.4rem 0; color:var(--text-main);"><?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?></td>
                     </tr>
                     <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);">🚴 Dispatch</td>
-                        <td style="padding:0.4rem 0; color:var(--text-main);">30–60 min for local Kirinyaga orders</td>
+                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('truck', 'lucide-xs') ?> Dispatch</span></td>
+                        <td style="padding:0.4rem 0; color:var(--text-main);">30&ndash;60 min for local Kirinyaga orders</td>
                     </tr>
                     <?php if (!empty($product['seller_bio'])): ?>
                     <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); vertical-align:top;">📝 About</td>
+                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); vertical-align:top;"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('info', 'lucide-xs') ?> About</span></td>
                         <td style="padding:0.4rem 0; color:var(--text-main); line-height:1.5;"><?= e($product['seller_bio']) ?></td>
                     </tr>
                     <?php endif; ?>

@@ -223,14 +223,14 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Tab Navigation -->
     <div style="display: flex; gap: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 2rem; overflow-x: auto;">
-        <a href="?tab=general" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'general' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'general' ? '#16a34a' : '#64748b' ?>;">
-            👤 Personal Details
+        <a href="?tab=general" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'general' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'general' ? '#16a34a' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 6px;">
+            <?= icon('user', 'lucide-xs') ?> <span>Personal Details</span>
         </a>
-        <a href="?tab=addresses" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'addresses' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'addresses' ? '#16a34a' : '#64748b' ?>;">
-            📍 Saved Addresses (<?= count($savedAddresses) ?>)
+        <a href="?tab=addresses" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'addresses' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'addresses' ? '#16a34a' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 6px;">
+            <?= icon('map-pin', 'lucide-xs') ?> <span>Saved Addresses (<?= count($savedAddresses) ?>)</span>
         </a>
-        <a href="?tab=security" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'security' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'security' ? '#16a34a' : '#64748b' ?>;">
-            🔒 Security &amp; Password
+        <a href="?tab=security" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'security' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'security' ? '#16a34a' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 6px;">
+            <?= icon('lock', 'lucide-xs') ?> <span>Security &amp; Password</span>
         </a>
     </div>
 
@@ -346,8 +346,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="delete_address">
                                             <input type="hidden" name="address_id" value="<?= (int) $addr['id'] ?>">
-                                            <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem;" title="Delete">
-                                                🗑️
+                                            <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;" title="Delete address" aria-label="Delete address">
+                                                <?= icon('trash-2', 'lucide-xs', '#ef4444') ?>
                                             </button>
                                         </form>
                                     </div>
@@ -370,8 +370,8 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Add Address Form -->
             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: fit-content;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 1.25rem;">
-                    ➕ Add New Address
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 6px;">
+                    <?= icon('plus-circle', 'lucide-sm') ?> <span>Add New Address</span>
                 </h3>
                 <form method="POST" action="">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
