@@ -71,6 +71,32 @@ function load_env_file(?string $path = null): void
 
 load_env_file();
 
+// Application Environment & Timezone
+date_default_timezone_set('Africa/Nairobi');
+
+$appEnv = strtolower(trim((string) (getenv('APP_ENV') ?: 'development')));
+if (!defined('APP_ENV')) {
+    define('APP_ENV', $appEnv);
+    define('IS_PRODUCTION', $appEnv === 'production');
+}
+
+// Error handling based on environment
+if (IS_PRODUCTION) {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    ini_set('log_errors', '1');
+    $logDir = APP_ROOT . '/logs';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0750, true);
+    }
+    ini_set('error_log', $logDir . '/app_error.log');
+} else {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+}
+
 /**
  * Automatically detect base URL prefix whether hosted at domain root
  * (InfinityFree, PHP built-in server, Render) or in a subfolder (XAMPP htdocs/Project-SokoHub).

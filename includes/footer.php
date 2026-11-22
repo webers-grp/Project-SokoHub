@@ -79,6 +79,29 @@ $footerCartCount = cart_count();
     </a>
 </nav>
 
+<?php if (empty($_COOKIE['sokohub_cookie_consent'])): ?>
+<div id="cookieConsentBanner" style="position: fixed; bottom: 65px; left: 1rem; right: 1rem; max-width: 650px; margin: 0 auto; background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 10px; padding: 1rem 1.25rem; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+    <div style="font-size: 0.85rem; line-height: 1.4; flex: 1; min-width: 250px; display: flex; align-items: center; gap: 8px;">
+        <?= icon('shield-check', 'lucide-sm', 'emerald') ?>
+        <span>SokoHub uses essential session cookies for secure payments and shopping cart operation in compliance with the Kenya Data Protection Act.</span>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <button type="button" id="acceptCookieConsent" class="btn btn-primary btn-sm" style="font-size: 0.8rem; padding: 0.4rem 0.9rem; cursor: pointer;">
+            Accept &amp; Continue
+        </button>
+    </div>
+</div>
+<script>
+document.getElementById('acceptCookieConsent')?.addEventListener('click', function() {
+    var d = new Date();
+    d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+    document.cookie = "sokohub_cookie_consent=1; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+    var banner = document.getElementById('cookieConsentBanner');
+    if (banner) banner.style.display = 'none';
+});
+</script>
+<?php endif; ?>
+
 <script src="<?= e(url('assets/js/lucide.min.js?v=' . filemtime(__DIR__ . '/../assets/js/lucide.min.js'))) ?>"></script>
 <script>
     function renderAppIcons() {

@@ -8,6 +8,9 @@
  * Tier 3: Category Nav Bar (Kilimall Orange strip with All Categories drawer, flash deals, and quick links)
  */
 
+require_once __DIR__ . '/security.php';
+Security::sendHeaders();
+
 if (!isset($pageTitle)) {
     $pageTitle = 'SokoHub | Kenya\'s Online Shopping Marketplace';
 }

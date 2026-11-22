@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/security.php';
 
 /**
  * Start a hardened PHP session once per request and track visitor cookies.
@@ -14,6 +15,7 @@ require_once __DIR__ . '/functions.php';
 function init_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
+        check_session_lifetime();
         return;
     }
 
@@ -28,6 +30,37 @@ function init_session(): void
     ]);
 
     session_start();
+    check_session_lifetime();
+}
+
+/**
+ * Enforce session idle timeout (30 mins) and absolute timeout (12 hours).
+ */
+function check_session_lifetime(): void
+{
+    if (empty($_SESSION['user']['id'])) {
+        return;
+    }
+
+    $now = time();
+    $idleLimit = (int) (getenv('SESSION_IDLE_TIMEOUT') ?: 1800); // 30 mins
+    $maxLimit  = (int) (getenv('SESSION_MAX_LIFETIME') ?: 43200); // 12 hours
+
+    if (isset($_SESSION['last_activity']) && ($now - (int) $_SESSION['last_activity']) > $idleLimit) {
+        logout_user();
+        init_session();
+        set_flash('warning', 'Your session expired due to inactivity. Please sign in again.');
+        redirect('pages/auth/login.php');
+    }
+
+    if (isset($_SESSION['created_at']) && ($now - (int) $_SESSION['created_at']) > $maxLimit) {
+        logout_user();
+        init_session();
+        set_flash('warning', 'Your session reached its maximum duration. Please sign in again.');
+        redirect('pages/auth/login.php');
+    }
+
+    $_SESSION['last_activity'] = $now;
 }
 
 /**
@@ -113,6 +146,19 @@ function is_logged_in(): bool
  */
 function login_user(PDO $pdo, string $email, string $password, bool $rememberMe = false): array
 {
+    $clientIp = Security::getClientIp();
+
+    // Check brute-force lockout
+    $lock = RateLimiter::isLoginLocked($pdo, $email, $clientIp);
+    if ($lock['locked']) {
+        $mins = (int) ceil($lock['retry_after'] / 60);
+        return [
+            'ok'    => false,
+            'error' => "Account access is temporarily locked due to multiple failed login attempts. Please retry in {$mins} minute(s).",
+            'user'  => null,
+        ];
+    }
+
     $stmt = $pdo->prepare(
         'SELECT id, full_name, email, phone, password_hash, role, status
          FROM users
@@ -123,17 +169,23 @@ function login_user(PDO $pdo, string $email, string $password, bool $rememberMe 
     $user = $stmt->fetch();
 
     if (!$user || !password_verify($password, $user['password_hash'])) {
+        RateLimiter::recordLoginAttempt($pdo, $email, $clientIp, false);
         return ['ok' => false, 'error' => 'Invalid email address or password.', 'user' => null];
     }
 
     if ($user['status'] !== 'active') {
+        RateLimiter::recordLoginAttempt($pdo, $email, $clientIp, false);
         return ['ok' => false, 'error' => 'Your account is currently suspended. Contact support.', 'user' => null];
     }
+
+    // Successful authentication
+    RateLimiter::recordLoginAttempt($pdo, $email, $clientIp, true);
 
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
     }
 
+    $now = time();
     $_SESSION['user'] = [
         'id'        => (int) $user['id'],
         'full_name' => $user['full_name'],
@@ -141,6 +193,8 @@ function login_user(PDO $pdo, string $email, string $password, bool $rememberMe 
         'phone'     => $user['phone'],
         'role'      => $user['role'],
     ];
+    $_SESSION['last_activity'] = $now;
+    $_SESSION['created_at']    = $now;
 
     set_remember_email_cookie($rememberMe ? $user['email'] : null);
 

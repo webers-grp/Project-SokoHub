@@ -1,8 +1,8 @@
-# SokoHub Apache / InfinityFree / XAMPP Security Rules
-Options -Indexes
+# SokoHub Production & Development Web Server Security Rules
+Options -Indexes -MultiViews
 
-# Protect sensitive config, database SQL scripts, and test scripts from direct HTTP access
-<FilesMatch "\.(sql|md|log|example)$">
+# 1. Deny access to hidden dotfiles (.env, .git, .gitignore) and sensitive system files
+<FilesMatch "^\.|\.(env|sql|md|log|example|bak|backup|ini|sh|py|git|yml|yaml|json|lock)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -12,7 +12,17 @@ Options -Indexes
     </IfModule>
 </FilesMatch>
 
+# 2. Block direct web browsing of protected system directories
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(config|database|includes|tests|docs)/ - [F,L]
+    RewriteRule ^(config|database|includes|tests|docs|scripts|logs|tools)/ - [F,L]
+</IfModule>
+
+# 3. HTTP Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header unset X-Powered-By
 </IfModule>

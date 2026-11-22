@@ -84,6 +84,10 @@ function get_mpesa_config(): array
     }
 
     $allowSimulation = (getenv('MPESA_ALLOW_SIMULATION') === false) ? true : filter_var(getenv('MPESA_ALLOW_SIMULATION'), FILTER_VALIDATE_BOOLEAN);
+    // Hardening: In production/live environments, simulation tools are strictly disabled
+    if ($isLive || $env === 'production') {
+        $allowSimulation = false;
+    }
 
     $config = [
         'env'                     => $env,

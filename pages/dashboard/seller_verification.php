@@ -9,6 +9,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
 require_once __DIR__ . '/../../includes/audit.php';
+require_once __DIR__ . '/../../includes/security.php';
 
 init_session();
 $adminUser = require_role(['admin']);
@@ -181,7 +182,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <div>
                                         <span class="muted">National ID:</span> 
                                         <?php if (!empty($acc['national_id_no'])): ?>
-                                            <strong style="color: #0f172a; font-family: monospace; font-size: 0.95rem;"><?= e($acc['national_id_no']) ?></strong>
+                                            <strong style="color: #0f172a; font-family: monospace; font-size: 0.95rem;"><?= e(Security::maskNationalId($acc['national_id_no'])) ?></strong>
                                         <?php else: ?>
                                             <span style="color: #ef4444; font-weight: 600;">Not Provided</span>
                                         <?php endif; ?>
@@ -189,7 +190,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <div style="margin-top: 0.25rem;">
                                         <span class="muted">M-Pesa Line:</span> 
                                         <?php if (!empty($acc['mpesa_phone'])): ?>
-                                            <strong style="color: #10b981; font-family: monospace; font-size: 0.95rem;"><?= e($acc['mpesa_phone']) ?></strong>
+                                            <strong style="color: #10b981; font-family: monospace; font-size: 0.95rem;"><?= e(Security::maskPhone($acc['mpesa_phone'])) ?></strong>
                                         <?php else: ?>
                                             <span style="color: #ef4444; font-weight: 600;">Not Provided</span>
                                         <?php endif; ?>
@@ -220,13 +221,14 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <!-- Uploaded Files Column with Detail Cards -->
                                 <td style="padding: 0.75rem;">
                                     <?php if (empty($docs)): ?>
-                                        <span style="color: #ef4444; font-size: 0.85rem; font-weight: 600;">⚠️ Zero documents uploaded</span>
+                                        <span style="color: #ef4444; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><?= icon('alert-circle', 'lucide-xs') ?> <span>Zero documents uploaded</span></span>
                                     <?php else: ?>
                                         <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                                             <?php foreach ($docs as $d): 
                                                 $sizeKB = $d['file_size'] ? round($d['file_size'] / 1024, 1) . ' KB' : '';
                                                 $isPdf = strtolower(pathinfo($d['file_path'], PATHINFO_EXTENSION)) === 'pdf';
                                                 $typeLabel = ucwords(str_replace('_', ' ', $d['doc_type']));
+                                                $viewUrl = url('pages/api/kyc_document.php?id=' . (int) $d['id']);
                                             ?>
                                                 <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.35rem 0.5rem; background: #f8fafc; font-size: 0.8rem;">
                                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
@@ -239,7 +241,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                                         File: <?= e($d['file_name'] ?: basename($d['file_path'])) ?> (<?= e($sizeKB) ?>)
                                                     </div>
                                                     <div style="margin-top: 0.25rem;">
-                                                        <a href="<?= e(url($d['file_path'])) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                                        <a href="<?= e($viewUrl) ?>" target="_blank" class="btn btn-outline btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                                                             <?= icon('eye', 'lucide-xs', 'blue') ?>
                                                             <span>Inspect <?= $isPdf ? 'PDF' : 'Photo' ?></span>
                                                         </a>

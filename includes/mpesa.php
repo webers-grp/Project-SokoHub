@@ -443,6 +443,31 @@ function mpesa_process_callback(PDO $pdo, string $rawJson): array
             }
         }
 
+        // Amount verification: confirm callback amount matches expected pending payment amount
+        $expectedAmount = (float) $payment['amount'];
+        if ($amount > 0 && abs($amount - $expectedAmount) > 0.01) {
+            $updFail = $pdo->prepare(
+                "UPDATE payments SET status = 'failed', result_code = 9999, result_desc = :rd, raw_callback = :raw WHERE id = :id"
+            );
+            $updFail->execute([
+                ':rd'  => "Amount mismatch: expected KES {$expectedAmount}, received KES {$amount}",
+                ':raw' => $rawJson,
+                ':id'  => (int) $payment['id'],
+            ]);
+            Audit::record('payment.amount_mismatch', 'payment', (int) $payment['id'], [
+                'expected' => $expectedAmount,
+                'received' => $amount,
+                'receipt'  => $receipt,
+                'checkout_id' => $checkoutRequestId,
+            ], null, 'system');
+
+            return [
+                'ok'          => false,
+                'result_code' => 1,
+                'message'     => "Payment amount mismatch: expected {$expectedAmount}, received {$amount}",
+            ];
+        }
+
         $manageTx = !$pdo->inTransaction();
         if ($manageTx) {
             $pdo->beginTransaction();
@@ -733,7 +758,9 @@ function mpesa_generate_settlement_ledger(PDO $pdo, int $orderId, bool $executeN
 
         // If seller profile has no account set, fallback to user phone
         if (empty($payoutAccount)) {
-            $userPhone = $pdo->query("SELECT phone FROM users WHERE id = {$sellerId}")->fetchColumn();
+            $uStmt = $pdo->prepare('SELECT phone FROM users WHERE id = :uid LIMIT 1');
+            $uStmt->execute([':uid' => $sellerId]);
+            $userPhone = $uStmt->fetchColumn();
             $payoutAccount = mpesa_normalize_phone((string) $userPhone);
             $payoutType = 'phone';
         }
@@ -821,7 +848,9 @@ function mpesa_generate_settlement_ledger(PDO $pdo, int $orderId, bool $executeN
         $fee = (float) $delivery['delivery_fee'];
 
         // Get rider phone
-        $riderPhone = $pdo->query("SELECT phone FROM users WHERE id = {$riderId}")->fetchColumn();
+        $rStmt = $pdo->prepare('SELECT phone FROM users WHERE id = :uid LIMIT 1');
+        $rStmt->execute([':uid' => $riderId]);
+        $riderPhone = $rStmt->fetchColumn();
         $riderMpesa = mpesa_normalize_phone((string) $riderPhone);
 
         $insDel = $pdo->prepare(

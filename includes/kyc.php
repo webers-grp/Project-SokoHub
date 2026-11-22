@@ -123,7 +123,7 @@ class Kyc
             return ['ok' => false, 'error' => 'No valid document file uploaded.'];
         }
 
-        $validTypes = ['national_id', 'business_permit', 'driving_license', 'other'];
+        $validTypes = ['national_id', 'business_permit', 'driving_license', 'kra_pin'];
         if (!in_array($docType, $validTypes, true)) {
             $docType = 'national_id';
         }
@@ -132,6 +132,20 @@ class Kyc
         $allowedExts = ['pdf', 'png', 'jpg', 'jpeg'];
         if (!in_array($ext, $allowedExts, true)) {
             return ['ok' => false, 'error' => 'Only PDF, JPG, and PNG files are accepted.'];
+        }
+
+        // Real MIME Type validation via finfo
+        $allowedMimes = [
+            'application/pdf' => 'pdf',
+            'image/jpeg'      => 'jpg',
+            'image/pjpeg'     => 'jpg',
+            'image/png'       => 'png',
+            'image/x-png'     => 'png',
+        ];
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        if (!isset($allowedMimes[$mime])) {
+            return ['ok' => false, 'error' => 'Security Error: Invalid document MIME type (' . htmlspecialchars($mime) . '). Only genuine PDF, JPG, and PNG files are accepted.'];
         }
 
         if ($file['size'] > 5 * 1024 * 1024) {
@@ -154,17 +168,15 @@ class Kyc
         try {
             $pdo = get_db_connection();
             $stmt = $pdo->prepare('
-                INSERT INTO kyc_documents (user_id, role, doc_type, file_name, file_path, file_size_kb, status, uploaded_at)
-                VALUES (:uid, :role, :type, :fname, :fpath, :fsize, "pending", NOW())
+                INSERT INTO kyc_documents (user_id, role, document_type, file_original_name, file_path, status, created_at)
+                VALUES (:uid, :role, :type, :fname, :fpath, "pending", NOW())
             ');
-            $sizeKb = (int) ceil($file['size'] / 1024);
             $stmt->execute([
                 ':uid'   => $userId,
                 ':role'  => $role,
                 ':type'  => $docType,
                 ':fname' => $file['name'],
                 ':fpath' => $relPath,
-                ':fsize' => $sizeKb,
             ]);
 
             $docId = (int) $pdo->lastInsertId();
@@ -193,7 +205,18 @@ class Kyc
     {
         try {
             $pdo = get_db_connection();
-            $stmt = $pdo->prepare('SELECT * FROM kyc_documents WHERE user_id = :uid ORDER BY uploaded_at DESC');
+            $stmt = $pdo->prepare('
+                SELECT 
+                    id, user_id, role, 
+                    document_type, document_type AS doc_type, 
+                    file_path, 
+                    file_original_name, file_original_name AS file_name, 
+                    status, rejection_reason, verified_by, verified_at, 
+                    created_at, created_at AS uploaded_at, updated_at 
+                FROM kyc_documents 
+                WHERE user_id = :uid 
+                ORDER BY created_at DESC
+            ');
             $stmt->execute([':uid' => $userId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
@@ -290,11 +313,14 @@ class Kyc
                     LEFT JOIN kyc_documents kd ON kd.user_id = sp.user_id
                     WHERE 1=1
                 ';
+                $sParams = [];
                 if ($statusFilter !== '' && $statusFilter !== null) {
-                    $sqlSellers .= ' AND sp.verification_status = ' . $pdo->quote($statusFilter);
+                    $sqlSellers .= ' AND sp.verification_status = :st';
+                    $sParams[':st'] = $statusFilter;
                 }
                 $sqlSellers .= ' GROUP BY sp.id, u.id';
-                $stmt = $pdo->query($sqlSellers);
+                $stmt = $pdo->prepare($sqlSellers);
+                $stmt->execute($sParams);
                 $results = array_merge($results, $stmt->fetchAll(PDO::FETCH_ASSOC));
             }
 
@@ -322,11 +348,14 @@ class Kyc
                     LEFT JOIN kyc_documents kd ON kd.user_id = dp.user_id
                     WHERE 1=1
                 ';
+                $rParams = [];
                 if ($statusFilter !== '' && $statusFilter !== null) {
-                    $sqlRiders .= ' AND dp.verification_status = ' . $pdo->quote($statusFilter);
+                    $sqlRiders .= ' AND dp.verification_status = :st';
+                    $rParams[':st'] = $statusFilter;
                 }
                 $sqlRiders .= ' GROUP BY dp.id, u.id';
-                $stmt = $pdo->query($sqlRiders);
+                $stmt = $pdo->prepare($sqlRiders);
+                $stmt->execute($rParams);
                 $results = array_merge($results, $stmt->fetchAll(PDO::FETCH_ASSOC));
             }
 
@@ -374,7 +403,7 @@ class Kyc
                 $docStatus = ($newStatus === 'approved') ? 'approved' : (($newStatus === 'rejected') ? 'rejected' : 'pending');
                 $pdo->prepare('
                     UPDATE kyc_documents
-                    SET status = :st, reviewed_by = :by, reviewed_at = NOW()
+                    SET status = :st, verified_by = :by, verified_at = NOW()
                     WHERE user_id = :uid AND status = "pending"
                 ')->execute([':st' => $docStatus, ':by' => $adminId, ':uid' => $targetUserId]);
 

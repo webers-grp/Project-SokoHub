@@ -219,7 +219,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':pid' => $vi['id'],
                     ]);
 
-                    $bal = (int) $pdo->query("SELECT stock_qty FROM products WHERE id = {$vi['id']}")->fetchColumn();
+                    $bStmt = $pdo->prepare('SELECT stock_qty FROM products WHERE id = :pid LIMIT 1');
+                    $bStmt->execute([':pid' => $vi['id']]);
+                    $bal = (int) $bStmt->fetchColumn();
                     $stockMoveStmt->execute([
                         ':pid' => $vi['id'],
                         ':oid' => $orderId,

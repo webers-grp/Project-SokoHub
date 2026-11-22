@@ -8,6 +8,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/audit.php';
+require_once __DIR__ . '/../../includes/security.php';
 
 init_session();
 $pdo = get_db_connection();
@@ -21,6 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+
+    $clientIp = Security::getClientIp();
+    $rate = RateLimiter::check('forgot_password', $clientIp, 5, 900);
+    if (!$rate['allowed']) {
+        $mins = (int) ceil($rate['retry_after'] / 60);
+        set_flash('error', "Too many password reset requests from this network. Please retry in {$mins} minute(s).");
+        redirect('pages/auth/forgot_password.php');
+    }
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         set_flash('error', 'Please provide a valid account email address.');
@@ -52,11 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => $email,
         ], (int) $targetUser['id'], 'user');
 
-        $resetLink = url('pages/auth/reset_password.php?token=' . $rawToken);
-        set_flash('success', 'A secure password reset link has been generated.');
-    } else {
-        // Anti-enumeration notice
-        set_flash('success', 'If an account exists with that email, a password reset link has been sent.');
+        $generatedLink = url('pages/auth/reset_password.php?token=' . $rawToken);
+        if (defined('APP_ENV') && APP_ENV === 'development') {
+            $resetLink = $generatedLink;
+        } else {
+            error_log("[SokoHub Security] Password reset generated for user ID {$targetUser['id']}");
+        }
+    }
+
+    // Uniform anti-enumeration message
+    set_flash('success', 'If an account exists with that email address, password reset instructions have been sent.');
     }
 }
 

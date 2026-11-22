@@ -12,9 +12,9 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/mpesa.php';
 
 $config = get_mpesa_config();
-if ($config['is_live'] || !$config['allow_simulation']) {
+if ($config['is_live'] || $config['env'] === 'production' || !$config['allow_simulation'] || (defined('APP_ENV') && APP_ENV === 'production')) {
     http_response_code(403);
-    echo json_encode(['ok' => false, 'message' => 'Simulation endpoint is disabled in production.']);
+    echo json_encode(['ok' => false, 'message' => 'Simulation endpoint is strictly disabled in production.']);
     exit;
 }
 

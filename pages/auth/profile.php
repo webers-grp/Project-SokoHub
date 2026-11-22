@@ -185,6 +185,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_flash('success', 'Password successfully updated.');
         redirect('pages/auth/profile.php?tab=security');
     }
+
+    // 6. KDPA Account Deletion / Anonymization
+    if ($action === 'delete_account') {
+        $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+        $stmt = $pdo->prepare('SELECT password_hash, email FROM users WHERE id = :id');
+        $stmt->execute([':id' => $userId]);
+        $uRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$uRow || !password_verify($confirmPassword, $uRow['password_hash'])) {
+            set_flash('error', 'Incorrect password. Account deletion aborted.');
+            redirect('pages/auth/profile.php?tab=privacy');
+        }
+
+        $emailHash = hash('sha256', strtolower($uRow['email']));
+
+        // Anonymize personal info in users table
+        $pdo->prepare("
+            UPDATE users
+            SET full_name = 'Deleted User',
+                email = CONCAT('deleted_', id, '@anonymized.sokohub'),
+                phone = '254700000000',
+                status = 'deleted',
+                updated_at = NOW()
+            WHERE id = :id
+        ")->execute([':id' => $userId]);
+
+        // Clear personal addresses and wishlists
+        $pdo->prepare('DELETE FROM user_addresses WHERE user_id = :id')->execute([':id' => $userId]);
+        $pdo->prepare('DELETE FROM wishlists WHERE user_id = :id')->execute([':id' => $userId]);
+
+        // Record deletion record in account_deletions
+        $pdo->prepare('
+            INSERT INTO account_deletions (user_id, email_hash, status, requested_at, processed_at, notes)
+            VALUES (:uid, :ehash, "processed", NOW(), NOW(), "KDPA Self-service account erasure completed")
+        ')->execute([':uid' => $userId, ':ehash' => $emailHash]);
+
+        Audit::record('kdpa.account_erasure', 'user', $userId, [
+            'status' => 'anonymized',
+        ], $userId, $user['role']);
+
+        logout_user();
+        init_session();
+        set_flash('success', 'Your account and personal identifiers have been successfully deleted and anonymized in compliance with the Kenya Data Protection Act.');
+        redirect('index.php');
+    }
 }
 
 // Fetch current user details
@@ -231,6 +276,9 @@ require_once __DIR__ . '/../../includes/header.php';
         </a>
         <a href="?tab=security" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'security' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'security' ? '#16a34a' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 6px;">
             <?= icon('lock', 'lucide-xs') ?> <span>Security &amp; Password</span>
+        </a>
+        <a href="?tab=privacy" style="padding: 0.75rem 1.25rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid <?= $activeTab === 'privacy' ? '#16a34a' : 'transparent' ?>; color: <?= $activeTab === 'privacy' ? '#16a34a' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 6px;">
+            <?= icon('shield-alert', 'lucide-xs') ?> <span>Privacy &amp; Data Rights (KDPA)</span>
         </a>
     </div>
 
@@ -473,6 +521,52 @@ require_once __DIR__ . '/../../includes/header.php';
                     Update Password
                 </button>
             </form>
+        </div>
+    <?php elseif ($activeTab === 'privacy'): ?>
+        <!-- TAB 4: PRIVACY & DATA RIGHTS (KDPA) -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Data Portability -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; display: flex; align-items: center; gap: 8px;">
+                            <?= icon('download', 'lucide-sm') ?> <span>Download Your Personal Data (KDPA Portability)</span>
+                        </h2>
+                        <p style="font-size: 0.85rem; color: #64748b; margin: 0; max-width: 650px; line-height: 1.5;">
+                            In accordance with Section 38 of the Kenya Data Protection Act, 2019, you have the right to receive an export of your personal data, transaction history, delivery addresses, and reviews in a structured, machine-readable JSON format.
+                        </p>
+                    </div>
+                    <a href="<?= e(url('pages/auth/data_export.php')) ?>" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; padding: 0.65rem 1.25rem;">
+                        <?= icon('file-text', 'lucide-xs') ?> <span>Export Data Archive</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Account Erasure / Anonymization -->
+            <div style="background: white; border: 1px solid #fecaca; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <h2 style="font-size: 1.25rem; font-weight: 700; color: #b91c1c; margin: 0 0 0.5rem; display: flex; align-items: center; gap: 8px;">
+                    <?= icon('alert-triangle', 'lucide-sm', 'red') ?> <span>Delete / Anonymize Account (Right to Erasure)</span>
+                </h2>
+                <p style="font-size: 0.85rem; color: #475569; margin: 0 0 1.25rem; line-height: 1.5;">
+                    Request permanent erasure of your personal identifiers. Your profile details, saved drop-off addresses, and wishlist items will be permanently erased. In accordance with Kenya Tax &amp; Commercial Financial retention regulations, past order records and M-Pesa ledger transactions are retained anonymously for bookkeeping.
+                </p>
+
+                <form method="POST" action="" onsubmit="return confirm('Are you sure you want to permanently delete and anonymize your SokoHub account? This action cannot be undone.');">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="delete_account">
+
+                    <div style="max-width: 400px; margin-bottom: 1.25rem;">
+                        <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
+                            Confirm Your Current Password
+                        </label>
+                        <input type="password" name="confirm_password" placeholder="Enter password to confirm" class="form-control" required style="width: 100%;">
+                    </div>
+
+                    <button type="submit" class="btn btn-danger" style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 6px; cursor: pointer;">
+                        Permanently Delete &amp; Anonymize My Account
+                    </button>
+                </form>
+            </div>
         </div>
     <?php endif; ?>
 </main>

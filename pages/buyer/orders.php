@@ -123,10 +123,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 set_flash('error', 'Unauthorized order update.');
                 redirect('pages/buyer/orders.php');
             }
+
+            // Authorization Guard: Sellers cannot self-mark orders as delivered or out for delivery to trigger payouts
+            if (in_array($newStatus, ['out_for_delivery', 'delivered'], true)) {
+                set_flash('error', 'Only assigned delivery personnel or administrators can update dispatch transit to out for delivery or delivered.');
+                redirect('pages/buyer/orders.php');
+            }
         }
 
-        // Fetch prev status
-        $prevSt = $pdo->query("SELECT order_status FROM orders WHERE id = {$orderId}")->fetchColumn();
+        // Fetch prev status safely
+        $stStmt = $pdo->prepare('SELECT order_status FROM orders WHERE id = :id LIMIT 1');
+        $stStmt->execute([':id' => $orderId]);
+        $prevSt = $stStmt->fetchColumn();
 
         $pdo->prepare('UPDATE orders SET order_status = :st, updated_at = NOW() WHERE id = :id')->execute([
             ':st' => $newStatus,

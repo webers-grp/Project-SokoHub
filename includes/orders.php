@@ -378,7 +378,9 @@ function process_order_refund(
                         $qty = (int) $item['quantity'];
                         $pdo->prepare('UPDATE products SET stock_qty = stock_qty + :qty WHERE id = :pid')
                             ->execute([':qty' => $qty, ':pid' => $pid]);
-                        $bal = (int) $pdo->query("SELECT stock_qty FROM products WHERE id = {$pid}")->fetchColumn();
+                        $bStmt = $pdo->prepare('SELECT stock_qty FROM products WHERE id = :pid LIMIT 1');
+                        $bStmt->execute([':pid' => $pid]);
+                        $bal = (int) $bStmt->fetchColumn();
                         $pdo->prepare('
                             INSERT INTO stock_movements (product_id, order_id, change_qty, reason, balance_after, created_by, created_at)
                             VALUES (:pid, :oid, :qty, "release", :bal, :uid, NOW())
