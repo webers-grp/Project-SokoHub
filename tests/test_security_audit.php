@@ -71,7 +71,7 @@ assert_sec(!$r4['allowed'] && $r4['retry_after'] > 0, 'SEC-01b: 4th request exce
 // -------------------------------------------------------------
 echo "\n2. Login Brute Force Lockout Tests\n";
 $targetEmail = 'victim_' . bin2hex(random_bytes(4)) . '@sokohub.test';
-$attackerIp  = '10.0.0.' . mt_rand(10, 250);
+$attackerIp = '10.0.0.' . mt_rand(10, 250);
 
 // Record 4 failed attempts
 for ($i = 0; $i < 4; $i++) {
@@ -100,7 +100,7 @@ assert_sec(verify_csrf(null) === false, 'SEC-03c: Missing CSRF token is strictly
 echo "\n4. IDOR Defense & Sensitive Access Control\n";
 // Create mock KYC document record owned by user 2
 $ownerUserId = 2;
-$nonOwnerUserId = 4; // Different user (buyer)
+$nonOwnerUserId = 4;
 $pdo->prepare('
     INSERT INTO kyc_documents (user_id, role, document_type, file_original_name, file_path, status, created_at)
     VALUES (:uid, "seller", "national_id", "test_id.pdf", "assets/img/uploads/kyc/test.pdf", "pending", NOW())
@@ -112,7 +112,7 @@ $docStmt = $pdo->prepare('SELECT * FROM kyc_documents WHERE id = :id');
 $docStmt->execute([':id' => $mockDocId]);
 $docRow = $docStmt->fetch(PDO::FETCH_ASSOC);
 
-$isAllowedNonOwner = ($docRow && (int)$docRow['user_id'] === $nonOwnerUserId);
+$isAllowedNonOwner = ($docRow && (int) $docRow['user_id'] === $nonOwnerUserId);
 assert_sec(!$isAllowedNonOwner, 'SEC-04: Non-owner user cannot access another user\'s KYC document (IDOR defense)');
 
 // Clean mock record
@@ -138,9 +138,9 @@ $tamperedPayload = json_encode([
         'stkCallback' => [
             'MerchantRequestID' => 'mock_merchant',
             'CheckoutRequestID' => $chkId,
-            'ResultCode'        => 0,
-            'ResultDesc'        => 'The service request is processed successfully.',
-            'CallbackMetadata'  => [
+            'ResultCode' => 0,
+            'ResultDesc' => 'The service request is processed successfully.',
+            'CallbackMetadata' => [
                 'Item' => [
                     ['Name' => 'Amount', 'Value' => 100.00], // Tampered
                     ['Name' => 'MpesaReceiptNumber', 'Value' => 'TAMPERED01'],
@@ -226,3 +226,4 @@ echo "   Security Audit Results: {$secPassed} PASSED, {$secFailed} FAILED\n";
 echo "=========================================================\n";
 
 exit($secFailed > 0 ? 1 : 0);
+

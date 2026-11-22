@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `rate_limits` (
     `action` VARCHAR(32) NOT NULL,
     `identifier` VARCHAR(64) NOT NULL,
     `hits` INT UNSIGNED NOT NULL DEFAULT 1,
-    `reset_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `reset_at` TIMESTAMP NOT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_rate_action` (`action`, `reset_at`),
     INDEX `idx_rate_identifier` (`identifier`, `action`)

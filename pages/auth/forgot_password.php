@@ -14,6 +14,8 @@ init_session();
 $pdo = get_db_connection();
 
 $resetLink = null;
+$notFoundEmail = null;
+$isLocalOrDev = (!defined('APP_ENV') || APP_ENV !== 'production' || in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', 'localhost:8080', 'localhost:8088', '127.0.0.1:8088']));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -24,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
 
     $clientIp = Security::getClientIp();
-    $rate = RateLimiter::check('forgot_password', $clientIp, 5, 900);
+    $rate = RateLimiter::check('forgot_password', $clientIp, 10, 900);
     if (!$rate['allowed']) {
         $mins = (int) ceil($rate['retry_after'] / 60);
         set_flash('error', "Too many password reset requests from this network. Please retry in {$mins} minute(s).");
@@ -62,43 +64,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ], (int) $targetUser['id'], 'user');
 
         $generatedLink = url('pages/auth/reset_password.php?token=' . $rawToken);
-        if (defined('APP_ENV') && APP_ENV === 'development') {
+        if ($isLocalOrDev) {
             $resetLink = $generatedLink;
         } else {
             error_log("[SokoHub Security] Password reset generated for user ID {$targetUser['id']}");
+        }
+    } else {
+        if ($isLocalOrDev) {
+            $notFoundEmail = $email;
         }
     }
 
     // Uniform anti-enumeration message
     set_flash('success', 'If an account exists with that email address, password reset instructions have been sent.');
-    }
 }
 
 $page_title = 'Forgot Password - SokoHub';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<main class="page-container" style="max-width: 480px; margin: 3rem auto; padding: 0 1rem;">
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+<main class="page-container" style="max-width: 500px; margin: 3rem auto; padding: 0 1rem;">
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2.25rem 2rem; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: #ea580c; display: flex; justify-content: center;"><?= icon('key-round', 'lucide-xl') ?></div>
+            <div style="margin-bottom: 0.75rem; color: #E8192C; display: flex; justify-content: center;"><?= icon('key-round', 'lucide-xl') ?></div>
             <h1 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem;">Forgot Password?</h1>
-            <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
-                Enter your account email and we'll generate a secure, 1-hour reset token for you.
+            <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+                Enter your account email and we'll generate a secure, 1-hour password reset token for you.
             </p>
         </div>
 
         <?php if ($resetLink): ?>
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                <p style="color: #166534; font-weight: 700; font-size: 0.85rem; margin: 0 0 0.5rem;">
-                    Local Development / Simulated Email Dispatch:
+            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="color: #166534; font-weight: 700; font-size: 0.88rem; margin: 0 0 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <?= icon('check-circle', 'lucide-xs', 'icon-emerald') ?> Password Reset Link Ready (Local / Dev Mode):
                 </p>
-                <p style="font-size: 0.8rem; color: #334155; margin: 0 0 0.75rem;">
-                    Click the button below or copy the link to reset your password:
+                <p style="font-size: 0.82rem; color: #334155; margin: 0 0 0.75rem;">
+                    Click the button below to proceed directly to setting your new password:
                 </p>
-                <a href="<?= e($resetLink) ?>" class="btn btn-primary" style="display: block; text-align: center; font-size: 0.85rem; padding: 0.5rem; text-decoration: none;">
-                    Reset Password Now &rarr;
+                <a href="<?= e($resetLink) ?>" style="display: block; text-align: center; font-size: 0.88rem; font-weight: 700; padding: 0.65rem 1rem; text-decoration: none; background: #16a34a; color: #fff; border-radius: 4px;">
+                    Reset My Password Now &rarr;
                 </a>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($notFoundEmail): ?>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: #92400e;">
+                <p style="margin: 0 0 0.5rem; font-weight: 700;">
+                    <?= icon('info', 'lucide-xs') ?> Note (Local / Dev): No account found matching <code><?= e($notFoundEmail) ?></code>
+                </p>
+                <p style="margin: 0 0 0.5rem; font-size: 0.82rem; color: #78350f;">
+                    Click any demo account below to fill its email and request a reset:
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                    <button type="button" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; border: 1px solid #d97706; background: #fff; color: #b45309; border-radius: 3px; cursor: pointer;" onclick="document.getElementById('email_input').value='buyer@sokohub.co.ke'">buyer@sokohub.co.ke</button>
+                    <button type="button" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; border: 1px solid #d97706; background: #fff; color: #b45309; border-radius: 3px; cursor: pointer;" onclick="document.getElementById('email_input').value='seller@sokohub.co.ke'">seller@sokohub.co.ke</button>
+                    <button type="button" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; border: 1px solid #d97706; background: #fff; color: #b45309; border-radius: 3px; cursor: pointer;" onclick="document.getElementById('email_input').value='rider@sokohub.co.ke'">rider@sokohub.co.ke</button>
+                    <button type="button" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; border: 1px solid #d97706; background: #fff; color: #b45309; border-radius: 3px; cursor: pointer;" onclick="document.getElementById('email_input').value='admin@sokohub.co.ke'">admin@sokohub.co.ke</button>
+                </div>
             </div>
         <?php endif; ?>
 
@@ -106,19 +128,19 @@ require_once __DIR__ . '/../../includes/header.php';
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
             <div style="margin-bottom: 1.25rem;">
-                <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
+                <label for="email_input" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
                     Your Account Email
                 </label>
-                <input type="email" name="email" placeholder="e.g. buyer@sokohub.local" class="form-control" required style="width: 100%;">
+                <input type="email" id="email_input" name="email" placeholder="e.g. buyer@sokohub.co.ke" class="form-control" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;">
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+            <button type="submit" style="width: 100%; padding: 0.75rem; font-weight: 700; font-size: 0.92rem; background: #E8192C; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
                 Send Reset Instructions
             </button>
         </form>
 
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: #64748b;">
-            Remembered your credentials? <a href="<?= e(url('pages/auth/login.php')) ?>" style="color: #16a34a; font-weight: 600; text-decoration: none;">Log in</a>
+            Remembered your password? <a href="<?= e(url('pages/auth/login.php')) ?>" style="color: #E8192C; font-weight: 700; text-decoration: none;">Back to Sign In</a>
         </div>
     </div>
 </main>

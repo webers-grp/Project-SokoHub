@@ -89,8 +89,8 @@ class Kyc
 
             return [
                 'can_publish' => false,
-                'status'      => $prof['verification_status'] ?? 'pending',
-                'reason'      => 'Merchant account KYC verification is pending administrative review.',
+                'status' => $prof['verification_status'] ?? 'pending',
+                'reason' => 'Merchant account KYC verification is pending administrative review.',
             ];
         } catch (Throwable $e) {
             return ['can_publish' => false, 'reason' => 'Error verifying seller status.'];
@@ -123,7 +123,7 @@ class Kyc
             return ['ok' => false, 'error' => 'No valid document file uploaded.'];
         }
 
-        $validTypes = ['national_id', 'business_permit', 'driving_license', 'kra_pin'];
+        $validTypes = ['national_id', 'business_permit', 'driving_license', 'other'];
         if (!in_array($docType, $validTypes, true)) {
             $docType = 'national_id';
         }
@@ -137,10 +137,10 @@ class Kyc
         // Real MIME Type validation via finfo
         $allowedMimes = [
             'application/pdf' => 'pdf',
-            'image/jpeg'      => 'jpg',
-            'image/pjpeg'     => 'jpg',
-            'image/png'       => 'png',
-            'image/x-png'     => 'png',
+            'image/jpeg' => 'jpg',
+            'image/pjpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/x-png' => 'png',
         ];
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
@@ -159,7 +159,7 @@ class Kyc
 
         $safeName = 'kyc_' . $userId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $destPath = $uploadDir . '/' . $safeName;
-        $relPath  = 'assets/img/uploads/kyc/' . $safeName;
+        $relPath = 'assets/img/uploads/kyc/' . $safeName;
 
         if (!move_uploaded_file($file['tmp_name'], $destPath)) {
             return ['ok' => false, 'error' => 'Failed to save uploaded document to server.'];
@@ -168,27 +168,29 @@ class Kyc
         try {
             $pdo = get_db_connection();
             $stmt = $pdo->prepare('
-                INSERT INTO kyc_documents (user_id, role, document_type, file_original_name, file_path, status, created_at)
-                VALUES (:uid, :role, :type, :fname, :fpath, "pending", NOW())
+                INSERT INTO kyc_documents (user_id, role, doc_type, file_name, file_path, file_size_kb, status, uploaded_at)
+                VALUES (:uid, :role, :type, :fname, :fpath, :fsize, "pending", NOW())
             ');
+            $sizeKb = (int) ceil($file['size'] / 1024);
             $stmt->execute([
-                ':uid'   => $userId,
-                ':role'  => $role,
-                ':type'  => $docType,
+                ':uid' => $userId,
+                ':role' => $role,
+                ':type' => $docType,
                 ':fname' => $file['name'],
                 ':fpath' => $relPath,
+                ':fsize' => $sizeKb,
             ]);
 
             $docId = (int) $pdo->lastInsertId();
 
             Audit::record('kyc.document_uploaded', 'kyc_document', $docId, [
-                'doc_type'  => $docType,
+                'doc_type' => $docType,
                 'file_name' => $file['name'],
             ], $userId, $role);
 
             return [
-                'ok'        => true,
-                'doc_id'    => $docId,
+                'ok' => true,
+                'doc_id' => $docId,
                 'file_name' => $file['name'],
                 'file_path' => $relPath,
             ];
@@ -205,18 +207,7 @@ class Kyc
     {
         try {
             $pdo = get_db_connection();
-            $stmt = $pdo->prepare('
-                SELECT 
-                    id, user_id, role, 
-                    document_type, document_type AS doc_type, 
-                    file_path, 
-                    file_original_name, file_original_name AS file_name, 
-                    status, rejection_reason, verified_by, verified_at, 
-                    created_at, created_at AS uploaded_at, updated_at 
-                FROM kyc_documents 
-                WHERE user_id = :uid 
-                ORDER BY created_at DESC
-            ');
+            $stmt = $pdo->prepare('SELECT * FROM kyc_documents WHERE user_id = :uid ORDER BY uploaded_at DESC');
             $stmt->execute([':uid' => $userId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
@@ -247,9 +238,9 @@ class Kyc
                     WHERE user_id = :uid
                 ');
                 $stmt->execute([
-                    ':nid'   => $nationalIdNo,
+                    ':nid' => $nationalIdNo,
                     ':mpesa' => $mpesaPhone,
-                    ':uid'   => $userId,
+                    ':uid' => $userId,
                 ]);
             } else {
                 $stmt = $pdo->prepare('
@@ -259,22 +250,22 @@ class Kyc
                     WHERE user_id = :uid
                 ');
                 $stmt->execute([
-                    ':nid'       => $nationalIdNo,
-                    ':mpesa'     => $mpesaPhone,
-                    ':plate'     => $plate,
+                    ':nid' => $nationalIdNo,
+                    ':mpesa' => $mpesaPhone,
+                    ':plate' => $plate,
                     ':transport' => $transport ?: 'motorbike',
-                    ':model'     => $model,
-                    ':uid'       => $userId,
+                    ':model' => $model,
+                    ':uid' => $userId,
                 ]);
             }
 
             return [
-                'ok'                   => true,
-                'national_id_no'       => $nationalIdNo,
-                'mpesa_phone'          => $mpesaPhone,
+                'ok' => true,
+                'national_id_no' => $nationalIdNo,
+                'mpesa_phone' => $mpesaPhone,
                 'vehicle_plate_number' => $plate,
-                'transport_method'     => $transport,
-                'vehicle_model'        => $model,
+                'transport_method' => $transport,
+                'vehicle_model' => $model,
             ];
         } catch (Throwable $e) {
             error_log('Kyc::updateKycDetails Error: ' . $e->getMessage());
@@ -393,17 +384,17 @@ class Kyc
             ");
             $ok = $stmt->execute([
                 ':status' => $newStatus,
-                ':at'     => $verifiedAt,
-                ':by'     => $adminId,
+                ':at' => $verifiedAt,
+                ':by' => $adminId,
                 ':reason' => ($newStatus === 'rejected') ? $reason : null,
-                ':uid'    => $targetUserId,
+                ':uid' => $targetUserId,
             ]);
 
             if ($ok) {
                 $docStatus = ($newStatus === 'approved') ? 'approved' : (($newStatus === 'rejected') ? 'rejected' : 'pending');
                 $pdo->prepare('
                     UPDATE kyc_documents
-                    SET status = :st, verified_by = :by, verified_at = NOW()
+                    SET status = :st, reviewed_by = :by, reviewed_at = NOW()
                     WHERE user_id = :uid AND status = "pending"
                 ')->execute([':st' => $docStatus, ':by' => $adminId, ':uid' => $targetUserId]);
 
@@ -416,8 +407,8 @@ class Kyc
 
                 Audit::record('kyc.' . $role . '_' . $newStatus, $table, $targetUserId, [
                     'account_type' => $role,
-                    'new_status'   => $newStatus,
-                    'reason'       => $reason,
+                    'new_status' => $newStatus,
+                    'reason' => $reason,
                 ], $adminId, 'admin');
             }
 

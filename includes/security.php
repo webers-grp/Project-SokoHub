@@ -13,9 +13,8 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/functions.php';
 
-if (!class_exists('Security')) {
-    class Security
-    {
+class Security
+{
     /**
      * Send hardened HTTP security headers.
      * Safe to call multiple times per request (guarded by headers_sent()).
@@ -43,12 +42,12 @@ if (!class_exists('Security')) {
 
         // Content Security Policy (allows local assets, fonts, inline scripts needed for charts/interactions)
         $csp = "default-src 'self'; "
-             . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
-             . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-             . "font-src 'self' https://fonts.gstatic.com data:; "
-             . "img-src 'self' data: blob: https:; "
-             . "connect-src 'self'; "
-             . "frame-ancestors 'self';";
+            . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+            . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            . "font-src 'self' https://fonts.gstatic.com data:; "
+            . "img-src 'self' data: blob: https:; "
+            . "connect-src 'self'; "
+            . "frame-ancestors 'self';";
         header('Content-Security-Policy: ' . $csp);
 
         // HSTS (HTTP Strict Transport Security) when serving over HTTPS
@@ -119,9 +118,7 @@ if (!class_exists('Security')) {
         return $start . str_repeat('*', max(2, $len - 4)) . $end;
     }
 }
-}
 
-if (!class_exists('RateLimiter')) {
 class RateLimiter
 {
     /**
@@ -163,7 +160,7 @@ class RateLimiter
                 }
 
                 // Increment hit count
-                $upd = $pdo->prepare('UPDATE rate_limits SET hits = hits + 1, reset_at = reset_at WHERE rate_key = :k');
+                $upd = $pdo->prepare('UPDATE rate_limits SET hits = hits + 1 WHERE rate_key = :k');
                 $upd->execute([':k' => $key]);
 
                 return ['allowed' => true, 'remaining' => $maxHits - ($hits + 1), 'retry_after' => 0];
@@ -176,9 +173,9 @@ class RateLimiter
                 VALUES (:k, :act, :id, 1, :rst, NOW())
             ');
             $ins->execute([
-                ':k'   => $key,
+                ':k' => $key,
                 ':act' => substr($action, 0, 32),
-                ':id'  => substr($identifier, 0, 64),
+                ':id' => substr($identifier, 0, 64),
                 ':rst' => $newReset,
             ]);
 
@@ -202,8 +199,8 @@ class RateLimiter
             ');
             $stmt->execute([
                 ':email' => strtolower(trim($email)),
-                ':ip'    => $ip,
-                ':succ'  => $success ? 1 : 0,
+                ':ip' => $ip,
+                ':succ' => $success ? 1 : 0,
             ]);
         } catch (Throwable $e) {
             error_log('RecordLoginAttempt error: ' . $e->getMessage());
@@ -242,7 +239,7 @@ class RateLimiter
                 $retryAfter = max(5, $unlockAt - time());
 
                 return [
-                    'locked'      => true,
+                    'locked' => true,
                     'failed_count' => $failedCount,
                     'retry_after' => $retryAfter,
                 ];
@@ -255,4 +252,4 @@ class RateLimiter
         }
     }
 }
-}
+

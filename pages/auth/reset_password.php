@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
     $userId  = (int) $tokenUser['user_id'];
 
     // 1. Update user password
-    $pdo->prepare('UPDATE users SET password_hash = :hash, updated_at = NOW() WHERE id = :id')
+    $pdo->prepare('UPDATE users SET password_hash = :hash WHERE id = :id')
         ->execute([':hash' => $newHash, ':id' => $userId]);
 
     // 2. Mark token consumed
@@ -87,23 +87,23 @@ $page_title = 'Reset Password - SokoHub';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<main class="page-container" style="max-width: 480px; margin: 3rem auto; padding: 0 1rem;">
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+<main class="page-container" style="max-width: 500px; margin: 3rem auto; padding: 0 1rem;">
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2.25rem 2rem; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: #ea580c; display: flex; justify-content: center;"><?= icon('shield-check', 'lucide-xl') ?></div>
+            <div style="margin-bottom: 0.75rem; color: #E8192C; display: flex; justify-content: center;"><?= icon('shield-check', 'lucide-xl') ?></div>
             <h1 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem;">Set New Password</h1>
             <?php if ($tokenValid): ?>
-                <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
+                <p style="font-size: 0.88rem; color: #64748b; margin: 0;">
                     Resetting password for <strong><?= e($tokenUser['email']) ?></strong>.
                 </p>
             <?php endif; ?>
         </div>
 
         <?php if (!$tokenValid): ?>
-            <div style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; line-height: 1.4;">
+            <div style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; line-height: 1.4;">
                 <strong>Link Error:</strong> <?= e($errorMsg) ?>
             </div>
-            <a href="<?= e(url('pages/auth/forgot_password.php')) ?>" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none; padding: 0.65rem;">
+            <a href="<?= e(url('pages/auth/forgot_password.php')) ?>" style="display: block; text-align: center; text-decoration: none; padding: 0.75rem; background: #E8192C; color: #fff; font-weight: 700; border-radius: 4px;">
                 Request a New Reset Link &rarr;
             </a>
         <?php else: ?>
@@ -115,17 +115,17 @@ require_once __DIR__ . '/../../includes/header.php';
                     <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
                         New Password (minimum 8 characters)
                     </label>
-                    <input type="password" name="new_password" minlength="8" class="form-control" required style="width: 100%;">
+                    <input type="password" name="new_password" minlength="8" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;">
                 </div>
 
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
                         Confirm New Password
                     </label>
-                    <input type="password" name="confirm_password" minlength="8" class="form-control" required style="width: 100%;">
+                    <input type="password" name="confirm_password" minlength="8" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;">
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                <button type="submit" style="width: 100%; padding: 0.75rem; font-weight: 700; font-size: 0.92rem; background: #E8192C; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
                     Confirm &amp; Reset Password
                 </button>
             </form>

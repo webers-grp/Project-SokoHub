@@ -56,13 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $upd = $pdo->prepare('
             UPDATE users 
-            SET full_name = :name, phone = :phone, town = :town, offline_alert_preference = :pref, updated_at = NOW()
+            SET full_name = :name, phone = :phone, offline_alert_preference = :pref
             WHERE id = :id
         ');
         $upd->execute([
             ':name'  => $fullName,
             ':phone' => $cleanPhone,
-            ':town'  => $town,
             ':pref'  => $alertPref,
             ':id'    => $userId,
         ]);
@@ -177,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $pdo->prepare('UPDATE users SET password_hash = :hash, updated_at = NOW() WHERE id = :id')
+        $pdo->prepare('UPDATE users SET password_hash = :hash WHERE id = :id')
             ->execute([':hash' => $newHash, ':id' => $userId]);
 
         Audit::record('user.password_changed', 'user', $userId, [], $userId, $user['role']);
@@ -206,8 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SET full_name = 'Deleted User',
                 email = CONCAT('deleted_', id, '@anonymized.sokohub'),
                 phone = '254700000000',
-                status = 'deleted',
-                updated_at = NOW()
+                status = 'suspended'
             WHERE id = :id
         ")->execute([':id' => $userId]);
 
