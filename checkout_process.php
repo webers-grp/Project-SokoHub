@@ -15,8 +15,15 @@
  */
 
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/inventory.php';
+require_once __DIR__ . '/includes/kyc.php';
+require_once __DIR__ . '/includes/payments.php';
+require_once __DIR__ . '/includes/telephony.php';
 init_session();
 $user = require_login();
+
+Payments::ensureSchema();
+Telephony::ensureSchema();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('pages/buyer/checkout.php');
@@ -251,12 +258,54 @@ try {
         ':dropoff' => $fullDeliveryAddress,
         ':fee'     => $deliveryFee,
     ]);
+    $deliveryId = (int) $pdo->lastInsertId();
+
+    // 4. Create initial pending payment record for Digital Pay-on-Delivery / STK push
+    $cleanMpesa = Kyc::cleanMpesaPhone($phone) ?: $phone;
+    $payStmt = $pdo->prepare("
+        INSERT INTO payments (order_id, delivery_id, buyer_phone, amount, payment_method, status)
+        VALUES (:oid, :did, :phone, :amt, :pmethod, :pstatus)
+    ");
+    $payStmt->execute([
+        ':oid'     => $orderId,
+        ':did'     => $deliveryId,
+        ':phone'   => $cleanMpesa,
+        ':amt'     => $grandTotal + $deliveryFee,
+        ':pmethod' => $paymentMethod,
+        ':pstatus' => ($paymentMethod === 'Cash on Delivery' || $paymentMethod === 'M-Pesa') ? 'pending' : 'completed',
+    ]);
+    $paymentId = (int) $pdo->lastInsertId();
+
+    // Link digital_payment_id in deliveries if column exists
+    try {
+        $pdo->prepare("UPDATE deliveries SET digital_payment_id = :dpid WHERE id = :did")->execute([
+            ':dpid' => $paymentId,
+            ':did'  => $deliveryId,
+        ]);
+    } catch (Throwable $_) {}
+
+    // 5. Trigger low stock notifications where threshold is reached
+    foreach ($orderItemsData as $item) {
+        try {
+            Inventory::checkProductLowStock((int) $item['product_id'], 'Order: ' . $orderCode);
+        } catch (Throwable $_) {}
+    }
 
     // Commit All Changes Atomically
     $pdo->commit();
 
     // Clear Session Cart
     $_SESSION['cart'] = [];
+
+    // 6. Notify offline merchants via Telephony (SMS / automated voice call)
+    try {
+        $sellerIds = array_unique(array_map(fn($it) => (int) $it['seller_id'], $orderItemsData));
+        foreach ($sellerIds as $sid) {
+            Telephony::notifyOfflineSellerOnNewOrder($sid, $orderCode, $grandTotal, $town);
+        }
+    } catch (Throwable $e) {
+        error_log('Telephony dispatch error: ' . $e->getMessage());
+    }
 
     set_flash('success', "Order #{$orderCode} confirmed successfully! Inventory reserved and delivery dispatch initiated.");
     redirect('pages/buyer/orders.php');

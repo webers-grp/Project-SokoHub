@@ -19,10 +19,8 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
-<<<<<<< HEAD
     <meta name="base-url" content="<?= e(url('')) ?>">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
-=======
     <script>
         (function() {
             try {
@@ -33,7 +31,6 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
             } catch(e) {}
         })();
     </script>
->>>>>>> feature/seller-kyc-admin
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
 </head>
 <body>
@@ -47,9 +44,12 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
 
             <!-- Group 2: Instant Live Autocomplete Search Bar -->
             <div class="header-search-wrap" id="headerSearchWrap">
-                <div class="header-search-box">
-                    <?= icon('search', 'lucide-sm', 'blue') ?>
+                <form action="<?= e(url('pages/public/products.php')) ?>" method="GET" class="header-search-box" role="search">
+                    <button type="submit" class="search-submit-btn" aria-label="Search products">
+                        <?= icon('search', 'lucide-sm', 'blue') ?>
+                    </button>
                     <input type="text"
+                           name="search"
                            id="navSearchInput"
                            class="header-search-input"
                            placeholder="Search products, gas, food, clothes..."
@@ -59,7 +59,7 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
                            aria-controls="navSearchDropdown">
                     <button type="button" class="search-clear-btn" id="navSearchClear" style="display:none;" aria-label="Clear search">&times;</button>
                     <span class="search-spinner" id="navSearchSpinner" style="display:none;"></span>
-                </div>
+                </form>
                 <div class="search-dropdown" id="navSearchDropdown" role="listbox" style="display: none;"></div>
             </div>
 
@@ -72,15 +72,49 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
             <div class="nav-menu" id="navMenu">
                 <ul class="nav-links">
                     <?php foreach ($navItems as $item): ?>
-                        <?php $isActive = in_array($currentScript, $item['match'], true); ?>
-                        <li>
-                            <a href="<?= e(url($item['href'])) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                                <?php if (!empty($item['icon'])): ?>
-                                    <?= icon($item['icon'], 'lucide-sm') ?>
-                                <?php endif; ?>
-                                <span><?= e($item['label']) ?></span>
-                            </a>
-                        </li>
+                        <?php
+                        $hasChildren = !empty($item['children']);
+                        $itemMatches = $item['match'] ?? [];
+                        if ($hasChildren) {
+                            foreach ($item['children'] as $child) {
+                                $itemMatches = array_merge($itemMatches, $child['match'] ?? []);
+                            }
+                        }
+                        $isActive = in_array($currentScript, $itemMatches, true);
+                        ?>
+                        <?php if ($hasChildren): ?>
+                            <li class="nav-item-dropdown">
+                                <a href="<?= e(url($item['href'])) ?>" class="nav-dropdown-toggle <?= $isActive ? 'active' : '' ?>" role="button" aria-haspopup="true" aria-expanded="false">
+                                    <?php if (!empty($item['icon'])): ?>
+                                        <?= icon($item['icon'], 'lucide-sm') ?>
+                                    <?php endif; ?>
+                                    <span><?= e($item['label']) ?></span>
+                                    <?= icon('chevron-down', 'lucide-xs') ?>
+                                </a>
+                                <ul class="nav-dropdown-menu">
+                                    <?php foreach ($item['children'] as $child): ?>
+                                        <?php $childActive = in_array($currentScript, $child['match'] ?? [], true); ?>
+                                        <li>
+                                            <a href="<?= e(url($child['href'])) ?>" class="<?= $childActive ? 'active' : '' ?>">
+                                                <?php if (!empty($child['icon'])): ?>
+                                                    <?= icon($child['icon'], 'lucide-xs') ?>
+                                                <?php endif; ?>
+                                                <span><?= e($child['label']) ?></span>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </li>
+                        <?php else: ?>
+                            <li>
+                                <a href="<?= e(url($item['href'])) ?>" class="<?= $isActive ? 'active' : '' ?>">
+                                    <?php if (!empty($item['icon'])): ?>
+                                        <?= icon($item['icon'], 'lucide-sm') ?>
+                                    <?php endif; ?>
+                                    <span><?= e($item['label']) ?></span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </ul>
 
@@ -96,7 +130,7 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
                         <span class="cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </a>
 
-                    <?php if ($authUser !== null): 
+                    <?php if ($authUser !== null && in_array($authUser['role'], ['buyer', 'admin'], true)):
                         $notifUnread = Notifications::getUnreadCount((int) $authUser['id']);
                     ?>
                         <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="cart-pill" title="Marketplace Alerts &amp; Restocks" style="padding: 0.35rem 0.65rem;">
@@ -109,20 +143,12 @@ $savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
 
                     <?php if ($authUser !== null): ?>
                         <div class="user-pill">
-<<<<<<< HEAD
-                            <?= icon('user', 'lucide-sm') ?>
-=======
                             <?= icon('user', 'lucide-xs') ?>
->>>>>>> feature/seller-kyc-admin
                             <span class="user-name"><?= e(explode(' ', $authUser['full_name'])[0]) ?></span>
                             <span class="role-tag"><?= e(ucfirst($authUser['role'])) ?></span>
                         </div>
                         <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">
-<<<<<<< HEAD
-                            <?= icon('log-out', 'lucide-sm') ?>
-=======
                             <?= icon('log-out', 'lucide-xs') ?>
->>>>>>> feature/seller-kyc-admin
                             <span>Logout</span>
                         </a>
                     <?php else: ?>

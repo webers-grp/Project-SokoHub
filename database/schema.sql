@@ -107,27 +107,18 @@ CREATE TABLE orders (
     order_code VARCHAR(32) NOT NULL UNIQUE,
     buyer_id INT UNSIGNED NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
-<<<<<<< HEAD
-    payment_method ENUM('M-Pesa', 'Cash on Delivery', 'Bank Card') NOT NULL DEFAULT 'M-Pesa',
-    payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'paid',
-    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
-    delivery_address VARCHAR(255) NOT NULL,
-    delivery_town VARCHAR(100) NOT NULL,
-    notes VARCHAR(255) NULL,
-    expires_at DATETIME NULL,
-    cancelled_at DATETIME NULL,
-    cancel_reason VARCHAR(255) NULL,
-    version INT UNSIGNED NOT NULL DEFAULT 0,
-=======
     payment_method VARCHAR(60) NOT NULL DEFAULT 'Digital Pay-on-Delivery (M-Pesa)',
     payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
-    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
     delivery_address VARCHAR(255) NOT NULL,
     delivery_town VARCHAR(100) NOT NULL,
     notes VARCHAR(255) NULL,
     mpesa_receipt VARCHAR(30) NULL,
     paid_at DATETIME NULL,
->>>>>>> feature/seller-kyc-admin
+    expires_at DATETIME NULL,
+    cancelled_at DATETIME NULL,
+    cancel_reason VARCHAR(255) NULL,
+    version INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_orders_buyer (buyer_id),
@@ -212,7 +203,6 @@ CREATE TABLE contact_messages (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-<<<<<<< HEAD
 -- 10. Buyer Saved Delivery Addresses (Group 2)
 CREATE TABLE addresses (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -273,8 +263,9 @@ CREATE TABLE stock_movements (
     CONSTRAINT fk_stock_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_stock_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
     CONSTRAINT fk_stock_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-=======
--- 11. Offline Telephony Dispatch Alerts (SMS & Automated Voice Calls)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 14. Offline Telephony Dispatch Alerts (SMS & Automated Voice Calls)
 CREATE TABLE telephony_logs (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
@@ -293,7 +284,6 @@ CREATE TABLE telephony_logs (
     INDEX idx_telephony_channel (channel),
     INDEX idx_telephony_status (status),
     CONSTRAINT fk_telephony_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
->>>>>>> feature/seller-kyc-admin
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

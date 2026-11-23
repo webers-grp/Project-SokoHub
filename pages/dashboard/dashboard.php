@@ -30,17 +30,10 @@ if ($role === 'buyer') {
     $buyerAlerts = Notifications::getBuyerNotifications($userId, null, 4);
 
     $kpis = [
-<<<<<<< HEAD
         ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag', 'color' => 'purple'],
         ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet', 'color' => 'emerald'],
         ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck', 'color' => 'amber'],
         ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart', 'color' => 'blue'],
-=======
-        ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag'],
-        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet'],
-        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck'],
-        ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart'],
->>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -70,17 +63,10 @@ if ($role === 'buyer') {
     $rev = $revStmt->fetch();
 
     $kpis = [
-<<<<<<< HEAD
         ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
-        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn(), 'icon' => 'alert-triangle', 'color' => 'rose'],
+        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount, 'icon' => 'alert-triangle', 'color' => 'rose'],
         ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag', 'color' => 'purple'],
         ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up', 'color' => 'emerald'],
-=======
-        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package'],
-        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount, 'icon' => 'alert-triangle'],
-        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag'],
-        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up'],
->>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -105,17 +91,10 @@ if ($role === 'buyer') {
     $done = $mineDone->fetch();
 
     $kpis = [
-<<<<<<< HEAD
         ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock', 'color' => 'amber'],
         ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation', 'color' => 'blue'],
         ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle-2', 'color' => 'emerald'],
         ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet', 'color' => 'teal'],
-=======
-        ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock'],
-        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation'],
-        ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle'],
-        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet'],
->>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -130,17 +109,10 @@ if ($role === 'buyer') {
     $recentRows = $recStmt->fetchAll();
 } else { // admin
     $kpis = [
-<<<<<<< HEAD
         ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users', 'color' => 'cyan'],
         ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
         ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
         ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail', 'color' => 'pink'],
-=======
-        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users'],
-        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package'],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up'],
-        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'headphones'],
->>>>>>> feature/seller-kyc-admin
     ];
 
     $recentRows = $pdo->query(
@@ -181,31 +153,6 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="hero-cta">
             <?php if ($role === 'buyer'): ?>
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
-<<<<<<< HEAD
-                    <?= icon('shopping-bag') ?>
-                    <span>Browse Products</span>
-                </a>
-                <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="btn btn-outline">
-                    <?= icon('receipt') ?>
-                    <span>My Orders</span>
-                </a>
-            <?php elseif ($role === 'seller'): ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
-                    <?= icon('package') ?>
-                    <span>Manage Products</span>
-                </a>
-                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
-                    <?= icon('bar-chart-2') ?>
-                    <span>Sales &amp; Stock Reports</span>
-                </a>
-            <?php elseif ($role === 'delivery'): ?>
-                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">
-                    <?= icon('truck') ?>
-                    <span>Delivery Queue</span>
-                </a>
-                <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
-                    <?= icon('file-text') ?>
-=======
                     <?= icon('shopping-bag', 'lucide-xs') ?>
                     <span>Browse Products</span>
                 </a>
@@ -253,26 +200,16 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
                 <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
                     <?= icon('bar-chart-3', 'lucide-xs') ?>
->>>>>>> feature/seller-kyc-admin
                     <span>Delivery Report</span>
                 </a>
             <?php else: ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
-<<<<<<< HEAD
-                    <?= icon('package') ?>
+                    <?= icon('package', 'lucide-xs') ?>
                     <span>Manage Catalog</span>
                 </a>
                 <a href="<?= e(url('pages/dashboard/inquiries.php')) ?>" class="btn btn-outline">
-                    <?= icon('message-square') ?>
+                    <?= icon('message-square', 'lucide-xs') ?>
                     <span>Support Inquiries</span>
-                </a>
-                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
-                    <?= icon('bar-chart-3') ?>
-                    <span>System Reports</span>
-                </a>
-=======
-                    <?= icon('package', 'lucide-xs') ?>
-                    <span>Manage Catalog</span>
                 </a>
                 <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">
                     <?= icon('file-spreadsheet', 'lucide-xs') ?>
@@ -294,7 +231,6 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('file-text', 'lucide-xs') ?>
                     <span>Audit Logs</span>
                 </a>
->>>>>>> feature/seller-kyc-admin
             <?php endif; ?>
         </div>
     </div>
@@ -356,13 +292,9 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                     <span class="stat-label"><?= e($kpi['label']) ?></span>
                     <?php if (!empty($kpi['icon'])): ?>
-<<<<<<< HEAD
                         <div class="stat-icon-wrap stat-icon-<?= e($color) ?>">
                             <?= icon($kpi['icon'], 'lucide-sm') ?>
                         </div>
-=======
-                        <span class="stat-icon-wrap stat-icon-emerald"><?= icon($kpi['icon'], 'lucide-xs') ?></span>
->>>>>>> feature/seller-kyc-admin
                     <?php endif; ?>
                 </div>
                 <strong class="stat-value"><?= e($kpi['value']) ?></strong>

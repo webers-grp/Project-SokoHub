@@ -14,15 +14,8 @@ function e(mixed $value): string
 }
 
 /**
-<<<<<<< HEAD
- * Render a Lucide vector icon element with data-lucide attribute.
- * Automatically instantiated into crisp inline SVG icons by Lucide.
- * Supports size modifier classes (.lucide-sm, .lucide-xs, .lucide-lg) and
- * color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
-=======
  * Render a Lucide vector icon with data-lucide attribute, compact sizing,
  * and optional semantic color classes.
->>>>>>> feature/seller-kyc-admin
  */
 function icon(string $name, string $class = '', string $color = '', string $extraAttrs = ''): string
 {
@@ -425,75 +418,75 @@ function get_preset_product_images(): array
 
 /**
  * Dynamic navigation array built according to user authentication & role.
+ * Consolidates administration and merchant tools into clean dropdown groups
+ * to maintain a sleek, responsive, single-line desktop navigation bar.
  */
 function get_nav_items(?array $user): array
 {
     $items = [
-<<<<<<< HEAD
-        ['label' => 'Home', 'href' => 'index.php', 'icon' => 'home', 'match' => ['index.php']],
-        ['label' => 'Products', 'href' => 'pages/public/products.php', 'icon' => 'shopping-bag', 'match' => ['products.php', 'product_details.php']],
-        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'icon' => 'info', 'match' => ['about.php']],
-        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'icon' => 'mail', 'match' => ['contact.php']],
-    ];
-
-    if ($user !== null) {
-        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'icon' => 'layout-dashboard', 'match' => ['dashboard.php']];
-
-        if (in_array($user['role'], ['seller', 'admin'], true)) {
-            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'icon' => 'package', 'match' => ['manage_products.php']];
-        }
-
-        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'icon' => 'receipt', 'match' => ['orders.php', 'checkout.php']];
-        $items[] = ['label' => 'Wishlist', 'href' => 'pages/buyer/wishlist.php', 'icon' => 'heart', 'match' => ['wishlist.php']];
-
-        if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
-            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'icon' => 'truck', 'match' => ['deliveries.php']];
-        }
-
-        if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
-            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'icon' => 'bar-chart-2', 'match' => ['reports.php']];
-=======
         ['label' => 'Home', 'href' => 'index.php', 'match' => ['index.php'], 'icon' => 'home'],
         ['label' => 'Products', 'href' => 'pages/public/products.php', 'match' => ['products.php', 'product_details.php'], 'icon' => 'shopping-bag'],
-        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php'], 'icon' => 'info'],
-        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'match' => ['contact.php'], 'icon' => 'mail'],
     ];
 
-    if ($user !== null) {
-        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'];
+    if ($user === null) {
+        $items[] = ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php'], 'icon' => 'info'];
+        $items[] = ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'match' => ['contact.php'], 'icon' => 'mail'];
+        return $items;
+    }
 
-        if (in_array($user['role'], ['seller', 'admin'], true)) {
-            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php'], 'icon' => 'package'];
-            $items[] = ['label' => 'Bulk Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php'], 'icon' => 'file-spreadsheet'];
-        }
+    $role = $user['role'] ?? 'buyer';
 
-        if (in_array($user['role'], ['seller', 'delivery'], true)) {
-            $items[] = ['label' => 'KYC Verification', 'href' => 'pages/dashboard/kyc_upload.php', 'match' => ['kyc_upload.php'], 'icon' => 'shield-check'];
-        }
+    // Shared buyer & customer links
+    $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php'], 'icon' => 'receipt'];
 
-        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php'], 'icon' => 'receipt'];
-
-        if ($user['role'] === 'buyer') {
-            $items[] = ['label' => 'Alerts', 'href' => 'pages/buyer/notifications.php', 'match' => ['notifications.php'], 'icon' => 'bell'];
-        }
-
-        if (in_array($user['role'], ['seller', 'delivery', 'admin', 'buyer'], true)) {
-            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'];
-        }
-
-        if ($user['role'] === 'admin') {
-            $items[] = ['label' => 'KYC Queue', 'href' => 'pages/dashboard/seller_verification.php', 'match' => ['seller_verification.php'], 'icon' => 'shield-alert'];
-            $items[] = ['label' => 'Audit Logs', 'href' => 'pages/dashboard/audit_logs.php', 'match' => ['audit_logs.php'], 'icon' => 'file-text'];
-        }
-
-        if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
-            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php'], 'icon' => 'bar-chart-3'];
-        }
-
-        if (in_array($user['role'], ['seller', 'admin'], true)) {
-            $items[] = ['label' => 'Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php'], 'icon' => 'wallet'];
->>>>>>> feature/seller-kyc-admin
-        }
+    if ($role === 'buyer') {
+        $items[] = ['label' => 'Wishlist', 'href' => 'pages/buyer/wishlist.php', 'match' => ['wishlist.php'], 'icon' => 'heart'];
+        $items[] = ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php'], 'icon' => 'info'];
+        $items[] = ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'match' => ['contact.php'], 'icon' => 'mail'];
+    } elseif ($role === 'seller') {
+        $items[] = [
+            'label'    => 'Seller Hub',
+            'href'     => 'pages/dashboard/dashboard.php',
+            'icon'     => 'store',
+            'children' => [
+                ['label' => 'Seller Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'],
+                ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php'], 'icon' => 'package'],
+                ['label' => 'Bulk CSV Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php'], 'icon' => 'file-spreadsheet'],
+                ['label' => 'Dispatch & Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'],
+                ['label' => 'Sales Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php'], 'icon' => 'bar-chart-3'],
+                ['label' => 'Monthly Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php'], 'icon' => 'wallet'],
+                ['label' => 'KYC Verification', 'href' => 'pages/dashboard/kyc_upload.php', 'match' => ['kyc_upload.php'], 'icon' => 'shield-check'],
+            ],
+        ];
+    } elseif ($role === 'delivery') {
+        $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'];
+        $items[] = [
+            'label'    => 'Rider Hub',
+            'href'     => 'pages/dashboard/dashboard.php',
+            'icon'     => 'bike',
+            'children' => [
+                ['label' => 'Rider Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'],
+                ['label' => 'Delivery Queue', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'],
+                ['label' => 'KYC Verification', 'href' => 'pages/dashboard/kyc_upload.php', 'match' => ['kyc_upload.php'], 'icon' => 'shield-check'],
+                ['label' => 'Delivery Reports', 'href' => 'pages/dashboard/reports.php?type=deliveries', 'match' => ['reports.php'], 'icon' => 'bar-chart-3'],
+            ],
+        ];
+    } elseif ($role === 'admin') {
+        $items[] = [
+            'label'    => 'Admin Hub',
+            'href'     => 'pages/dashboard/dashboard.php',
+            'icon'     => 'shield-alert',
+            'children' => [
+                ['label' => 'Admin Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'],
+                ['label' => 'Manage Catalog', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php'], 'icon' => 'package'],
+                ['label' => 'Bulk CSV Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php'], 'icon' => 'file-spreadsheet'],
+                ['label' => 'KYC Review Queue', 'href' => 'pages/dashboard/seller_verification.php', 'match' => ['seller_verification.php'], 'icon' => 'shield-check'],
+                ['label' => 'All Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'],
+                ['label' => 'Seller Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php'], 'icon' => 'wallet'],
+                ['label' => 'System Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php'], 'icon' => 'bar-chart-3'],
+                ['label' => 'Audit Logs', 'href' => 'pages/dashboard/audit_logs.php', 'match' => ['audit_logs.php'], 'icon' => 'file-text'],
+            ],
+        ];
     }
 
     return $items;

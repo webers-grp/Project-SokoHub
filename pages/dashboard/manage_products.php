@@ -451,12 +451,6 @@ require_once __DIR__ . '/../../includes/header.php';
                 <label for="is_featured" style="margin: 0;">Feature this product on the SokoHub Home Page</label>
             </div>
 
-<<<<<<< HEAD
-            <button type="submit" class="btn btn-primary">
-                <?= icon($editingProduct ? 'save' : 'plus-circle', 'lucide-sm', 'white') ?>
-                <span><?= $editingProduct ? 'Save Changes' : 'Create Product' ?></span>
-            </button>
-=======
             <?php if ($isVerifiedSeller): ?>
                 <button type="submit" class="btn btn-primary">
                     <?= icon('save', 'lucide-xs') ?>
@@ -473,22 +467,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     </span>
                 </div>
             <?php endif; ?>
->>>>>>> feature/seller-kyc-admin
         </form>
     </div>
 
     <div class="card">
-<<<<<<< HEAD
-        <div class="section-heading">
-            <h2>Current Listings (<?= count($myProducts) ?>)</h2>
-            <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="GET" style="display:flex; gap:0.5rem;">
-                <input type="text" name="search" class="form-control" value="<?= e($search) ?>" placeholder="Search listing..." style="max-width:220px;">
-                <button type="submit" class="btn btn-outline btn-sm">
-                    <?= icon('search', 'lucide-xs', 'blue') ?>
-                    <span>Search</span>
-                </button>
-            </form>
-=======
         <div class="section-heading" style="flex-wrap: wrap; gap: 0.75rem;">
             <div>
                 <h2>Current Listings (<?= count($myProducts) ?>)</h2>
@@ -514,7 +496,6 @@ require_once __DIR__ . '/../../includes/header.php';
                     </button>
                 </form>
             </div>
->>>>>>> feature/seller-kyc-admin
         </div>
 
         <?php if (empty($myProducts)): ?>
@@ -566,19 +547,6 @@ require_once __DIR__ . '/../../includes/header.php';
                             </td>
                             <td><?= e($prod['condition_type']) ?></td>
                             <td>
-<<<<<<< HEAD
-                                <div style="display:flex; gap:0.4rem;">
-                                    <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm">
-                                        <?= icon('edit-3', 'lucide-xs', 'blue') ?>
-                                        <span>Edit</span>
-                                    </a>
-                                    <form action="<?= e(url('pages/dashboard/manage_products.php')) ?>" method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete product '<?= e($prod['name']) ?>'?">
-                                            <?= icon('trash-2', 'lucide-xs', 'white') ?>
-=======
                                 <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
                                     <a href="<?= e(url('pages/dashboard/manage_products.php?edit=' . (int) $prod['id'])) ?>" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.8rem;">
                                         <?= icon('edit-3', 'lucide-xs', 'blue') ?>
@@ -610,7 +578,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="product_id" value="<?= (int) $prod['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" style="padding:0.25rem 0.45rem; font-size:0.8rem;" data-confirm="Delete product '<?= e($prod['name']) ?>'?">
                                             <?= icon('trash-2', 'lucide-xs') ?>
->>>>>>> feature/seller-kyc-admin
+                                            <span>Delete</span>
+                                        </button>
+                                    </form>
+                                </div>
                                             <span>Delete</span>
                                         </button>
                                     </form>

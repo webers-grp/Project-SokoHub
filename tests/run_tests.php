@@ -35,15 +35,11 @@ function assert_true(bool $condition, string $label): void
 // 1. Database Connectivity & Seed Verification
 $dbCheck = test_db_connection();
 assert_true($dbCheck['ok'] === true, 'TC-01: PDO MySQL connection succeeds');
-<<<<<<< HEAD
-assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: All schema tables exist (' . count($dbCheck['tables']) . ' tables)');
-=======
 Kyc::ensureSchema();
 Payments::ensureSchema();
 Telephony::ensureSchema();
 $dbCheck = test_db_connection();
 assert_true(count($dbCheck['tables']) >= 9, 'TC-01b: Core schema tables exist (' . count($dbCheck['tables']) . ' tables)');
->>>>>>> feature/seller-kyc-admin
 
 $pdo = get_db_connection();
 $userCount = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -157,46 +153,19 @@ $catRevenue = $pdo->query(
 )->fetchAll();
 assert_true(count($catRevenue) >= 3, 'TC-07: Sales report returns category revenue aggregates');
 
-<<<<<<< HEAD
-// 8. Lucide Vector Icons Integration Verification
-$iconMarkup = icon('shopping-cart', 'lucide-sm');
-assert_true(str_contains($iconMarkup, 'data-lucide="shopping-cart"') && str_contains($iconMarkup, 'class="lucide lucide-sm"'), 'TC-08a: Lucide icon helper generates data-lucide markup');
-assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__DIR__ . '/../assets/js/lucide.min.js') > 100000, 'TC-08b: Local Lucide bundle vendored at assets/js/lucide.min.js');
-$coloredIcon = icon('package', 'lucide-xs', 'emerald');
-assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-08c: Lucide icon helper applies compact size and color classes');
-
-// 9. Group 2 Integration Tests (Catalog, Search, Cart, Checkout, Wishlist, Reviews)
-// TC-09a: Wishlist operations
-$testBuyerId = (int) $buyerLogin['user']['id'];
-$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
-$pdo->prepare('INSERT INTO wishlists (user_id, product_id) VALUES (:uid, 1)')->execute([':uid' => $testBuyerId]);
-$isWish = is_in_wishlist(1, $testBuyerId, $pdo);
-assert_true($isWish === true, 'TC-09a: Wishlist item successfully added and detected');
-$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
-$isWishAfter = is_in_wishlist(1, $testBuyerId, $pdo);
-assert_true($isWishAfter === false, 'TC-09b: Wishlist item cleanly removed');
-
-// TC-09c: Saved Addresses
-$addrCount = (int) $pdo->query('SELECT COUNT(*) FROM addresses')->fetchColumn();
-assert_true($addrCount >= 1, 'TC-09c: Saved addresses table populated (' . $addrCount . ' addresses)');
-
-// TC-09d: Rating Recalculation on Reviews
-$breakdown = get_product_rating_breakdown(1, $pdo);
-assert_true(isset($breakdown['counts'][5]) && isset($breakdown['percentages']), 'TC-09d: Rating breakdown and histogram generated');
-
-// TC-09e: Stock Movement Ledger & Out-of-Stock Protection
-$curStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
-$overQty = $curStock + 999;
-$decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - ? WHERE id = 1 AND stock_qty >= ?');
-$decTry->execute([$overQty, $overQty]);
-assert_true($decTry->rowCount() === 0, 'TC-09e: Atomic inventory check rejects over-stock decrement (rows affected = 0)');
-=======
-// 8. Universal Audit Logging Verification (Kennedy's Feature 1)
+// 8. Universal Audit Logging Verification (Kennedy's Feature 1) & Lucide Icons
 $auditRecorded = Audit::record('test.audit_event', 'test_entity', 9999, ['test_key' => 'verified_value'], 1, 'admin');
 assert_true($auditRecorded === true, 'TC-08a: Audit::record() writes system event safely');
 $auditLogs = Audit::getLogs(['action' => 'test.audit_event'], 5);
 assert_true(!empty($auditLogs) && (int) $auditLogs[0]['entity_id'] === 9999, 'TC-08b: Audit::getLogs() retrieves recorded event and details');
 $pdo->prepare("DELETE FROM audit_logs WHERE action = 'test.audit_event'")->execute();
+
+// 8c-e. Lucide Vector Icons Integration Verification
+$iconMarkup = icon('shopping-cart', 'lucide-sm');
+assert_true(str_contains($iconMarkup, 'data-lucide="shopping-cart"') && str_contains($iconMarkup, 'class="lucide lucide-sm"'), 'TC-08c: Lucide icon helper generates data-lucide markup');
+assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__DIR__ . '/../assets/js/lucide.min.js') > 100000, 'TC-08d: Local Lucide bundle vendored at assets/js/lucide.min.js');
+$coloredIcon = icon('package', 'lucide-xs', 'emerald');
+assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-08e: Lucide icon helper applies compact size and color classes');
 
 // 9. Seller & Delivery KYC Verification (Kennedy's Feature 2)
 Kyc::ensureSchema();
@@ -1096,7 +1065,32 @@ assert_true(
     str_contains($cancelledHtml, 'returned to merchant inventory'),
     'TC-19e: Cancelled order displays cancellation alert banner indicating items returned to merchant inventory'
 );
->>>>>>> feature/seller-kyc-admin
+
+// 20. Group 2 Integration Tests (Catalog, Search, Cart, Checkout, Wishlist, Reviews)
+// TC-20a: Wishlist operations
+$testBuyerId = (int) $buyerLogin['user']['id'];
+$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
+$pdo->prepare('INSERT INTO wishlists (user_id, product_id) VALUES (:uid, 1)')->execute([':uid' => $testBuyerId]);
+$isWish = is_in_wishlist(1, $testBuyerId, $pdo);
+assert_true($isWish === true, 'TC-20a: Wishlist item successfully added and detected');
+$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
+$isWishAfter = is_in_wishlist(1, $testBuyerId, $pdo);
+assert_true($isWishAfter === false, 'TC-20b: Wishlist item cleanly removed');
+
+// TC-20c: Saved Addresses
+$addrCount = (int) $pdo->query('SELECT COUNT(*) FROM addresses')->fetchColumn();
+assert_true($addrCount >= 1, 'TC-20c: Saved addresses table populated (' . $addrCount . ' addresses)');
+
+// TC-20d: Rating Recalculation on Reviews
+$breakdown = get_product_rating_breakdown(1, $pdo);
+assert_true(isset($breakdown['counts'][5]) && isset($breakdown['percentages']), 'TC-20d: Rating breakdown and histogram generated');
+
+// TC-20e: Stock Movement Ledger & Out-of-Stock Protection
+$curStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
+$overQty = $curStock + 999;
+$decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - ? WHERE id = 1 AND stock_qty >= ?');
+$decTry->execute([$overQty, $overQty]);
+assert_true($decTry->rowCount() === 0, 'TC-20e: Atomic inventory check rejects over-stock decrement (rows affected = 0)');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

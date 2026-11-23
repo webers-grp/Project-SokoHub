@@ -2,15 +2,61 @@
  * SokoHub Front-End Interactivity & Client-Side Form Validation
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Mobile Navigation Drawer Toggle
+    // 1. Mobile Navigation Drawer Toggle & Outside-Click Dismissal
     const navToggle = document.getElementById('navToggle');
     const navMenu = document.getElementById('navMenu');
     if (navToggle && navMenu) {
-        navToggle.addEventListener('click', () => {
+        navToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
             const isOpen = navMenu.classList.toggle('open');
             navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            navToggle.classList.toggle('active', isOpen);
+        });
+
+        // Close on clicking outside of navMenu and navToggle
+        document.addEventListener('click', (e) => {
+            if (navMenu.classList.contains('open') && !navMenu.contains(e.target) && !navToggle.contains(e.target)) {
+                navMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.classList.remove('active');
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && navMenu.classList.contains('open')) {
+                navMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.classList.remove('active');
+                navToggle.focus();
+            }
+        });
+
+        // Close drawer on clicking any regular nav link on mobile
+        navMenu.querySelectorAll('a:not(.nav-dropdown-toggle)').forEach((link) => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 960) {
+                    navMenu.classList.remove('open');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    navToggle.classList.remove('active');
+                }
+            });
         });
     }
+
+    // Dropdown toggles for mobile / touch devices
+    document.querySelectorAll('.nav-dropdown-toggle').forEach((toggle) => {
+        toggle.addEventListener('click', (e) => {
+            if (window.innerWidth <= 960) {
+                e.preventDefault();
+                e.stopPropagation();
+                const parent = toggle.closest('.nav-item-dropdown');
+                if (parent) {
+                    parent.classList.toggle('open');
+                }
+            }
+        });
+    });
 
     // 2. Dismissible Flash Alerts
     document.querySelectorAll('.alert-close').forEach((btn) => {
@@ -91,22 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-<<<<<<< HEAD
-    // 8. Group 2: Live Autocomplete Search Bar
-    initLiveSearch();
-
-    // 9. Group 2: Cart Quantity Spinners & Async AJAX Updates
-    initCartAjax();
-
-    // 10. Group 2: Multi-Step Checkout Wizard
-    initMultiStepCheckout();
-
-    // 11. Group 2: Interactive 5-Star Rating Widget
-    initRatingWidget();
-
-    // 12. Group 2: Wishlist Toggle
-    initWishlistToggle();
-=======
     // 8. Dark / Light Mode Switcher
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -126,7 +156,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
->>>>>>> feature/seller-kyc-admin
+
+    // 9. Group 2: Live Autocomplete Search Bar
+    initLiveSearch();
+
+    // 10. Group 2: Cart Quantity Spinners & Async AJAX Updates
+    initCartAjax();
+
+    // 11. Group 2: Multi-Step Checkout Wizard
+    initMultiStepCheckout();
+
+    // 12. Group 2: Interactive 5-Star Rating Widget
+    initRatingWidget();
+
+    // 13. Group 2: Wishlist Toggle
+    initWishlistToggle();
 });
 
 function clearFieldError(field) {

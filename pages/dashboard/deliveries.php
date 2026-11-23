@@ -286,15 +286,12 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
             <?php endif; ?>
         </div>
-<<<<<<< HEAD
         <?php if (in_array($role, ['delivery', 'admin'], true)): ?>
             <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
                 <?= icon('file-text', 'lucide-xs', 'white') ?>
                 <span>Delivery Performance Report</span>
             </a>
         <?php endif; ?>
-=======
->>>>>>> feature/seller-kyc-admin
     </div>
 
     <!-- Strictly Cashless Banner -->
@@ -469,43 +466,6 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <div><strong>From:</strong> <?= e($del['pickup_town']) ?></div>
                                 <div class="small muted"><strong>To:</strong> <?= e($del['dropoff_address']) ?></div>
                             </td>
-<<<<<<< HEAD
-                            <td><?= format_ksh($del['delivery_fee']) ?></td>
-                            <td><span class="badge <?= e($badge['class']) ?>"><?= e($badge['label']) ?></span></td>
-                            <td class="small"><?= e($del['tracking_notes'] ?: '-') ?></td>
-                            <?php if (in_array($role, ['delivery', 'admin'], true)): ?>
-                                <td>
-                                    <?php if ($del['delivery_person_id'] === null && $del['delivery_status'] === 'pending' && $role === 'delivery'): ?>
-                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="claim">
-                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                <?= icon('hand', 'lucide-xs', 'white') ?>
-                                                <span>Claim Task</span>
-                                            </button>
-                                        </form>
-                                    <?php elseif ($role === 'admin' || (int) $del['delivery_person_id'] === $userId): ?>
-                                        <form action="<?= e(url('pages/dashboard/deliveries.php')) ?>" method="POST" style="display:flex; flex-direction:column; gap:0.35rem; min-width:190px;">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="update">
-                                            <input type="hidden" name="delivery_id" value="<?= (int) $del['id'] ?>">
-                                            <select name="delivery_status" class="form-control" style="padding:0.28rem 0.45rem; font-size:0.84rem;">
-                                                <?php foreach (['assigned', 'picked_up', 'in_transit', 'delivered', 'failed'] as $st): ?>
-                                                    <option value="<?= $st ?>" <?= $del['delivery_status'] === $st ? 'selected' : '' ?>>
-                                                        <?= ucfirst(str_replace('_', ' ', $st)) ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <input type="text" name="tracking_notes" class="form-control" style="padding:0.28rem 0.45rem; font-size:0.82rem;" value="<?= e($del['tracking_notes'] ?? '') ?>" placeholder="Update note...">
-                                            <button type="submit" class="btn btn-amber btn-sm">
-                                                <?= icon('check', 'lucide-xs', 'white') ?>
-                                                <span>Update</span>
-                                            </button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span class="small muted">Assigned to another rider</span>
-=======
                             <td>
                                 <div><strong><?= format_ksh($totalPayable) ?></strong></div>
                                 <div class="small muted">Goods: <?= format_ksh($del['total_amount']) ?> + Fee: <?= format_ksh($del['delivery_fee']) ?></div>
@@ -584,7 +544,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                                     <option value="">-- Choose Verified Rider --</option>
                                                     <?php foreach ($availableRiders as $r): ?>
                                                         <option value="<?= (int) $r['rider_id'] ?>">
-                                                            <?= e($r['rider_name']) ?> - <?= e(ucfirst($r['transport_method'])) ?> <?= !empty($r['vehicle_plate_number']) ? '[' . e($r['vehicle_plate_number']) . ']' : '' ?> (<?= (int) $r['active_deliveries'] ?> active)
+                                                             <?= e($r['rider_name']) ?> - <?= e(ucfirst($r['transport_method'])) ?> <?= !empty($r['vehicle_plate_number']) ? '[' . e($r['vehicle_plate_number']) . ']' : '' ?> (<?= (int) $r['active_deliveries'] ?> active)
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -719,7 +679,6 @@ require_once __DIR__ . '/../../includes/header.php';
                                                 </button>
                                             </form>
                                         </div>
->>>>>>> feature/seller-kyc-admin
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>

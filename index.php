@@ -47,10 +47,6 @@ require_once __DIR__ . '/includes/header.php';
             <h1>Shop Local, Sell Smarter &amp; Deliver Faster with SokoHub</h1>
             <p>SokoHub connects small and medium local vendors, customers, and verified delivery riders in one secure marketplace — from fresh organic produce and cooking gas to electronics and apparel.</p>
             <div class="hero-cta">
-<<<<<<< HEAD
-                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber"><?= icon('shopping-bag') ?> <span>Explore Marketplace</span></a>
-                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light"><?= icon('user-plus') ?> <span>Create Free Account</span></a>
-=======
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber">
                     <?= icon('shopping-bag') ?>
                     <span>Explore Marketplace</span>
@@ -59,7 +55,6 @@ require_once __DIR__ . '/includes/header.php';
                     <?= icon('user-plus') ?>
                     <span>Create Free Account</span>
                 </a>
->>>>>>> feature/seller-kyc-admin
             </div>
         </div>
 
@@ -191,29 +186,17 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="prop-grid">
             <div class="prop-item">
-<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-amber"><?= icon('truck', 'lucide-sm') ?></div>
-=======
-                <div class="prop-icon-wrap prop-icon-green"><?= icon('truck', 'lucide-md') ?></div>
->>>>>>> feature/seller-kyc-admin
                 <h3>Instant Local Delivery</h3>
                 <p>Dedicated motorbike, bicycle, and van riders pick up directly from local merchants and update real-time order statuses.</p>
             </div>
             <div class="prop-item">
-<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-blue"><?= icon('credit-card', 'lucide-sm') ?></div>
-=======
-                <div class="prop-icon-wrap prop-icon-amber"><?= icon('credit-card', 'lucide-md') ?></div>
->>>>>>> feature/seller-kyc-admin
                 <h3>Flexible Payments</h3>
                 <p>Checkout smoothly using M-Pesa, Cash on Delivery, or Bank Card with clear order receipts and tracking codes.</p>
             </div>
             <div class="prop-item">
-<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-green"><?= icon('store', 'lucide-sm') ?></div>
-=======
-                <div class="prop-icon-wrap prop-icon-blue"><?= icon('store', 'lucide-md') ?></div>
->>>>>>> feature/seller-kyc-admin
                 <h3>Empowered Local MSMEs</h3>
                 <p>Vendors manage inventory, pricing, stock alerts, and revenue reports from one clean web dashboard.</p>
             </div>
