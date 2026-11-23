@@ -169,12 +169,15 @@ dev_header('Security Events & Threat Monitoring', 'security_events');
                 <?php if (empty($secAudits)): ?>
                     <tr><td colspan="6" style="text-align:center; padding:1.25rem; color:var(--text-muted);">No security audit events logged yet.</td></tr>
                 <?php else: ?>
-                    <?php foreach ($secAudits as $sa): ?>
+                    <?php foreach ($secAudits as $sa): 
+                        $actorId = $sa['actor_user_id'] ?? ($sa['user_id'] ?? null);
+                        $actorRole = $sa['actor_role'] ?? ($sa['user_role'] ?? 'guest');
+                    ?>
                         <tr>
                             <td><code><?= $sa['id'] ?></code></td>
                             <td><span class="badge badge-dev"><?= htmlspecialchars($sa['action']) ?></span></td>
-                            <td><?= $sa['user_id'] ? '#' . $sa['user_id'] : 'system' ?></td>
-                            <td><span class="badge badge-secondary"><?= htmlspecialchars($sa['user_role'] ?? 'guest') ?></span></td>
+                            <td><?= $actorId ? '#' . $actorId : 'system' ?></td>
+                            <td><span class="badge badge-secondary"><?= htmlspecialchars($actorRole) ?></span></td>
                             <td><code style="font-size:0.75rem;"><?= htmlspecialchars(substr($sa['details'] ?? '', 0, 100)) ?></code></td>
                             <td><?= htmlspecialchars($sa['created_at']) ?></td>
                         </tr>

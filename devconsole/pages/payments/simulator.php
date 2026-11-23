@@ -24,7 +24,7 @@ $error = null;
 
 // Fetch active pending payments for quick selection
 $pendingStmt = $pdo->query("
-    SELECT p.*, o.order_number, o.total_amount
+    SELECT p.*, o.order_code, o.total_amount
     FROM payments p
     LEFT JOIN orders o ON o.id = p.order_id
     WHERE p.status = 'pending' AND p.method = 'mpesa'

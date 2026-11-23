@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch Payouts List
 $payoutsStmt = $pdo->query('
-    SELECT py.*, u.full_name, u.email, o.order_number
+    SELECT py.*, u.full_name, u.email, o.order_code
     FROM payouts py
     LEFT JOIN users u ON u.id = py.user_id
     LEFT JOIN orders o ON o.id = py.order_id
@@ -104,7 +104,7 @@ dev_header('Payouts Inspector &amp; Settlement Management', 'payouts');
                     <?php foreach ($payouts as $p): ?>
                         <tr>
                             <td><code><?= $p['id'] ?></code></td>
-                            <td>#<?= (int) $p['order_id'] ?> (<?= htmlspecialchars($p['order_number'] ?? '') ?>)</td>
+                            <td>#<?= (int) $p['order_id'] ?> (<?= htmlspecialchars($p['order_code'] ?? '') ?>)</td>
                             <td>
                                 <div><strong><?= htmlspecialchars($p['full_name'] ?? 'Vendor') ?></strong></div>
                                 <span class="badge badge-dev" style="font-size:0.65rem;"><?= strtoupper($p['recipient_type']) ?></span>
@@ -120,8 +120,8 @@ dev_header('Payouts Inspector &amp; Settlement Management', 'payouts');
                                     <?= strtoupper($p['status']) ?>
                                 </span>
                             </td>
-                            <td><code><?= htmlspecialchars($p['provider_reference'] ?: '—') ?></code></td>
-                            <td><?= htmlspecialchars($p['disbursed_at'] ?: 'Pending Delivery') ?></td>
+                            <td><code><?= htmlspecialchars($p['transaction_id'] ?? ($p['provider_reference'] ?? '—')) ?></code></td>
+                            <td><?= htmlspecialchars($p['paid_at'] ?? ($p['disbursed_at'] ?? 'Pending Delivery')) ?></td>
                             <?php if ($dev['role'] === 'owner'): ?>
                                 <td>
                                     <?php if ($p['status'] !== 'succeeded'): ?>

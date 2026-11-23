@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 1. Stuck Pending Payments (> 2m old)
 $stuckStmt = $pdo->query("
-    SELECT p.*, o.order_number, TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) AS age_mins
+    SELECT p.*, o.order_code, TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) AS age_mins
     FROM payments p
     LEFT JOIN orders o ON o.id = p.order_id
     WHERE p.status = 'pending' AND p.created_at < (NOW() - INTERVAL 2 MINUTE)
@@ -47,7 +47,7 @@ $stuckPayments = $stuckStmt->fetchAll(PDO::FETCH_ASSOC);
 $reconStmt = $pdo->query("
     SELECT 
         o.id AS order_id,
-        o.order_number,
+        o.order_code,
         o.payment_status,
         o.total_amount AS order_total,
         p.amount AS payment_amount,
@@ -69,7 +69,7 @@ foreach ($reconRows as $row) {
     if ($diff > 0.05) {
         $discrepancies[] = [
             'order_id' => $row['order_id'],
-            'order_number' => $row['order_number'],
+            'order_code' => $row['order_code'],
             'reason' => "Order total (KSh {$row['order_total']}) does not match paid amount (KSh {$row['payment_amount']})",
         ];
     }
@@ -135,7 +135,7 @@ dev_header('Payment Reconciliation Tools', 'reconciliation');
                     <?php foreach ($stuckPayments as $sp): ?>
                         <tr>
                             <td><code><?= $sp['id'] ?></code></td>
-                            <td>#<?= (int) $sp['order_id'] ?> (<?= htmlspecialchars($sp['order_number'] ?? '') ?>)</td>
+                            <td>#<?= (int) $sp['order_id'] ?> (<?= htmlspecialchars($sp['order_code'] ?? '') ?>)</td>
                             <td><code><?= Security::maskPhone($sp['phone']) ?></code></td>
                             <td>KSh <?= number_format($sp['amount'], 2) ?></td>
                             <td><code style="font-size:0.75rem;"><?= substr($sp['checkout_request_id'], 0, 16) ?>...</code></td>
@@ -195,7 +195,7 @@ dev_header('Payment Reconciliation Tools', 'reconciliation');
                     $escrowFee = (float)$r['total_gross_payouts'] - (float)$r['total_net_payouts'];
                 ?>
                     <tr>
-                        <td><strong>#<?= $r['order_id'] ?></strong> (<?= htmlspecialchars($r['order_number'] ?? '') ?>)</td>
+                        <td><strong>#<?= $r['order_id'] ?></strong> (<?= htmlspecialchars($r['order_code'] ?? '') ?>)</td>
                         <td>KSh <?= number_format($r['order_total'], 2) ?></td>
                         <td style="color:#34d399; font-weight:600;">KSh <?= number_format($r['payment_amount'], 2) ?></td>
                         <td>KSh <?= number_format($r['total_gross_payouts'], 2) ?></td>

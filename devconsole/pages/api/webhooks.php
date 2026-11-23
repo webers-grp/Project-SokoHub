@@ -110,7 +110,7 @@ dev_header('Webhook History &amp; Replay', 'webhooks');
                             <tr>
                                 <td>#<?= (int) $rc['order_id'] ?></td>
                                 <td><code style="font-size:0.75rem;"><?= substr($rc['checkout_request_id'], 0, 14) ?>...</code></td>
-                                <td><code><?= htmlspecialchars($rc['mpesa_receipt_number'] ?: '—') ?></code></td>
+                                <td><code><?= htmlspecialchars($rc['mpesa_receipt'] ?? ($rc['mpesa_receipt_number'] ?? '—')) ?></code></td>
                                 <td><span class="badge <?= $rc['status'] === 'success' ? 'badge-success' : 'badge-danger' ?>"><?= strtoupper($rc['status']) ?></span></td>
                                 <td><?= htmlspecialchars($rc['updated_at']) ?></td>
                             </tr>

@@ -106,8 +106,8 @@ dev_header('Notification &amp; Telephony Tester', 'notifications_tester');
                     <?php else: ?>
                         <?php foreach ($telephonyLogs as $tl): ?>
                             <tr>
-                                <td><span class="badge badge-dev"><?= strtoupper($tl['type']) ?></span></td>
-                                <td><code><?= Security::maskPhone($tl['phone']) ?></code></td>
+                                <td><span class="badge badge-dev"><?= strtoupper($tl['channel'] ?? ($tl['type'] ?? 'SMS')) ?></span></td>
+                                <td><code><?= Security::maskPhone($tl['phone'] ?? '') ?></code></td>
                                 <td><span style="font-size:0.75rem; color:var(--text-secondary);"><?= htmlspecialchars(substr($tl['message'] ?? '', 0, 45)) ?>...</span></td>
                                 <td><span class="badge badge-success"><?= strtoupper($tl['status']) ?></span></td>
                                 <td><?= htmlspecialchars($tl['created_at']) ?></td>

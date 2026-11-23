@@ -21,7 +21,7 @@ if ($query !== '') {
         SELECT * FROM payments 
         WHERE order_id = :q1 
            OR checkout_request_id = :q2 
-           OR mpesa_receipt_number = :q3
+           OR mpesa_receipt = :q3
         ORDER BY id DESC LIMIT 1
     ');
     $stmt->execute([':q1' => $query, ':q2' => $query, ':q3' => $query]);
@@ -41,7 +41,7 @@ if ($query !== '') {
         $payouts = $pStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch Audit Logs
-        $aStmt = $pdo->prepare('SELECT * FROM audit_logs WHERE target_id = :oid OR details LIKE :like ORDER BY id ASC');
+        $aStmt = $pdo->prepare('SELECT * FROM audit_logs WHERE (entity_type = "order" AND entity_id = :oid) OR details LIKE :like ORDER BY id ASC');
         $aStmt->execute([':oid' => $orderId, ':like' => "%{$payment['checkout_request_id']}%"]);
         $auditEvents = $aStmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -93,7 +93,7 @@ dev_header('Payment & Ledger Inspector', 'inspector');
 
         <div class="metric-card">
             <div class="metric-label">M-Pesa Receipt</div>
-            <div class="metric-value" style="font-size: 1.15rem;"><?= htmlspecialchars($payment['mpesa_receipt_number'] ?: '—') ?></div>
+            <div class="metric-value" style="font-size: 1.15rem;"><?= htmlspecialchars($payment['mpesa_receipt'] ?? ($payment['mpesa_receipt_number'] ?? '—')) ?></div>
             <div class="metric-sub"><?= icon('hash', 'lucide-xs') ?> Verified Daraja Ref</div>
         </div>
 
@@ -123,7 +123,7 @@ dev_header('Payment & Ledger Inspector', 'inspector');
             <div class="card-title"><?= icon('package', 'lucide-sm') ?> Linked Order Summary</div>
             <?php if ($order): ?>
                 <table class="dev-table">
-                    <tr><td style="color:var(--text-muted);">Order Number</td><td><strong><?= htmlspecialchars($order['order_number']) ?></strong></td></tr>
+                    <tr><td style="color:var(--text-muted);">Order Code</td><td><strong><?= htmlspecialchars($order['order_code']) ?></strong></td></tr>
                     <tr><td style="color:var(--text-muted);">Buyer ID</td><td><code><?= $order['buyer_id'] ?></code></td></tr>
                     <tr><td style="color:var(--text-muted);">Order Status</td><td><span class="badge badge-dev"><?= strtoupper($order['order_status']) ?></span></td></tr>
                     <tr><td style="color:var(--text-muted);">Payment Status</td><td><span class="badge <?= $order['payment_status'] === 'paid' ? 'badge-success' : 'badge-warning' ?>"><?= strtoupper($order['payment_status']) ?></span></td></tr>
@@ -166,7 +166,7 @@ dev_header('Payment & Ledger Inspector', 'inspector');
                                 <td style="color: #38bdf8;">KSh <?= number_format($p['gross_amount'] - $p['net_amount'], 2) ?></td>
                                 <td style="font-weight:700; color:#34d399;">KSh <?= number_format($p['net_amount'], 2) ?></td>
                                 <td><span class="badge <?= $p['status'] === 'succeeded' ? 'badge-success' : ($p['status'] === 'pending' ? 'badge-warning' : 'badge-danger') ?>"><?= strtoupper($p['status']) ?></span></td>
-                                <td><?= htmlspecialchars($p['disbursed_at'] ?: 'Pending Delivery') ?></td>
+                                <td><?= htmlspecialchars($p['paid_at'] ?? ($p['disbursed_at'] ?? 'Pending Delivery')) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

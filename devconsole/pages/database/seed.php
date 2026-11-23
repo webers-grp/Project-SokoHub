@@ -31,14 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'create_test_order') {
         // Create a test order and pending M-Pesa payment
-        $orderNumber = 'TEST-' . strtoupper(bin2hex(random_bytes(4)));
+        $orderCode = 'TEST-' . strtoupper(bin2hex(random_bytes(4)));
         $chkId = 'ws_CO_' . date('dmYHis') . mt_rand(100, 999);
         $amount = 1500.00;
 
         $pdo->prepare('
-            INSERT INTO orders (order_number, buyer_id, total_amount, payment_status, order_status, notes, created_at)
-            VALUES (:onum, 4, :amt, "pending", "pending", "DevConsole Simulated Test Order", NOW())
-        ')->execute([':onum' => $orderNumber, ':amt' => $amount]);
+            INSERT INTO orders (order_code, buyer_id, total_amount, payment_status, order_status, notes, created_at)
+            VALUES (:ocode, 4, :amt, "pending", "pending", "DevConsole Simulated Test Order", NOW())
+        ')->execute([':ocode' => $orderCode, ':amt' => $amount]);
         $orderId = (int) $pdo->lastInsertId();
 
         $pdo->prepare('
@@ -46,13 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (:oid, "mpesa", :amt, "254712345678", "pending", :cid, "MR_TEST", NOW())
         ')->execute([':oid' => $orderId, ':amt' => $amount, ':cid' => $chkId]);
 
-        DevAudit::log('database', 'test_order_seeded', (string) $orderId, ['order_number' => $orderNumber]);
-        dev_set_flash('success', "Test order #{$orderId} ({$orderNumber}) generated with pending M-Pesa CheckoutID: {$chkId}");
+        DevAudit::log('database', 'test_order_seeded', (string) $orderId, ['order_code' => $orderCode]);
+        dev_set_flash('success', "Test order #{$orderId} ({$orderCode}) generated with pending M-Pesa CheckoutID: {$chkId}");
     } elseif ($action === 'purge_test_data') {
         dev_require_role('owner');
         // Only purge records clearly flagged as test
         $pdo->exec("DELETE FROM payments WHERE checkout_request_id LIKE 'ws_CO_%TEST%' OR merchant_request_id = 'MR_TEST'");
-        $pdo->exec("DELETE FROM orders WHERE order_number LIKE 'TEST-%' OR notes LIKE '%Simulated Test Order%'");
+        $pdo->exec("DELETE FROM orders WHERE order_code LIKE 'TEST-%' OR notes LIKE '%Simulated Test Order%'");
 
         DevAudit::log('database', 'test_data_purged', null, []);
         dev_set_flash('info', 'Cleaned up all records created by the test data generator.');

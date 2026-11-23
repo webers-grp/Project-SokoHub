@@ -180,6 +180,39 @@ assert_test('DEV-08c: HTTP GET /devconsole/dashboard.php unauthenticated redirec
 $robotsContent = @file_get_contents($baseUrl . '/robots.txt');
 assert_test('DEV-08d: HTTP GET /robots.txt serves Disallow: /devconsole/', str_contains((string) $robotsContent, 'Disallow: /devconsole/'));
 
+echo "\n9. Full Syntax & Database Column Integrity of All 22 DevConsole Pages\n";
+$devPages = [
+    'dashboard.php',
+    'pages/payments/simulator.php',
+    'pages/payments/inspector.php',
+    'pages/payments/reconciliation.php',
+    'pages/payments/payouts.php',
+    'pages/payments/tester.php',
+    'pages/database/schema.php',
+    'pages/database/migrations.php',
+    'pages/database/browser.php',
+    'pages/database/query.php',
+    'pages/database/backup.php',
+    'pages/database/seed.php',
+    'pages/logs/viewer.php',
+    'pages/logs/security.php',
+    'pages/logs/cron.php',
+    'pages/config/env.php',
+    'pages/config/flags.php',
+    'pages/config/cache.php',
+    'pages/config/notifications.php',
+    'pages/api/webhooks.php',
+    'pages/api/tester.php',
+    'pages/api/audit_log.php',
+];
+
+foreach ($devPages as $idx => $dp) {
+    $cmd = '"C:\xampp\php\php.exe" ' . escapeshellarg(__DIR__ . '/test_page_harness.php') . ' ' . escapeshellarg($dp);
+    $out = trim((string) shell_exec($cmd));
+    $isOk = str_starts_with($out, 'SUCCESS');
+    assert_test("DEV-09-" . str_pad((string) ($idx + 1), 2, '0', STR_PAD_LEFT) . ": devconsole/{$dp} renders cleanly with zero errors", $isOk, $out);
+}
+
 echo "\n=========================================================\n";
 printf("   DevConsole Suite: %d PASSED, %d FAILED\n", $testsPassed, $testsFailed);
 echo "=========================================================\n";
