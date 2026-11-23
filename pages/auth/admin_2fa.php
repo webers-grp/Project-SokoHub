@@ -107,6 +107,24 @@ if (str_contains($adminEmail, '@')) {
     $maskedEmail = substr($namePart, 0, 1) . str_repeat('*', max(3, $len - 2)) . substr($namePart, -1) . '@' . $domainPart;
 }
 
+// In local development, retrieve generated 2FA code
+$isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true)
+    || (PHP_SAPI === 'cli-server') || empty($_SERVER['SERVER_NAME']);
+$dev2faCode = null;
+if ($isLocal && $adminId > 0) {
+    try {
+        $stmtJob = $pdo->prepare("SELECT payload FROM jobs WHERE job_type IN ('send_email', 'email') ORDER BY id DESC LIMIT 10");
+        $stmtJob->execute();
+        while ($jRow = $stmtJob->fetch()) {
+            $p = json_decode((string) $jRow['payload'], true);
+            if (!empty($p['code']) && !empty($p['to']) && strtolower($p['to']) === strtolower($adminEmail)) {
+                $dev2faCode = (string) $p['code'];
+                break;
+            }
+        }
+    } catch (Throwable $_) {}
+}
+
 $pageTitle = 'SokoHub | Admin Two-Factor Authentication';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -198,6 +216,35 @@ require_once __DIR__ . '/../../includes/header.php';
                 </button>
             </form>
         </div>
+
+        <?php if ($isLocal && !empty($dev2faCode)): ?>
+            <div class="demo-box" style="margin-top: 1.5rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="font-size: 0.88rem; color: #6b21a8; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                    <?= icon('shield-check', 'lucide-xs') ?>
+                    <span>Local Development 2FA Code</span>
+                </div>
+                <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
+                    Your generated 2FA challenge code is:
+                </p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <code style="font-size: 1.4rem; font-weight: 800; color: #7c3aed; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #7c3aed;"><?= e($dev2faCode) ?></code>
+                    <button type="button" class="btn btn-outline btn-xs" id="btnCopy2fa" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; border-color: #7c3aed; color: #7c3aed;">
+                        <?= icon('copy', 'lucide-xs') ?> Autofill
+                    </button>
+                </div>
+            </div>
+            <script>
+            document.getElementById('btnCopy2fa')?.addEventListener('click', function () {
+                const code = <?= json_encode((string) $dev2faCode) ?>;
+                const digits = document.querySelectorAll('.admin-digit');
+                code.split('').forEach((c, idx) => {
+                    if (digits[idx]) digits[idx].value = c;
+                });
+                document.getElementById('adminFullCode').value = code;
+                this.textContent = 'Autofilled!';
+            });
+            </script>
+        <?php endif; ?>
     </div>
 </main>
 

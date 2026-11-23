@@ -144,6 +144,94 @@ function process_jobs_batch(PDO $pdo, string $workerId, int $limit): int
 }
 
 /**
+ * Send email via direct SMTP socket (supports Gmail, Brevo, SendGrid, Mailtrap, etc.).
+ * Returns true if sent successfully, or false to fall back to simulation/mail().
+ */
+function send_smtp_mail(string $to, string $subject, string $body): bool
+{
+    $host = getenv('SMTP_HOST') ?: '';
+    $port = (int) (getenv('SMTP_PORT') ?: 587);
+    $user = getenv('SMTP_USER') ?: '';
+    $pass = getenv('SMTP_PASS') ?: '';
+    $from = getenv('SMTP_FROM') ?: 'no-reply@sokohub.co.ke';
+
+    $localConfig = __DIR__ . '/../config/db.local.php';
+    if (file_exists($localConfig)) {
+        $cfg = require $localConfig;
+        if (is_array($cfg) && !empty($cfg['smtp']) && is_array($cfg['smtp'])) {
+            $host = $cfg['smtp']['host'] ?? $host;
+            $port = (int) ($cfg['smtp']['port'] ?? $port);
+            $user = $cfg['smtp']['user'] ?? $user;
+            $pass = $cfg['smtp']['pass'] ?? $pass;
+            $from = $cfg['smtp']['from'] ?? $from;
+        }
+    }
+
+    if (empty($host) || empty($user) || empty($pass)) {
+        return false;
+    }
+
+    try {
+        $timeout = 10;
+        $socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        if (!$socket) {
+            return false;
+        }
+
+        $read = function () use ($socket) {
+            $res = '';
+            while ($str = fgets($socket, 515)) {
+                $res .= $str;
+                if (substr($str, 3, 1) === ' ') break;
+            }
+            return $res;
+        };
+        $write = function ($cmd) use ($socket) {
+            fputs($socket, $cmd . "\r\n");
+        };
+
+        $read();
+        $write("EHLO localhost");
+        $read();
+
+        if ($port === 587) {
+            $write("STARTTLS");
+            $read();
+            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                fclose($socket);
+                return false;
+            }
+            $write("EHLO localhost");
+            $read();
+        }
+
+        $write("AUTH LOGIN");
+        $read();
+        $write(base64_encode($user));
+        $read();
+        $write(base64_encode($pass));
+        $read();
+
+        $write("MAIL FROM: <{$from}>");
+        $read();
+        $write("RCPT TO: <{$to}>");
+        $read();
+        $write("DATA");
+        $read();
+
+        $headers = "From: SokoHub <{$from}>\r\nTo: <{$to}>\r\nSubject: {$subject}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+        $write($headers . "\r\n" . $body . "\r\n.");
+        $read();
+        $write("QUIT");
+        fclose($socket);
+
+        return true;
+    } catch (Throwable $_) {
+        return false;
+    }
+}
+
+/**
  * Execute email dispatch and log into notification_logs table.
  */
 function execute_email_job(PDO $pdo, int $jobId, array $payload): void
@@ -163,23 +251,29 @@ function execute_email_job(PDO $pdo, int $jobId, array $payload): void
     $body = $payload['body'] ?? '';
     if (empty($body)) {
         if ($code !== '') {
-            $body = "Your SokoHub verification code is: {$code}\nValid for 10 minutes.";
+            $body = "Welcome to SokoHub!\n\nYour 6-digit verification code is: {$code}\nThis code is valid for 10 minutes.\n\nIf you did not request this, please ignore this message.";
         } elseif ($resetUrl !== '') {
-            $body = "Please click the link below to reset your SokoHub password:\n{$resetUrl}\nValid for 30 minutes.";
+            $body = "We received a request to reset your SokoHub account password.\n\nPlease click the link below to set a new password:\n{$resetUrl}\n\nThis link is valid for 30 minutes.\nIf you did not request this, your account remains secure.";
         } else {
             $body = "You have a new update from SokoHub.";
         }
     }
 
-    // In production, send via mail() or SMTP. Here we simulate/dispatch cleanly:
-    $headers = "From: no-reply@sokohub.co.ke\r\nReply-To: support@sokohub.co.ke\r\nX-Mailer: PHP/" . phpversion();
-    if (function_exists('mail') && !empty(ini_get('SMTP'))) {
-        @mail($to, $subject, $body, $headers);
+    $sentSmtp = send_smtp_mail($to, $subject, $body);
+
+    if ($sentSmtp) {
+        echo "Dispatched live SMTP email to '{$to}' (template: {$template}) ";
+    } else {
+        // Fallback local simulation / PHP mail
+        $headers = "From: no-reply@sokohub.co.ke\r\nReply-To: support@sokohub.co.ke\r\nX-Mailer: PHP/" . phpversion();
+        if (function_exists('mail') && !empty(ini_get('SMTP')) && ini_get('SMTP') !== 'localhost') {
+            @mail($to, $subject, $body, $headers);
+        }
+        echo "Processed email job for '{$to}' (template: {$template}) ";
     }
 
     // Record in notification_logs table
     Security::logNotification($pdo, $userId, 'email', $template, $to);
-    echo "Dispatched email to '{$to}' (template: {$template}) ";
 }
 
 /**

@@ -18,6 +18,9 @@ if (is_logged_in()) {
 $emailInput = '';
 $errors = [];
 $successMessage = '';
+$devResetUrl = '';
+$isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true)
+    || (PHP_SAPI === 'cli-server') || empty($_SERVER['SERVER_NAME']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -40,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $rawToken = Security::createPasswordResetToken($pdo, $userId);
 
                 $resetUrl = url('pages/auth/reset_password.php?token=' . urlencode($rawToken));
+                if ($isLocal) {
+                    $devResetUrl = $resetUrl;
+                }
 
                 // Enqueue background email dispatch
                 Security::enqueueJob($pdo, 'send_email', [
@@ -97,6 +103,16 @@ require_once __DIR__ . '/../../includes/header.php';
                         <div>
                             <strong>Reset Link Sent!</strong>
                             <p style="margin: 0.25rem 0 0; font-size: 0.92rem;"><?= $successMessage ?></p>
+                            <?php if (!empty($devResetUrl)): ?>
+                                <div style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: #ffffff; border: 1px dashed #2e7d32; border-radius: 6px;">
+                                    <div class="small" style="font-weight: 700; color: #2e7d32; margin-bottom: 0.2rem;">
+                                        <?= icon('link', 'lucide-xs') ?> Localhost Testing Direct Link:
+                                    </div>
+                                    <a href="<?= e($devResetUrl) ?>" style="word-break: break-all; font-size: 0.88rem; font-weight: 600;">
+                                        <?= e($devResetUrl) ?>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
