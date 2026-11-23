@@ -169,8 +169,9 @@ assert_true(isset($breakdown['counts'][5]) && isset($breakdown['percentages']), 
 
 // TC-09e: Stock Movement Ledger & Out-of-Stock Protection
 $curStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
-$decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - :qty WHERE id = 1 AND stock_qty >= :qty');
-$decTry->execute([':qty' => $curStock + 999]);
+$overQty = $curStock + 999;
+$decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - ? WHERE id = 1 AND stock_qty >= ?');
+$decTry->execute([$overQty, $overQty]);
 assert_true($decTry->rowCount() === 0, 'TC-09e: Atomic inventory check rejects over-stock decrement (rows affected = 0)');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
