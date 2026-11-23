@@ -31,6 +31,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('buyer', 'seller', 'delivery', 'admin') NOT NULL DEFAULT 'buyer',
     status ENUM('active', 'suspended') NOT NULL DEFAULT 'active',
+    last_seen_at DATETIME NULL,
+    offline_alert_preference ENUM('both', 'sms', 'call', 'none') NOT NULL DEFAULT 'both',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -50,7 +52,9 @@ CREATE TABLE seller_profiles (
 CREATE TABLE delivery_profiles (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL UNIQUE,
-    transport_method ENUM('motorbike', 'bicycle', 'car', 'foot') NOT NULL DEFAULT 'motorbike',
+    transport_method ENUM('motorbike', 'tuk_tuk', 'pickup_truck', 'car', 'bicycle') NOT NULL DEFAULT 'motorbike',
+    vehicle_plate_number VARCHAR(20) NULL,
+    vehicle_model VARCHAR(80) NULL,
     license_number VARCHAR(60) NOT NULL,
     service_area VARCHAR(120) NOT NULL DEFAULT 'Kutus & Kerugoya',
     is_available TINYINT(1) NOT NULL DEFAULT 1,
@@ -77,6 +81,8 @@ CREATE TABLE products (
     price DECIMAL(10, 2) NOT NULL,
     original_price DECIMAL(10, 2) NULL,
     stock_qty INT NOT NULL DEFAULT 10,
+    low_stock_threshold INT NOT NULL DEFAULT 5,
+    low_stock_alerted_at DATETIME NULL,
     condition_type ENUM('New', 'Second Hand') NOT NULL DEFAULT 'New',
     image_path VARCHAR(255) NOT NULL DEFAULT 'assets/img/cart-icon.jpg',
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
@@ -101,6 +107,7 @@ CREATE TABLE orders (
     order_code VARCHAR(32) NOT NULL UNIQUE,
     buyer_id INT UNSIGNED NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
+<<<<<<< HEAD
     payment_method ENUM('M-Pesa', 'Cash on Delivery', 'Bank Card') NOT NULL DEFAULT 'M-Pesa',
     payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'paid',
     order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
@@ -111,6 +118,16 @@ CREATE TABLE orders (
     cancelled_at DATETIME NULL,
     cancel_reason VARCHAR(255) NULL,
     version INT UNSIGNED NOT NULL DEFAULT 0,
+=======
+    payment_method VARCHAR(60) NOT NULL DEFAULT 'Digital Pay-on-Delivery (M-Pesa)',
+    payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
+    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    delivery_address VARCHAR(255) NOT NULL,
+    delivery_town VARCHAR(100) NOT NULL,
+    notes VARCHAR(255) NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    paid_at DATETIME NULL,
+>>>>>>> feature/seller-kyc-admin
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_orders_buyer (buyer_id),
@@ -141,6 +158,8 @@ CREATE TABLE deliveries (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL UNIQUE,
     delivery_person_id INT UNSIGNED NULL,
+    assigned_by_seller_id INT UNSIGNED NULL,
+    digital_payment_id INT UNSIGNED NULL,
     pickup_town VARCHAR(100) NOT NULL DEFAULT 'Kutus Market',
     dropoff_address VARCHAR(255) NOT NULL,
     delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 150.00,
@@ -150,12 +169,39 @@ CREATE TABLE deliveries (
     delivered_at DATETIME NULL,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_delivery_person (delivery_person_id),
+    INDEX idx_delivery_seller (assigned_by_seller_id),
     INDEX idx_delivery_status (delivery_status),
     CONSTRAINT fk_delivery_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    CONSTRAINT fk_delivery_rider FOREIGN KEY (delivery_person_id) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_delivery_rider FOREIGN KEY (delivery_person_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_delivery_seller FOREIGN KEY (assigned_by_seller_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. Contact & Customer Support Inquiries
+-- 9. Digital Payments (Pure Digital Pay-on-Delivery via M-Pesa STK)
+CREATE TABLE payments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    delivery_id INT UNSIGNED NULL,
+    rider_id INT UNSIGNED NULL,
+    buyer_phone VARCHAR(20) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(60) NOT NULL DEFAULT 'Digital Pay-on-Delivery (M-Pesa)',
+    status ENUM('pending', 'prompted', 'completed', 'failed', 'cancelled') NOT NULL DEFAULT 'pending',
+    mpesa_checkout_id VARCHAR(80) NULL,
+    mpesa_receipt VARCHAR(30) NULL,
+    prompted_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    failure_reason VARCHAR(255) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_payments_order (order_id),
+    INDEX idx_payments_delivery (delivery_id),
+    INDEX idx_payments_status (status),
+    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_payments_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL,
+    CONSTRAINT fk_payments_rider FOREIGN KEY (rider_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Contact & Customer Support Inquiries
 CREATE TABLE contact_messages (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
@@ -166,6 +212,7 @@ CREATE TABLE contact_messages (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 -- 10. Buyer Saved Delivery Addresses (Group 2)
 CREATE TABLE addresses (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -226,6 +273,27 @@ CREATE TABLE stock_movements (
     CONSTRAINT fk_stock_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_stock_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
     CONSTRAINT fk_stock_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+=======
+-- 11. Offline Telephony Dispatch Alerts (SMS & Automated Voice Calls)
+CREATE TABLE telephony_logs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    recipient_name VARCHAR(120) NULL,
+    recipient_role VARCHAR(20) NULL,
+    phone VARCHAR(20) NOT NULL,
+    channel ENUM('sms', 'call', 'both') NOT NULL,
+    purpose ENUM('new_order', 'delivery_assignment', 'payment_alert', 'system') NOT NULL,
+    message TEXT NOT NULL,
+    call_text TEXT NULL,
+    status ENUM('queued', 'sent', 'delivered', 'failed', 'simulated') NOT NULL DEFAULT 'sent',
+    provider VARCHAR(40) NOT NULL DEFAULT 'simulator',
+    provider_ref VARCHAR(80) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_telephony_user (user_id),
+    INDEX idx_telephony_channel (channel),
+    INDEX idx_telephony_status (status),
+    CONSTRAINT fk_telephony_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+>>>>>>> feature/seller-kyc-admin
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

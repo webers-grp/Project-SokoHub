@@ -3,6 +3,9 @@
  * SokoHub Role-Aware User Dashboard
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/kyc.php';
+require_once __DIR__ . '/../../includes/inventory.php';
+require_once __DIR__ . '/../../includes/notifications.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
@@ -24,11 +27,20 @@ if ($role === 'buyer') {
     );
     $activeDelStmt->execute([':id' => $userId]);
 
+    $buyerAlerts = Notifications::getBuyerNotifications($userId, null, 4);
+
     $kpis = [
+<<<<<<< HEAD
         ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag', 'color' => 'purple'],
         ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet', 'color' => 'emerald'],
         ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck', 'color' => 'amber'],
         ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart', 'color' => 'blue'],
+=======
+        ['label' => 'My Orders', 'value' => (int) $agg['cnt'], 'icon' => 'shopping-bag'],
+        ['label' => 'Total Spent', 'value' => format_ksh($agg['spent']), 'icon' => 'wallet'],
+        ['label' => 'Active Deliveries', 'value' => (int) $activeDelStmt->fetchColumn(), 'icon' => 'truck'],
+        ['label' => 'Items in Cart', 'value' => cart_count(), 'icon' => 'shopping-cart'],
+>>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -45,8 +57,8 @@ if ($role === 'buyer') {
     $prodCount = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active'");
     $prodCount->execute([':id' => $userId]);
 
-    $lowStock = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active' AND stock_qty <= 5");
-    $lowStock->execute([':id' => $userId]);
+    $lowStockCount = Inventory::getLowStockCount($userId);
+    $myLowStockItems = Inventory::getLowStockProducts($userId);
 
     $revStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(oi.line_total), 0) AS rev, COALESCE(SUM(oi.quantity), 0) AS units
@@ -58,10 +70,17 @@ if ($role === 'buyer') {
     $rev = $revStmt->fetch();
 
     $kpis = [
+<<<<<<< HEAD
         ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
         ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn(), 'icon' => 'alert-triangle', 'color' => 'rose'],
         ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag', 'color' => 'purple'],
         ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up', 'color' => 'emerald'],
+=======
+        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package'],
+        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount, 'icon' => 'alert-triangle'],
+        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag'],
+        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up'],
+>>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -86,10 +105,17 @@ if ($role === 'buyer') {
     $done = $mineDone->fetch();
 
     $kpis = [
+<<<<<<< HEAD
         ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock', 'color' => 'amber'],
         ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation', 'color' => 'blue'],
         ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle-2', 'color' => 'emerald'],
         ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet', 'color' => 'teal'],
+=======
+        ['label' => 'Available Tasks', 'value' => $avail, 'icon' => 'clock'],
+        ['label' => 'My Active Deliveries', 'value' => (int) $mineActive->fetchColumn(), 'icon' => 'navigation'],
+        ['label' => 'Completed Drops', 'value' => (int) $done['cnt'], 'icon' => 'check-circle'],
+        ['label' => 'Earned Delivery Fees', 'value' => format_ksh($done['fees']), 'icon' => 'wallet'],
+>>>>>>> feature/seller-kyc-admin
     ];
 
     $recStmt = $pdo->prepare(
@@ -104,10 +130,17 @@ if ($role === 'buyer') {
     $recentRows = $recStmt->fetchAll();
 } else { // admin
     $kpis = [
+<<<<<<< HEAD
         ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users', 'color' => 'cyan'],
         ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
         ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
         ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail', 'color' => 'pink'],
+=======
+        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users'],
+        ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package'],
+        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up'],
+        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'headphones'],
+>>>>>>> feature/seller-kyc-admin
     ];
 
     $recentRows = $pdo->query(
@@ -120,6 +153,19 @@ if ($role === 'buyer') {
 }
 
 $roleLabels = get_role_labels();
+
+$needsKycBanner = false;
+$kycBannerRole = '';
+$kycCurrentStatus = '';
+if ($role === 'seller' || $role === 'delivery') {
+    $kycProf = Kyc::getUserKycProfile($userId, $role);
+    $kycCurrentStatus = $kycProf['verification_status'] ?? 'pending';
+    if ($kycCurrentStatus !== 'approved') {
+        $needsKycBanner = true;
+        $kycBannerRole = ($role === 'seller') ? 'Merchant / Seller' : 'Delivery Rider';
+    }
+}
+
 $pageTitle = 'SokoHub | Dashboard';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -135,6 +181,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="hero-cta">
             <?php if ($role === 'buyer'): ?>
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-primary">
+<<<<<<< HEAD
                     <?= icon('shopping-bag') ?>
                     <span>Browse Products</span>
                 </a>
@@ -158,10 +205,60 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
                 <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
                     <?= icon('file-text') ?>
+=======
+                    <?= icon('shopping-bag', 'lucide-xs') ?>
+                    <span>Browse Products</span>
+                </a>
+                <a href="<?= e(url('pages/buyer/orders.php')) ?>" class="btn btn-outline">
+                    <?= icon('receipt', 'lucide-xs') ?>
+                    <span>My Orders</span>
+                </a>
+                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-amber">
+                    <?= icon('bell', 'lucide-xs') ?>
+                    <span>Restock &amp; Store Alerts</span>
+                </a>
+            <?php elseif ($role === 'seller'): ?>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                    <?= icon('package', 'lucide-xs') ?>
+                    <span>Manage Products</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-outline" style="border-color: #3b82f6; color: #1d4ed8;">
+                    <?= icon('truck', 'lucide-xs') ?>
+                    <span>Dispatch &amp; Deliveries</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">
+                    <?= icon('file-spreadsheet', 'lucide-xs') ?>
+                    <span>Bulk CSV Import</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-amber">
+                    <?= icon('bar-chart-3', 'lucide-xs') ?>
+                    <span>Sales &amp; Stock Reports</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline" style="border-color: #10b981; color: #047857;">
+                    <?= icon('wallet', 'lucide-xs') ?>
+                    <span>Monthly Payouts</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">
+                    <?= icon('shield-check', 'lucide-xs') ?>
+                    <span>Verification &amp; KYC</span>
+                </a>
+            <?php elseif ($role === 'delivery'): ?>
+                <a href="<?= e(url('pages/dashboard/deliveries.php')) ?>" class="btn btn-primary">
+                    <?= icon('truck', 'lucide-xs') ?>
+                    <span>Delivery Queue</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-outline">
+                    <?= icon('shield-check', 'lucide-xs') ?>
+                    <span>Rider KYC &amp; Verification</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php?type=deliveries')) ?>" class="btn btn-amber">
+                    <?= icon('bar-chart-3', 'lucide-xs') ?>
+>>>>>>> feature/seller-kyc-admin
                     <span>Delivery Report</span>
                 </a>
             <?php else: ?>
                 <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+<<<<<<< HEAD
                     <?= icon('package') ?>
                     <span>Manage Catalog</span>
                 </a>
@@ -173,9 +270,84 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('bar-chart-3') ?>
                     <span>System Reports</span>
                 </a>
+=======
+                    <?= icon('package', 'lucide-xs') ?>
+                    <span>Manage Catalog</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/bulk_upload.php')) ?>" class="btn btn-outline" style="border-color: #f59e0b; color: #b45309;">
+                    <?= icon('file-spreadsheet', 'lucide-xs') ?>
+                    <span>Bulk CSV Import</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/seller_verification.php')) ?>" class="btn btn-amber">
+                    <?= icon('shield-alert', 'lucide-xs') ?>
+                    <span>KYC Review Queue</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/payouts.php')) ?>" class="btn btn-outline" style="border-color: #10b981; color: #047857;">
+                    <?= icon('wallet', 'lucide-xs') ?>
+                    <span>Seller Payouts</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/reports.php')) ?>" class="btn btn-outline">
+                    <?= icon('bar-chart-3', 'lucide-xs') ?>
+                    <span>System Reports</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/audit_logs.php')) ?>" class="btn btn-outline" style="border-color: #6366f1; color: #6366f1;">
+                    <?= icon('file-text', 'lucide-xs') ?>
+                    <span>Audit Logs</span>
+                </a>
+>>>>>>> feature/seller-kyc-admin
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($needsKycBanner): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #92400e; font-size: 1rem;">
+                        <?= icon('shield-alert', 'lucide-xs', 'amber') ?>
+                        <span><?= e($kycBannerRole) ?> Compliance Verification Required</span>
+                    </strong>
+                    <p style="margin: 0.25rem 0 0 0; color: #b45309; font-size: 0.9rem;">
+                        Your account status is currently <strong><?= e(ucfirst($kycCurrentStatus)) ?></strong>. Submit your Kenyan National ID and Safaricom M-Pesa line to unlock full marketplace permissions (publishing products or claiming delivery jobs).
+                    </p>
+                </div>
+                <a href="<?= e(url('pages/dashboard/kyc_upload.php')) ?>" class="btn btn-amber btn-sm">
+                    <?= icon('shield-check', 'lucide-xs') ?>
+                    <span>Complete KYC Verification</span>
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        <?= icon('alert-triangle', 'lucide-xs', 'rose') ?>
+                        <span>Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!</span>
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    <?= icon('plus', 'lucide-xs') ?>
+                    <span>Restock Inventory</span>
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="stats-grid">
         <?php foreach ($kpis as $kpi): ?>
@@ -184,15 +356,46 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                     <span class="stat-label"><?= e($kpi['label']) ?></span>
                     <?php if (!empty($kpi['icon'])): ?>
+<<<<<<< HEAD
                         <div class="stat-icon-wrap stat-icon-<?= e($color) ?>">
                             <?= icon($kpi['icon'], 'lucide-sm') ?>
                         </div>
+=======
+                        <span class="stat-icon-wrap stat-icon-emerald"><?= icon($kpi['icon'], 'lucide-xs') ?></span>
+>>>>>>> feature/seller-kyc-admin
                     <?php endif; ?>
                 </div>
                 <strong class="stat-value"><?= e($kpi['value']) ?></strong>
             </div>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($role === 'buyer' && !empty($buyerAlerts)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 5px solid #6366f1;">
+            <div class="section-heading" style="margin-bottom: 0.75rem;">
+                <h2>🔔 Live Marketplace Updates &amp; Restock Alerts</h2>
+                <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-outline btn-sm">View All Alerts &rarr;</a>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <?php foreach ($buyerAlerts as $ba): ?>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; flex-wrap: wrap; gap: 0.5rem; border: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.2rem;">
+                                <?= e(date('M d, Y H:i', strtotime($ba['created_at']))) ?>
+                            </div>
+                            <strong style="color: #0f172a; font-size: 0.95rem;"><?= e($ba['title']) ?></strong>
+                            <p style="margin: 0.2rem 0 0 0; color: #475569; font-size: 0.85rem;"><?= e($ba['message']) ?></p>
+                        </div>
+                        <?php if (!empty($ba['link_url'])): ?>
+                            <a href="<?= e(url($ba['link_url'])) ?>" class="btn btn-primary btn-sm" style="font-size: 0.8rem; padding: 0.25rem 0.65rem;">
+                                View Details &rarr;
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="card">
         <div class="section-heading">
@@ -240,6 +443,34 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Date</th>
                         </tr>
                     <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
                     </thead>
                     <tbody>
                     <?php foreach ($recentRows as $row): ?>
@@ -282,11 +513,67 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td><?= e(date('d M Y, H:i', strtotime($row['created_at']))) ?></td>
                             </tr>
                         <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         <?php endif; ?>
+
+    <?php if (!empty($myLowStockItems)): ?>
+        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #991b1b; font-size: 1.05rem;">
+                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
+                    </strong>
+                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        The following items have reached automated alert levels and risk customer order fulfillment:
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
+                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
+                            </span>
+                        <?php endforeach; ?>
+                        <?php if (count($myLowStockItems) > 5): ?>
+                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
+                    Restock Inventory &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
     </div>
 </main>
 

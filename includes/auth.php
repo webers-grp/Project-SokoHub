@@ -182,17 +182,34 @@ function require_login(): array
         redirect('pages/auth/login.php');
     }
 
-    return current_user();
+    $u = current_user();
+    if (!empty($u['id'])) {
+        // Throttled user activity touch for offline telephony detection
+        if (empty($_SESSION['_last_seen_touch']) || $_SESSION['_last_seen_touch'] < (time() - 120)) {
+            $_SESSION['_last_seen_touch'] = time();
+            try {
+                $pdo = get_db_connection();
+                $pdo->prepare('UPDATE users SET last_seen_at = NOW() WHERE id = :id')->execute([':id' => (int) $u['id']]);
+            } catch (Throwable $_) {}
+        }
+    }
+
+    return $u;
 }
 
 /**
  * Require that the authenticated user holds one of the allowed roles.
+ * Accepts either an array of allowed roles ['admin', 'seller'] or a single string 'admin'.
+ *
+ * @param array|string $allowedRoles
+ * @return array The authenticated user data
  */
-function require_role(array $allowedRoles): array
+function require_role($allowedRoles): array
 {
+    $roles = is_array($allowedRoles) ? $allowedRoles : [(string) $allowedRoles];
     $user = require_login();
 
-    if (!in_array($user['role'], $allowedRoles, true)) {
+    if (!in_array($user['role'], $roles, true)) {
         set_flash('error', 'Access denied: your account role does not have permission for that section.');
         redirect('pages/dashboard/dashboard.php');
     }

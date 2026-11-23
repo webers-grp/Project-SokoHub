@@ -3,6 +3,7 @@
  * SokoHub Dynamic Home Page
  */
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/notifications.php';
 init_session();
 track_visit_cookie();
 
@@ -33,6 +34,8 @@ $metrics = [
     'orders'   => (int) $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn(),
 ];
 
+$recentAlerts = Notifications::getRecentAnnouncements(3);
+
 $pageTitle = 'SokoHub | Modern Local Digital Marketplace';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -44,8 +47,19 @@ require_once __DIR__ . '/includes/header.php';
             <h1>Shop Local, Sell Smarter &amp; Deliver Faster with SokoHub</h1>
             <p>SokoHub connects small and medium local vendors, customers, and verified delivery riders in one secure marketplace — from fresh organic produce and cooking gas to electronics and apparel.</p>
             <div class="hero-cta">
+<<<<<<< HEAD
                 <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber"><?= icon('shopping-bag') ?> <span>Explore Marketplace</span></a>
                 <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light"><?= icon('user-plus') ?> <span>Create Free Account</span></a>
+=======
+                <a href="<?= e(url('pages/public/products.php')) ?>" class="btn btn-amber">
+                    <?= icon('shopping-bag') ?>
+                    <span>Explore Marketplace</span>
+                </a>
+                <a href="<?= e(url('pages/auth/register.php')) ?>" class="btn btn-light">
+                    <?= icon('user-plus') ?>
+                    <span>Create Free Account</span>
+                </a>
+>>>>>>> feature/seller-kyc-admin
             </div>
         </div>
 
@@ -74,6 +88,24 @@ require_once __DIR__ . '/includes/header.php';
 </section>
 
 <main class="container section-space">
+    <?php if (!empty($recentAlerts)): ?>
+        <div style="margin-bottom: 2rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span class="badge badge-success" style="font-size: 0.75rem; text-transform: uppercase;">
+                    <?= icon('bell', 'lucide-xs', 'white') ?>
+                    <span>Marketplace Live</span>
+                </span>
+                <span style="font-size: 0.9rem; color: #166534;">
+                    <strong><?= e($recentAlerts[0]['title']) ?></strong> &mdash; <?= e($recentAlerts[0]['message']) ?>
+                </span>
+            </div>
+            <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="btn btn-outline btn-sm" style="font-size: 0.75rem; border-color: #16a34a; color: #166534;">
+                <span>View All Alerts</span>
+                <?= icon('arrow-right', 'lucide-xs') ?>
+            </a>
+        </div>
+    <?php endif; ?>
+
     <section>
         <div class="section-heading">
             <h2>Browse by Category</h2>
@@ -159,17 +191,29 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="prop-grid">
             <div class="prop-item">
+<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-amber"><?= icon('truck', 'lucide-sm') ?></div>
+=======
+                <div class="prop-icon-wrap prop-icon-green"><?= icon('truck', 'lucide-md') ?></div>
+>>>>>>> feature/seller-kyc-admin
                 <h3>Instant Local Delivery</h3>
                 <p>Dedicated motorbike, bicycle, and van riders pick up directly from local merchants and update real-time order statuses.</p>
             </div>
             <div class="prop-item">
+<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-blue"><?= icon('credit-card', 'lucide-sm') ?></div>
+=======
+                <div class="prop-icon-wrap prop-icon-amber"><?= icon('credit-card', 'lucide-md') ?></div>
+>>>>>>> feature/seller-kyc-admin
                 <h3>Flexible Payments</h3>
                 <p>Checkout smoothly using M-Pesa, Cash on Delivery, or Bank Card with clear order receipts and tracking codes.</p>
             </div>
             <div class="prop-item">
+<<<<<<< HEAD
                 <div class="prop-icon-wrap prop-icon-green"><?= icon('store', 'lucide-sm') ?></div>
+=======
+                <div class="prop-icon-wrap prop-icon-blue"><?= icon('store', 'lucide-md') ?></div>
+>>>>>>> feature/seller-kyc-admin
                 <h3>Empowered Local MSMEs</h3>
                 <p>Vendors manage inventory, pricing, stock alerts, and revenue reports from one clean web dashboard.</p>
             </div>

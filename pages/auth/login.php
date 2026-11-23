@@ -4,6 +4,7 @@
  * Uses session_start(), password_verify(), and Remember-Me HTTP cookies.
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/audit.php';
 init_session();
 
 if (is_logged_in()) {
@@ -34,9 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = login_user($pdo, $emailInput, $password, $rememberMe);
 
             if ($result['ok']) {
+                Audit::record('auth.login_success', 'user', (int) $result['user']['id'], ['email' => $emailInput, 'role' => $result['user']['role']]);
                 set_flash('success', 'Welcome back, ' . $result['user']['full_name'] . '!');
                 redirect('pages/dashboard/dashboard.php');
             } else {
+                Audit::record('auth.login_failed', 'user', null, ['email' => $emailInput, 'reason' => $result['error']]);
                 $errors[] = $result['error'];
             }
         }

@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+<<<<<<< HEAD
     // 8. Group 2: Live Autocomplete Search Bar
     initLiveSearch();
 
@@ -105,6 +106,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 12. Group 2: Wishlist Toggle
     initWishlistToggle();
+=======
+    // 8. Dark / Light Mode Switcher
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            try {
+                localStorage.setItem('sokohub_theme', newTheme);
+            } catch (e) {}
+            document.cookie = 'sokohub_theme=' + newTheme + '; path=/; max-age=31536000; SameSite=Lax';
+
+            // Re-render any charts on page to match theme palette
+            document.querySelectorAll('canvas[data-chart-values]').forEach((canvas) => {
+                renderBarChart(canvas);
+            });
+        });
+    }
+>>>>>>> feature/seller-kyc-admin
 });
 
 function clearFieldError(field) {
@@ -230,10 +252,11 @@ function renderBarChart(canvas) {
     ctx.clearRect(0, 0, width, height);
     ctx.font = '12px Segoe UI, Arial, sans-serif';
 
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const maxVal = Math.max(...values, 1);
 
     // Grid lines
-    ctx.strokeStyle = '#e2e8f0';
+    ctx.strokeStyle = isDark ? '#334155' : '#e2e8f0';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
         const y = padTop + (plotH * i) / 4;
@@ -243,7 +266,7 @@ function renderBarChart(canvas) {
         ctx.stroke();
 
         const tickVal = Math.round(maxVal * (1 - i / 4));
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
         ctx.textAlign = 'right';
         ctx.fillText(tickVal.toLocaleString(), padLeft - 8, y + 4);
     }
@@ -266,12 +289,12 @@ function renderBarChart(canvas) {
         ctx.fillRect(x, y, barW, barH);
 
         // Value label above bar
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = isDark ? '#f8fafc' : '#1e293b';
         ctx.textAlign = 'center';
         ctx.fillText(val.toLocaleString(), x + barW / 2, Math.max(14, y - 6));
 
         // Category label below axis
-        ctx.fillStyle = '#334155';
+        ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
         const shortLabel = String(label).length > 14 ? String(label).slice(0, 12) + '..' : String(label);
         ctx.fillText(shortLabel, x + barW / 2, height - 16);
     });

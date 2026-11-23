@@ -14,10 +14,15 @@ function e(mixed $value): string
 }
 
 /**
+<<<<<<< HEAD
  * Render a Lucide vector icon element with data-lucide attribute.
  * Automatically instantiated into crisp inline SVG icons by Lucide.
  * Supports size modifier classes (.lucide-sm, .lucide-xs, .lucide-lg) and
  * color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
+=======
+ * Render a Lucide vector icon with data-lucide attribute, compact sizing,
+ * and optional semantic color classes.
+>>>>>>> feature/seller-kyc-admin
  */
 function icon(string $name, string $class = '', string $color = '', string $extraAttrs = ''): string
 {
@@ -59,6 +64,30 @@ function discount_percent(float $price, ?float $originalPrice): int
     }
 
     return (int) round((($originalPrice - $price) / $originalPrice) * 100);
+}
+
+/**
+ * Calculate final selling price and original price from regular price and optional discount percentage.
+ * Returns ['price' => float, 'original_price' => ?float, 'discount_percent' => int].
+ */
+function calculate_discount_pricing(float $regularPrice, ?float $discountPercent): array
+{
+    if ($discountPercent === null || $discountPercent <= 0) {
+        return [
+            'price'            => round($regularPrice, 2),
+            'original_price'   => null,
+            'discount_percent' => 0,
+        ];
+    }
+
+    $discountPercent = min(99.0, max(0.0, (float) $discountPercent));
+    $salePrice = round($regularPrice * (1.0 - ($discountPercent / 100.0)), 2);
+
+    return [
+        'price'            => $salePrice,
+        'original_price'   => round($regularPrice, 2),
+        'discount_percent' => (int) round($discountPercent),
+    ];
 }
 
 /**
@@ -180,6 +209,203 @@ function get_status_badge(string $status): array
 }
 
 /**
+ * Render a visual 5-stage Order Progress Timeline component.
+ * Tracks Order Confirmed -> Rider Assigned -> Out for Delivery -> Arrival & M-Pesa STK -> Package Delivered.
+ */
+function render_order_progress_timeline(array $order): string
+{
+    $orderStatus = (string) ($order['order_status'] ?? 'pending');
+    $delStatus   = (string) ($order['delivery_status'] ?? 'pending');
+    $payStatus   = (string) ($order['payment_status'] ?? 'unpaid');
+    $hasRider    = !empty($order['delivery_person_id']);
+    $isPrompted  = (($order['payment_prompt_status'] ?? '') === 'prompted');
+    $isPaid      = ($payStatus === 'paid');
+    $isDelivered = ($delStatus === 'delivered' && $isPaid);
+    $isCancelled = ($orderStatus === 'cancelled' || $delStatus === 'failed');
+
+    if ($isCancelled) {
+        $cancelHtml = '
+        <div class="order-timeline-wrap" style="border-left: 5px solid var(--danger); background: var(--danger-bg);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="color: var(--danger);">' . icon('x-circle', 'lucide-sm') . '</span>
+                <div>
+                    <strong style="color: var(--danger); font-size: 0.95rem;">Order Cancelled</strong>
+                    <p class="small muted" style="margin: 0.2rem 0 0 0;">This order was cancelled. Reserved items were returned to merchant inventory.</p>
+                </div>
+            </div>
+        </div>';
+        return $cancelHtml;
+    }
+
+    // Determine state for each of the 5 stages ('completed', 'active', 'pending')
+    // Stage 1: Order Confirmed
+    $s1State = 'completed';
+    $s1Sub = !empty($order['created_at']) ? date('d M, H:i', strtotime($order['created_at'])) : 'Placed';
+
+    // Stage 2: Rider Assigned
+    if ($hasRider) {
+        if ($delStatus === 'assigned' && !$isPrompted && !$isPaid) {
+            $s2State = 'active';
+        } else {
+            $s2State = 'completed';
+        }
+        $s2Rider = htmlspecialchars((string) ($order['rider_name'] ?? 'Rider'));
+        $s2Plate = !empty($order['vehicle_plate_number']) ? ' [' . htmlspecialchars((string) $order['vehicle_plate_number']) . ']' : '';
+        $s2Sub = $s2Rider . $s2Plate;
+    } else {
+        $s2State = 'active';
+        $s2Sub = 'Awaiting rider allocation';
+    }
+
+    // Stage 3: Out for Delivery
+    $inTransit = in_array($delStatus, ['picked_up', 'in_transit', 'delivered'], true) || in_array($orderStatus, ['shipped', 'delivered'], true);
+    if ($isDelivered || $isPaid) {
+        $s3State = 'completed';
+        $s3Sub = 'In transit to dropoff';
+    } elseif ($inTransit) {
+        $s3State = 'active';
+        $s3Sub = 'Rider en route';
+    } else {
+        $s3State = 'pending';
+        $s3Sub = 'Heading to pickup';
+    }
+
+    // Stage 4: Arrived & M-Pesa STK Prompt
+    if ($isPaid) {
+        $s4State = 'completed';
+        $s4Receipt = !empty($order['mpesa_receipt']) ? ' (' . htmlspecialchars((string) $order['mpesa_receipt']) . ')' : '';
+        $s4Sub = 'Paid via M-Pesa' . $s4Receipt;
+    } elseif ($isPrompted) {
+        $s4State = 'active';
+        $promptPhone = htmlspecialchars((string) ($order['payment_phone'] ?? $order['buyer_phone'] ?? ''));
+        $s4Sub = 'STK prompt sent to ' . $promptPhone;
+    } else {
+        $s4State = 'pending';
+        $s4Sub = 'Prompt on arrival (No Cash)';
+    }
+
+    // Stage 5: Package Delivered & Completed
+    if ($isDelivered) {
+        $s5State = 'completed';
+        $s5Sub = !empty($order['delivered_at']) ? 'Delivered ' . date('d M, H:i', strtotime($order['delivered_at'])) : 'Handoff complete';
+    } else {
+        $s5State = 'pending';
+        $s5Sub = 'Final handoff';
+    }
+
+    // Build timeline HTML
+    $html = '
+    <div class="order-timeline-wrap">
+        <div class="order-timeline-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-primary" style="font-size: 0.82rem;">' . icon('navigation', 'lucide-xs') . ' Live Dispatch Tracking</span>
+                <strong>Order #' . htmlspecialchars((string) $order['order_code']) . '</strong>
+            </div>
+            <div class="small muted">
+                Destination: <strong>' . htmlspecialchars((string) ($order['delivery_town'] ?? 'Kirinyaga')) . '</strong> &mdash; ' . htmlspecialchars((string) ($order['delivery_address'] ?? 'Dropoff')) . '
+            </div>
+        </div>
+
+        <div class="timeline-steps">
+            <!-- Step 1 -->
+            <div class="timeline-step ' . $s1State . '">
+                <div class="timeline-step-connector"></div>
+                <div class="timeline-icon-box">' . icon('receipt', 'lucide-xs') . '</div>
+                <div class="timeline-step-content">
+                    <div class="timeline-step-label">Order Confirmed</div>
+                    <div class="timeline-step-sub">' . $s1Sub . '</div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="timeline-step ' . $s2State . '">
+                <div class="timeline-step-connector"></div>
+                <div class="timeline-icon-box">' . icon('user-check', 'lucide-xs') . '</div>
+                <div class="timeline-step-content">
+                    <div class="timeline-step-label">Rider Assigned</div>
+                    <div class="timeline-step-sub">' . $s2Sub . '</div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="timeline-step ' . $s3State . '">
+                <div class="timeline-step-connector"></div>
+                <div class="timeline-icon-box">' . icon('truck', 'lucide-xs') . '</div>
+                <div class="timeline-step-content">
+                    <div class="timeline-step-label">Out for Delivery</div>
+                    <div class="timeline-step-sub">' . $s3Sub . '</div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="timeline-step ' . $s4State . '">
+                <div class="timeline-step-connector"></div>
+                <div class="timeline-icon-box">' . icon('smartphone', 'lucide-xs') . '</div>
+                <div class="timeline-step-content">
+                    <div class="timeline-step-label">M-Pesa Payment</div>
+                    <div class="timeline-step-sub">' . $s4Sub . '</div>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="timeline-step ' . $s5State . '">
+                <div class="timeline-step-connector"></div>
+                <div class="timeline-icon-box">' . icon('package-check', 'lucide-xs') . '</div>
+                <div class="timeline-step-content">
+                    <div class="timeline-step-label">Delivered</div>
+                    <div class="timeline-step-sub">' . $s5Sub . '</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatch Intelligence Strip -->
+        <div class="timeline-intel-box">';
+
+    if ($isDelivered) {
+        $html .= '
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #065f46;">
+                ' . icon('check-circle', 'lucide-xs', 'emerald') . '
+                <span><strong>Fulfillment Completed</strong>: Paid via Safaricom M-Pesa (' . htmlspecialchars((string) ($order['mpesa_receipt'] ?? 'Verified')) . ') and package received.</span>
+            </div>';
+    } elseif ($isPrompted && !$isPaid) {
+        $html .= '
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #b45309;">
+                ' . icon('bell', 'lucide-xs', 'amber') . '
+                <span><strong>Action Required on Handset</strong>: Your delivery rider has initiated an M-Pesa STK push prompt. Please enter your M-Pesa PIN on your phone to complete payment.</span>
+            </div>';
+    } elseif ($hasRider) {
+        $riderName = htmlspecialchars((string) ($order['rider_name'] ?? 'Assigned Rider'));
+        $riderPhone = htmlspecialchars((string) ($order['rider_phone'] ?? ''));
+        $riderVehicle = htmlspecialchars((string) ($order['transport_method'] ?? 'Motorbike'));
+        $riderPlate = !empty($order['vehicle_plate_number']) ? ' [' . htmlspecialchars((string) $order['vehicle_plate_number']) . ']' : '';
+
+        $html .= '
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                <span class="badge badge-outline" style="font-family: monospace; font-size: 0.82rem;">
+                    ' . icon('car', 'lucide-xs') . ' ' . $riderVehicle . $riderPlate . '
+                </span>
+                <span>Assigned to <strong>' . $riderName . '</strong></span>
+                ' . (!empty($riderPhone) ? '<a href="tel:' . $riderPhone . '" class="btn btn-outline btn-sm timeline-call-btn" style="padding: 0.2rem 0.5rem; font-size: 0.78rem;">' . icon('phone', 'lucide-xs') . ' Call Rider (' . $riderPhone . ')</a>' : '') . '
+            </div>
+            <div class="small muted">
+                Strictly Cashless Delivery &mdash; Pay via M-Pesa STK upon arrival.
+            </div>';
+    } else {
+        $html .= '
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #1e40af;">
+                ' . icon('clock', 'lucide-xs', 'blue') . '
+                <span><strong>Merchant Allocation Pending</strong>: Merchant is selecting an available verified rider on standby in Kirinyaga County.</span>
+            </div>';
+    }
+
+    $html .= '
+        </div>
+    </div>';
+
+    return $html;
+}
+
+/**
  * Curated list of built-in marketplace product images from SokoHub assets.
  */
 function get_preset_product_images(): array
@@ -203,6 +429,7 @@ function get_preset_product_images(): array
 function get_nav_items(?array $user): array
 {
     $items = [
+<<<<<<< HEAD
         ['label' => 'Home', 'href' => 'index.php', 'icon' => 'home', 'match' => ['index.php']],
         ['label' => 'Products', 'href' => 'pages/public/products.php', 'icon' => 'shopping-bag', 'match' => ['products.php', 'product_details.php']],
         ['label' => 'About Us', 'href' => 'pages/public/about.php', 'icon' => 'info', 'match' => ['about.php']],
@@ -225,6 +452,47 @@ function get_nav_items(?array $user): array
 
         if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
             $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'icon' => 'bar-chart-2', 'match' => ['reports.php']];
+=======
+        ['label' => 'Home', 'href' => 'index.php', 'match' => ['index.php'], 'icon' => 'home'],
+        ['label' => 'Products', 'href' => 'pages/public/products.php', 'match' => ['products.php', 'product_details.php'], 'icon' => 'shopping-bag'],
+        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php'], 'icon' => 'info'],
+        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'match' => ['contact.php'], 'icon' => 'mail'],
+    ];
+
+    if ($user !== null) {
+        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'];
+
+        if (in_array($user['role'], ['seller', 'admin'], true)) {
+            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php'], 'icon' => 'package'];
+            $items[] = ['label' => 'Bulk Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php'], 'icon' => 'file-spreadsheet'];
+        }
+
+        if (in_array($user['role'], ['seller', 'delivery'], true)) {
+            $items[] = ['label' => 'KYC Verification', 'href' => 'pages/dashboard/kyc_upload.php', 'match' => ['kyc_upload.php'], 'icon' => 'shield-check'];
+        }
+
+        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php'], 'icon' => 'receipt'];
+
+        if ($user['role'] === 'buyer') {
+            $items[] = ['label' => 'Alerts', 'href' => 'pages/buyer/notifications.php', 'match' => ['notifications.php'], 'icon' => 'bell'];
+        }
+
+        if (in_array($user['role'], ['seller', 'delivery', 'admin', 'buyer'], true)) {
+            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'match' => ['deliveries.php'], 'icon' => 'truck'];
+        }
+
+        if ($user['role'] === 'admin') {
+            $items[] = ['label' => 'KYC Queue', 'href' => 'pages/dashboard/seller_verification.php', 'match' => ['seller_verification.php'], 'icon' => 'shield-alert'];
+            $items[] = ['label' => 'Audit Logs', 'href' => 'pages/dashboard/audit_logs.php', 'match' => ['audit_logs.php'], 'icon' => 'file-text'];
+        }
+
+        if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
+            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'match' => ['reports.php'], 'icon' => 'bar-chart-3'];
+        }
+
+        if (in_array($user['role'], ['seller', 'admin'], true)) {
+            $items[] = ['label' => 'Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php'], 'icon' => 'wallet'];
+>>>>>>> feature/seller-kyc-admin
         }
     }
 
@@ -297,6 +565,7 @@ function validate_product_fields(array $input): array
     $categoryId = (int) ($input['category_id'] ?? 0);
     $price = $input['price'] ?? '';
     $originalPrice = $input['original_price'] ?? '';
+    $discountPercent = $input['discount_percent'] ?? ($input['discount'] ?? '');
     $stockQty = $input['stock_qty'] ?? '';
     $condition = (string) ($input['condition_type'] ?? '');
 
@@ -320,8 +589,19 @@ function validate_product_fields(array $input): array
         $errors[] = 'Original price (if set) must be greater than or equal to the selling price.';
     }
 
+    if ($discountPercent !== '' && $discountPercent !== null) {
+        if (!is_numeric($discountPercent) || (float) $discountPercent < 0 || (float) $discountPercent >= 100) {
+            $errors[] = 'Discount percentage must be a number between 0% and 99%.';
+        }
+    }
+
     if (!is_numeric($stockQty) || (int) $stockQty < 0) {
         $errors[] = 'Stock quantity cannot be negative.';
+    }
+
+    $threshold = $input['low_stock_threshold'] ?? '';
+    if ($threshold !== '' && (!is_numeric($threshold) || (int) $threshold < 1)) {
+        $errors[] = 'Low-stock alert threshold must be a number of at least 1 unit.';
     }
 
     if (!in_array($condition, ['New', 'Second Hand'], true)) {

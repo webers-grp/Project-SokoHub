@@ -2,6 +2,7 @@
 /**
  * SokoHub Shared Header & Responsive Navigation Bar
  */
+require_once __DIR__ . '/notifications.php';
 if (!isset($pageTitle)) {
     $pageTitle = 'SokoHub | Local Digital Marketplace';
 }
@@ -10,15 +11,29 @@ $authUser = current_user();
 $navItems = get_nav_items($authUser);
 $cartItemsCount = cart_count();
 $flash = get_flash();
+$savedTheme = $_COOKIE['sokohub_theme'] ?? 'light';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?= e($savedTheme) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
+<<<<<<< HEAD
     <meta name="base-url" content="<?= e(url('')) ?>">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+=======
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('sokohub_theme');
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var theme = stored || (document.cookie.match(/sokohub_theme=([^;]+)/) || [])[1] || (prefersDark ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch(e) {}
+        })();
+    </script>
+>>>>>>> feature/seller-kyc-admin
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
 </head>
 <body>
@@ -70,20 +85,44 @@ $flash = get_flash();
                 </ul>
 
                 <div class="nav-actions">
+                    <button type="button" class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark/Light Mode" title="Toggle Dark/Light Mode">
+                        <span class="theme-icon-light"><?= icon('sun', 'lucide-sm', 'amber') ?></span>
+                        <span class="theme-icon-dark"><?= icon('moon', 'lucide-sm', 'cyan') ?></span>
+                    </button>
+
                     <a href="<?= e(url('pages/buyer/cart.php')) ?>" class="cart-pill" title="Shopping Cart">
                         <?= icon('shopping-cart', 'lucide-sm') ?>
                         <span>Cart</span>
                         <span class="cart-badge" id="cartBadge"><?= (int) $cartItemsCount ?></span>
                     </a>
 
+                    <?php if ($authUser !== null): 
+                        $notifUnread = Notifications::getUnreadCount((int) $authUser['id']);
+                    ?>
+                        <a href="<?= e(url('pages/buyer/notifications.php')) ?>" class="cart-pill" title="Marketplace Alerts &amp; Restocks" style="padding: 0.35rem 0.65rem;">
+                            <?= icon('bell', 'lucide-sm', 'amber') ?>
+                            <?php if ($notifUnread > 0): ?>
+                                <span class="cart-badge" style="background: #ef4444;"><?= $notifUnread ?></span>
+                            <?php endif; ?>
+                        </a>
+                    <?php endif; ?>
+
                     <?php if ($authUser !== null): ?>
                         <div class="user-pill">
+<<<<<<< HEAD
                             <?= icon('user', 'lucide-sm') ?>
+=======
+                            <?= icon('user', 'lucide-xs') ?>
+>>>>>>> feature/seller-kyc-admin
                             <span class="user-name"><?= e(explode(' ', $authUser['full_name'])[0]) ?></span>
                             <span class="role-tag"><?= e(ucfirst($authUser['role'])) ?></span>
                         </div>
                         <a href="<?= e(url('pages/auth/logout.php')) ?>" class="btn btn-outline-light btn-sm">
+<<<<<<< HEAD
                             <?= icon('log-out', 'lucide-sm') ?>
+=======
+                            <?= icon('log-out', 'lucide-xs') ?>
+>>>>>>> feature/seller-kyc-admin
                             <span>Logout</span>
                         </a>
                     <?php else: ?>

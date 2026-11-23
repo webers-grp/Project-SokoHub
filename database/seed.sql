@@ -19,9 +19,9 @@ INSERT INTO seller_profiles (user_id, business_name, business_type, town, descri
 (2, 'Ian Fresh & Home Mart', 'retail', 'Kutus', 'Quality cooking gas refills, electronics, and household essentials in Kirinyaga.'),
 (3, 'Wanjiku Organic Produce & Fashion', 'food_beverage', 'Kerugoya', 'Farm-fresh Kirinyaga vegetables, organic baskets, and curated apparel.');
 
-INSERT INTO delivery_profiles (user_id, transport_method, license_number, service_area, is_available) VALUES
-(6, 'motorbike', 'DL-KE-88421', 'Kutus - Kagio - Kerugoya', 1),
-(7, 'car', 'DL-KE-99210', 'Kirinyaga County & Embu', 1);
+INSERT INTO delivery_profiles (user_id, transport_method, vehicle_plate_number, vehicle_model, license_number, service_area, is_available) VALUES
+(6, 'motorbike', 'KMDF 450A', 'Bajaj Boxer BM 150', 'DL-KE-88421', 'Kutus - Kagio - Kerugoya', 1),
+(7, 'car', 'KDA 890X', 'Toyota Probox 1.5L', 'DL-KE-99210', 'Kirinyaga County & Embu', 1);
 
 INSERT INTO categories (id, name, slug, description) VALUES
 (1, 'Clothes', 'clothes', 'Everyday apparel, coats, shirts, and local tailoring.'),

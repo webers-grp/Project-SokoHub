@@ -5,6 +5,9 @@ config/db.local.php
 # Runtime / uploads / temporary files
 assets/img/uploads/*
 !assets/img/uploads/.gitkeep
+!assets/img/uploads/kyc/
+assets/img/uploads/kyc/*
+!assets/img/uploads/kyc/.gitkeep
 *.log
 tmp/
 .DS_Store

@@ -5,6 +5,7 @@
  * Delivery Performance, and User/Vendor Breakdown) with charts and CSV export.
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/inventory.php';
 init_session();
 $user = require_role(['seller', 'delivery', 'admin']);
 $pdo = get_db_connection();
@@ -122,6 +123,7 @@ if ($reportType === 'inventory') {
 
     $invStmt = $pdo->prepare(
         "SELECT p.id, p.name, c.name AS category_name, p.condition_type, p.price, p.stock_qty,
+                p.low_stock_threshold,
                 (p.price * p.stock_qty) AS stock_value,
                 COALESCE(sp.business_name, u.full_name) AS seller_name
          FROM products p
@@ -129,7 +131,7 @@ if ($reportType === 'inventory') {
          INNER JOIN users u ON u.id = p.seller_id
          LEFT JOIN seller_profiles sp ON sp.user_id = u.id
          WHERE {$whereSql}
-         ORDER BY p.stock_qty ASC, p.name ASC"
+         ORDER BY (p.stock_qty <= p.low_stock_threshold) DESC, p.stock_qty ASC, p.name ASC"
     );
     $invStmt->execute($params);
     $invRows = $invStmt->fetchAll();
@@ -138,7 +140,8 @@ if ($reportType === 'inventory') {
         $invSummary['skus']++;
         $invSummary['total_units'] += (int) $ir['stock_qty'];
         $invSummary['valuation'] += (float) $ir['stock_value'];
-        if ((int) $ir['stock_qty'] <= 5) {
+        $threshold = (int) ($ir['low_stock_threshold'] ?? 5);
+        if ((int) $ir['stock_qty'] <= $threshold) {
             $invSummary['low_stock']++;
         }
     }
@@ -161,9 +164,12 @@ if ($reportType === 'inventory') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="sokohub_inventory_report.csv"');
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['ID', 'Product', 'Category', 'Seller', 'Condition', 'Unit Price (KSh)', 'Stock Qty', 'Inventory Value (KSh)']);
+        fputcsv($out, ['ID', 'Product', 'Category', 'Seller', 'Condition', 'Unit Price (KSh)', 'Stock Qty', 'Low Stock Threshold', 'Status', 'Inventory Value (KSh)']);
         foreach ($invRows as $r) {
-            fputcsv($out, [$r['id'], $r['name'], $r['category_name'], $r['seller_name'], $r['condition_type'], $r['price'], $r['stock_qty'], $r['stock_value']]);
+            $sq = (int) $r['stock_qty'];
+            $th = (int) ($r['low_stock_threshold'] ?? 5);
+            $st = ($sq <= 0) ? 'Out of Stock' : (($sq <= $th) ? 'Low Stock' : 'Adequate');
+            fputcsv($out, [$r['id'], $r['name'], $r['category_name'], $r['seller_name'], $r['condition_type'], $r['price'], $sq, $th, $st, $r['stock_value']]);
         }
         fclose($out);
         exit;
@@ -407,7 +413,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="stat-card"><span class="stat-label">Active SKUs</span><strong class="stat-value"><?= $invSummary['skus'] ?></strong></div>
             <div class="stat-card"><span class="stat-label">Total Stock Units</span><strong class="stat-value"><?= $invSummary['total_units'] ?></strong></div>
             <div class="stat-card"><span class="stat-label">Inventory Valuation</span><strong class="stat-value"><?= format_ksh($invSummary['valuation']) ?></strong></div>
-            <div class="stat-card"><span class="stat-label">Low Stock Alerts (&le;5)</span><strong class="stat-value" style="color:var(--danger);"><?= $invSummary['low_stock'] ?></strong></div>
+            <div class="stat-card"><span class="stat-label">Low Stock Alerts (&le; Threshold)</span><strong class="stat-value" style="color:var(--danger);"><?= $invSummary['low_stock'] ?></strong></div>
         </div>
 
         <div class="card">
@@ -425,24 +431,37 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="table-wrap">
                 <table class="data-table">
                     <thead>
-                        <tr><th>Product</th><th>Category</th><th>Seller</th><th>Unit Price</th><th>Stock Qty</th><th>Total Value</th><th>Status</th></tr>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Seller</th>
+                            <th>Unit Price</th>
+                            <th>Stock Qty</th>
+                            <th>Alert Threshold</th>
+                            <th>Total Value</th>
+                            <th>Status</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($invRows as $ir): ?>
+                    <?php foreach ($invRows as $ir): 
+                        $sq = (int) $ir['stock_qty'];
+                        $th = (int) ($ir['low_stock_threshold'] ?? 5);
+                    ?>
                         <tr>
                             <td><strong><?= e($ir['name']) ?></strong></td>
                             <td><?= e($ir['category_name']) ?></td>
                             <td><?= e($ir['seller_name']) ?></td>
                             <td><?= format_ksh($ir['price']) ?></td>
-                            <td><?= (int) $ir['stock_qty'] ?></td>
+                            <td><strong><?= $sq ?></strong></td>
+                            <td>&le; <?= $th ?></td>
                             <td><?= format_ksh($ir['stock_value']) ?></td>
                             <td>
-                                <?php if ((int) $ir['stock_qty'] === 0): ?>
+                                <?php if ($sq <= 0): ?>
                                     <span class="badge badge-danger">Out of Stock</span>
-                                <?php elseif ((int) $ir['stock_qty'] <= 5): ?>
-                                    <span class="badge badge-warning">Low Stock</span>
+                                <?php elseif ($sq <= $th): ?>
+                                    <span class="badge badge-amber" style="background:#fef3c7; color:#92400e; border:1px solid #f59e0b;">Low Stock</span>
                                 <?php else: ?>
-                                    <span class="badge badge-success">Healthy</span>
+                                    <span class="badge badge-success">Adequate</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

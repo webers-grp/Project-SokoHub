@@ -29,6 +29,30 @@
     --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
 }
 
+[data-theme="dark"] {
+    --bg-page: #0b1120;
+    --bg-surface: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --green-primary: #22c55e;
+    --green-dark: #4ade80;
+    --green-light: #142a1b;
+    --amber-primary: #f59e0b;
+    --amber-bright: #fbbf24;
+    --amber-light: #2c200c;
+    --danger: #f87171;
+    --danger-bg: #450a0a;
+    --info: #38bdf8;
+    --info-bg: #082f49;
+    --success: #34d399;
+    --success-bg: #064e3b;
+    --warning: #fbbf24;
+    --warning-bg: #451a03;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -43,6 +67,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 main {
@@ -175,6 +200,54 @@ a:hover {
     align-items: center;
     gap: 0.6rem;
     flex-shrink: 0;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.06);
+}
+
+.theme-toggle-btn:active {
+    transform: scale(0.94);
+}
+
+.theme-icon-light {
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-icon-dark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-theme="dark"] .theme-icon-light {
+    display: inline-flex;
+}
+
+[data-theme="dark"] .theme-icon-dark {
+    display: none;
 }
 
 .cart-pill {
@@ -1489,6 +1562,7 @@ table .lucide, table svg.lucide {
     }
 }
 
+<<<<<<< HEAD
 /* ==========================================================================
    Group 2: E-Commerce Catalog, Shopping Cart, Checkout, Wishlist & Ratings
    ========================================================================== */
@@ -1536,10 +1610,772 @@ table .lucide, table svg.lucide {
     color: #475569;
     width: 18px;
     height: 18px;
+=======
+/* ---------------- Lucide Vector Icons (Compact & Colorful System) ---------------- */
+.lucide, [data-lucide] {
+    display: inline-block;
+    vertical-align: -1.5px;
+    stroke-width: 1.85;
+    fill: none;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, stroke 0.2s ease;
+}
+
+/* Global compact default icon sizing (13px max) */
+svg.lucide, .lucide, [data-lucide] {
+    width: 13px !important;
+    height: 13px !important;
+    max-width: 13px !important;
+    max-height: 13px !important;
+}
+
+/* Size Modifiers (Strictly compact & proportional) */
+.lucide-xs, svg.lucide-xs, [data-lucide].lucide-xs {
+    width: 10px !important;
+    height: 10px !important;
+    max-width: 10px !important;
+    max-height: 10px !important;
+    stroke-width: 1.9;
+    vertical-align: -1px;
+}
+
+.lucide-sm, svg.lucide-sm, [data-lucide].lucide-sm {
+    width: 12px !important;
+    height: 12px !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+    stroke-width: 1.85;
+    vertical-align: -1.5px;
+}
+
+.lucide-md, svg.lucide-md, [data-lucide].lucide-md {
+    width: 13px !important;
+    height: 13px !important;
+    max-width: 13px !important;
+    max-height: 13px !important;
+    stroke-width: 1.85;
+    vertical-align: -1.5px;
+}
+
+.lucide-lg, svg.lucide-lg, [data-lucide].lucide-lg {
+    width: 14px !important;
+    height: 14px !important;
+    max-width: 14px !important;
+    max-height: 14px !important;
+    stroke-width: 1.8;
+}
+
+.lucide-xl, svg.lucide-xl, [data-lucide].lucide-xl {
+    width: 16px !important;
+    height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+    stroke-width: 1.75;
+}
+
+/* Headings auto-sizing so icons in headers never look oversized */
+h1 > .lucide, h1 > svg.lucide { width: 15px !important; height: 15px !important; max-width: 15px !important; max-height: 15px !important; vertical-align: -2px; }
+h2 > .lucide, h2 > svg.lucide { width: 13px !important; height: 13px !important; max-width: 13px !important; max-height: 13px !important; vertical-align: -1.5px; }
+h3 > .lucide, h3 > svg.lucide { width: 12px !important; height: 12px !important; max-width: 12px !important; max-height: 12px !important; vertical-align: -1px; }
+
+/* Sizing inside buttons & interactive controls */
+.btn .lucide, .btn svg.lucide {
+    width: 12px !important;
+    height: 12px !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+    margin-right: 0.22rem;
+    vertical-align: -1.5px;
+}
+
+.btn-sm .lucide, .btn-sm svg.lucide {
+    width: 11px !important;
+    height: 11px !important;
+    max-width: 11px !important;
+    max-height: 11px !important;
+    margin-right: 0.18rem;
+    vertical-align: -1px;
+}
+
+.cart-pill .lucide, .cart-pill svg.lucide {
+    width: 13px !important;
+    height: 13px !important;
+    max-width: 13px !important;
+    max-height: 13px !important;
+    margin-right: 0.22rem;
+}
+
+.user-pill .lucide, .user-pill svg.lucide {
+    width: 12px !important;
+    height: 12px !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+    margin-right: 0.2rem;
+}
+
+.badge .lucide, .badge svg.lucide {
+    width: 10px !important;
+    height: 10px !important;
+    max-width: 10px !important;
+    max-height: 10px !important;
+    margin-right: 0.15rem;
+    vertical-align: -1px;
+}
+
+table .lucide, table svg.lucide {
+    width: 11px !important;
+    height: 11px !important;
+    max-width: 11px !important;
+    max-height: 11px !important;
+}
+
+.nav-links .lucide, .nav-links svg.lucide {
+    width: 12px !important;
+    height: 12px !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+    margin-right: 0.22rem;
+}
+
+/* ---------------- Global Semantic Auto-Color Palette by Icon Name ---------------- */
+/* Every Lucide icon across the entire platform automatically displays its signature color */
+
+/* Shopping, Products & Cart */
+.lucide-shopping-cart, [data-lucide="shopping-cart"] { stroke: #f59e0b; } /* Amber Gold */
+.lucide-shopping-bag,  [data-lucide="shopping-bag"]  { stroke: #10b981; } /* Emerald */
+.lucide-store,         [data-lucide="store"]         { stroke: #f97316; } /* Warm Orange */
+.lucide-package,       [data-lucide="package"]       { stroke: #3b82f6; } /* Royal Blue */
+.lucide-box,           [data-lucide="box"]           { stroke: #6366f1; } /* Indigo */
+.lucide-tag,           [data-lucide="tag"]           { stroke: #06b6d4; } /* Cyan */
+.lucide-eye,           [data-lucide="eye"]           { stroke: #0284c7; } /* Sky Blue */
+
+/* Money & Financials */
+.lucide-wallet,        [data-lucide="wallet"]        { stroke: #10b981; } /* Emerald Green */
+.lucide-credit-card,   [data-lucide="credit-card"]   { stroke: #2563eb; } /* Blue */
+.lucide-dollar-sign,   [data-lucide="dollar-sign"]   { stroke: #10b981; } /* Emerald */
+.lucide-receipt,       [data-lucide="receipt"]       { stroke: #8b5cf6; } /* Purple */
+
+/* Delivery, Logistics & Navigation */
+.lucide-truck,         [data-lucide="truck"]         { stroke: #0284c7; } /* Sky Blue */
+.lucide-navigation,    [data-lucide="navigation"]    { stroke: #06b6d4; } /* Cyan */
+.lucide-map-pin,       [data-lucide="map-pin"]       { stroke: #ef4444; } /* Coral Red */
+.lucide-clock,         [data-lucide="clock"]         { stroke: #f59e0b; } /* Amber */
+.lucide-home,          [data-lucide="home"]          { stroke: #f59e0b; } /* Warm Amber */
+.lucide-layout-dashboard, [data-lucide="layout-dashboard"] { stroke: #10b981; } /* Emerald */
+
+/* Analytics, Reports, Files & Spreadsheets */
+.lucide-trending-up,   [data-lucide="trending-up"]   { stroke: #10b981; } /* Emerald */
+.lucide-bar-chart-2,   [data-lucide="bar-chart-2"],
+.lucide-bar-chart-3,   [data-lucide="bar-chart-3"]   { stroke: #8b5cf6; } /* Purple */
+.lucide-pie-chart,     [data-lucide="pie-chart"]     { stroke: #ec4899; } /* Pink */
+.lucide-file-text,     [data-lucide="file-text"]     { stroke: #0284c7; } /* Blue */
+.lucide-file-spreadsheet, [data-lucide="file-spreadsheet"] { stroke: #10b981; } /* Emerald */
+.lucide-printer,       [data-lucide="printer"]       { stroke: #6366f1; } /* Indigo */
+.lucide-download,      [data-lucide="download"]      { stroke: #10b981; } /* Emerald */
+.lucide-upload,        [data-lucide="upload"]        { stroke: #0284c7; } /* Sky Blue */
+.lucide-table,         [data-lucide="table"]         { stroke: #06b6d4; } /* Cyan */
+
+/* Actions, Controls & Status */
+.lucide-edit-3,        [data-lucide="edit-3"],
+.lucide-edit,          [data-lucide="edit"]          { stroke: #2563eb; } /* Blue */
+.lucide-trash-2,       [data-lucide="trash-2"],
+.lucide-trash,         [data-lucide="trash"]         { stroke: #ef4444; } /* Red */
+.lucide-search,        [data-lucide="search"]        { stroke: #3b82f6; } /* Blue */
+.lucide-filter,        [data-lucide="filter"]        { stroke: #6366f1; } /* Indigo */
+.lucide-rotate-ccw,    [data-lucide="rotate-ccw"],
+.lucide-refresh-cw,    [data-lucide="refresh-cw"]    { stroke: #06b6d4; } /* Cyan */
+.lucide-save,          [data-lucide="save"],
+.lucide-plus,          [data-lucide="plus"],
+.lucide-plus-circle,   [data-lucide="plus-circle"]   { stroke: #10b981; } /* Emerald */
+.lucide-check,         [data-lucide="check"],
+.lucide-check-circle,  [data-lucide="check-circle"],
+.lucide-check-circle-2,[data-lucide="check-circle-2"]{ stroke: #10b981; } /* Emerald */
+.lucide-hand,          [data-lucide="hand"]          { stroke: #10b981; } /* Emerald */
+
+/* Alerts, Compliance & Warnings */
+.lucide-bell,          [data-lucide="bell"]          { stroke: #f59e0b; } /* Amber */
+.lucide-alert-triangle,[data-lucide="alert-triangle"]{ stroke: #f59e0b; } /* Amber */
+.lucide-alert-circle,  [data-lucide="alert-circle"]  { stroke: #ef4444; } /* Red */
+.lucide-x-circle,      [data-lucide="x-circle"],
+.lucide-x,             [data-lucide="x"]             { stroke: #ef4444; } /* Red */
+.lucide-info,          [data-lucide="info"]          { stroke: #0284c7; } /* Blue */
+.lucide-shield-check,  [data-lucide="shield-check"]  { stroke: #10b981; } /* Emerald */
+.lucide-shield-alert,  [data-lucide="shield-alert"]  { stroke: #f59e0b; } /* Amber */
+
+/* Users, Auth & Communication */
+.lucide-user,          [data-lucide="user"]          { stroke: #06b6d4; } /* Cyan */
+.lucide-users,         [data-lucide="users"]         { stroke: #0891b2; } /* Dark Cyan */
+.lucide-user-plus,     [data-lucide="user-plus"],
+.lucide-user-check,    [data-lucide="user-check"]    { stroke: #10b981; } /* Emerald */
+.lucide-log-in,        [data-lucide="log-in"]        { stroke: #2563eb; } /* Blue */
+.lucide-log-out,       [data-lucide="log-out"]       { stroke: #ef4444; } /* Red */
+.lucide-key,           [data-lucide="key"],
+.lucide-lock,          [data-lucide="lock"]          { stroke: #f59e0b; } /* Amber */
+.lucide-mail,          [data-lucide="mail"]          { stroke: #0284c7; } /* Blue */
+.lucide-phone,         [data-lucide="phone"]         { stroke: #10b981; } /* Green */
+.lucide-message-square,[data-lucide="message-square"]{ stroke: #ec4899; } /* Pink */
+.lucide-send,          [data-lucide="send"]          { stroke: #3b82f6; } /* Blue */
+.lucide-headphones,    [data-lucide="headphones"]    { stroke: #8b5cf6; } /* Purple */
+.lucide-activity,      [data-lucide="activity"]      { stroke: #14b8a6; } /* Teal */
+
+/* Solid Buttons: preserve high contrast white icon stroke */
+.btn-primary .lucide,
+.btn-amber .lucide,
+.btn-danger .lucide {
+    stroke: #ffffff !important;
+}
+
+/* Specific Utility Color Overrides */
+.icon-emerald, svg.icon-emerald { stroke: #10b981 !important; }
+.icon-green,   svg.icon-green   { stroke: #16a34a !important; }
+.icon-lime,    svg.icon-lime    { stroke: #84cc16 !important; }
+.icon-amber,   svg.icon-amber   { stroke: #f59e0b !important; }
+.icon-orange,  svg.icon-orange  { stroke: #f97316 !important; }
+.icon-blue,    svg.icon-blue    { stroke: #2563eb !important; }
+.icon-sky,     svg.icon-sky     { stroke: #0284c7 !important; }
+.icon-cyan,    svg.icon-cyan    { stroke: #06b6d4 !important; }
+.icon-teal,    svg.icon-teal    { stroke: #0d9488 !important; }
+.icon-indigo,  svg.icon-indigo  { stroke: #6366f1 !important; }
+.icon-purple,  svg.icon-purple  { stroke: #9333ea !important; }
+.icon-violet,  svg.icon-violet  { stroke: #8b5cf6 !important; }
+.icon-pink,    svg.icon-pink    { stroke: #ec4899 !important; }
+.icon-rose,    svg.icon-rose    { stroke: #f43f5e !important; }
+.icon-red,     svg.icon-red     { stroke: #ef4444 !important; }
+.icon-yellow,  svg.icon-yellow  { stroke: #eab308 !important; }
+.icon-gold,    svg.icon-gold    { stroke: #fbbf24 !important; }
+.icon-white,   svg.icon-white   { stroke: #ffffff !important; }
+.icon-slate,   svg.icon-slate   { stroke: #64748b !important; }
+
+/* In Header Navbar Links: pastel vibrancy on green background */
+.nav-links a .lucide {
+    display: inline-block;
+    transition: transform 0.15s ease;
+}
+.nav-links a:hover .lucide {
+    transform: scale(1.15);
+}
+
+.nav-links a[href*="index.php"] .lucide           { stroke: #fef08a !important; } /* Warm Yellow */
+.nav-links a[href*="products.php"] .lucide        { stroke: #a7f3d0 !important; } /* Mint Emerald */
+.nav-links a[href*="about.php"] .lucide           { stroke: #bae6fd !important; } /* Ice Sky Blue */
+.nav-links a[href*="contact.php"] .lucide         { stroke: #fbcfe8 !important; } /* Soft Rose Pink */
+.nav-links a[href*="dashboard.php"] .lucide       { stroke: #fde047 !important; } /* Warm Amber Gold */
+.nav-links a[href*="manage_products.php"] .lucide { stroke: #fed7aa !important; } /* Light Peach Orange */
+.nav-links a[href*="bulk_upload.php"] .lucide     { stroke: #a7f3d0 !important; } /* Mint Green */
+.nav-links a[href*="orders.php"] .lucide          { stroke: #c7d2fe !important; } /* Lavender Blue */
+.nav-links a[href*="deliveries.php"] .lucide      { stroke: #a5f3fc !important; } /* Cyan Teal */
+.nav-links a[href*="reports.php"] .lucide         { stroke: #e9d5ff !important; } /* Lilac Violet */
+.nav-links a[href*="kyc_upload.php"] .lucide      { stroke: #fed7aa !important; } /* Light Amber */
+.nav-links a[href*="seller_verification.php"] .lucide { stroke: #fed7aa !important; }
+.nav-links a[href*="audit_logs.php"] .lucide      { stroke: #bae6fd !important; }
+.nav-links a[href*="notifications.php"] .lucide   { stroke: #fef08a !important; }
+.nav-links a[href*="payouts.php"] .lucide         { stroke: #a7f3d0 !important; }
+
+.cart-pill .lucide {
+    stroke: #fef08a !important;
+}
+.user-pill .lucide {
+    stroke: #67e8f9 !important;
+}
+
+/* Circular Icon Badges for Dashboard KPIs & Stats */
+.stat-icon-wrap {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.stat-icon-wrap .lucide, .stat-icon-wrap svg.lucide {
+    width: 13px !important;
+    height: 13px !important;
+    max-width: 13px !important;
+    max-height: 13px !important;
+}
+.stat-icon-emerald { background: #ecfdf5; color: #059669; }
+.stat-icon-emerald .lucide { stroke: #059669 !important; }
+
+.stat-icon-blue    { background: #eff6ff; color: #2563eb; }
+.stat-icon-blue .lucide { stroke: #2563eb !important; }
+
+.stat-icon-purple  { background: #f5f3ff; color: #7c3aed; }
+.stat-icon-purple .lucide { stroke: #7c3aed !important; }
+
+.stat-icon-amber   { background: #fffbeb; color: #d97706; }
+.stat-icon-amber .lucide { stroke: #d97706 !important; }
+
+.stat-icon-rose    { background: #fff1f2; color: #e11d48; }
+.stat-icon-rose .lucide { stroke: #e11d48 !important; }
+
+.stat-icon-cyan    { background: #ecfeff; color: #0891b2; }
+.stat-icon-cyan .lucide { stroke: #0891b2 !important; }
+
+.stat-icon-teal    { background: #f0fdf4; color: #0d9488; }
+.stat-icon-teal .lucide { stroke: #0d9488 !important; }
+
+.stat-icon-pink    { background: #fdf2f8; color: #db2777; }
+.stat-icon-pink .lucide { stroke: #db2777 !important; }
+
+/* Tinted Icon Badges for Value Propositions on Home */
+.prop-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+}
+.prop-icon-amber { background: #fff7ed; color: #ea580c; }
+.prop-icon-amber .lucide { stroke: #ea580c !important; width: 14px !important; height: 14px !important; }
+
+.prop-icon-blue  { background: #eff6ff; color: #0284c7; }
+.prop-icon-blue .lucide { stroke: #0284c7 !important; width: 14px !important; height: 14px !important; }
+
+.prop-icon-green { background: #ecfdf5; color: #16a34a; }
+.prop-icon-green .lucide { stroke: #16a34a !important; width: 14px !important; height: 14px !important; }
+
+/* Tinted Role Icons on Registration Page */
+.role-icon-buyer    { background: #eff6ff !important; color: #2563eb !important; }
+.role-icon-buyer .lucide { stroke: #2563eb !important; width: 16px !important; height: 16px !important; }
+
+.role-icon-seller   { background: #fffbeb !important; color: #d97706 !important; }
+.role-icon-seller .lucide { stroke: #d97706 !important; width: 16px !important; height: 16px !important; }
+
+.role-icon-delivery { background: #ecfdf5 !important; color: #059669 !important; }
+.role-icon-delivery .lucide { stroke: #059669 !important; width: 16px !important; height: 16px !important; }
+
+/* ==========================================================================
+   Dark Mode Component Overrides & Surface Refinements
+   ========================================================================== */
+
+/* Navbar & Header */
+[data-theme="dark"] .site-header {
+    background-color: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .nav-menu {
+    background-color: #0f172a;
+}
+
+[data-theme="dark"] .user-pill {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .role-tag {
+    background: #334155;
+    color: #4ade80;
+}
+
+/* Form Controls, Inputs, Selects, Textareas */
+[data-theme="dark"] .form-control {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .form-control:focus {
+    background-color: #0f172a;
+    border-color: var(--amber-primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .form-control::placeholder {
+    color: #64748b;
+}
+
+[data-theme="dark"] select.form-control option {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+/* Tables & Hover States */
+[data-theme="dark"] .data-table th {
+    background-color: #0f172a;
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .data-table td {
+    border-bottom-color: #334155;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .data-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .table-thumb {
+    border-color: #334155;
+}
+
+/* Cards & Surface Elements */
+[data-theme="dark"] .card {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .product-card {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .product-thumb {
+    background-color: #0f172a;
+}
+
+[data-theme="dark"] .original-price {
+    color: #64748b;
+}
+
+[data-theme="dark"] .filter-panel {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .cat-chip {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .cat-chip:hover,
+[data-theme="dark"] .cat-chip.active {
+    background-color: var(--green-primary);
+    border-color: var(--green-primary);
+    color: #0b1120;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .prop-item {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+/* Buttons */
+[data-theme="dark"] .btn-light {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .btn-light:hover {
+    background-color: #475569;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .btn-outline {
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    border-color: #4ade80;
+    color: #4ade80;
+}
+
+/* Pagination */
+[data-theme="dark"] .pagination a,
+[data-theme="dark"] .pagination span {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .pagination a:hover {
+    background-color: #334155;
+}
+
+[data-theme="dark"] .pagination .current {
+    background-color: var(--green-primary);
+    color: #0b1120;
+    border-color: var(--green-primary);
+}
+
+/* Reports & Charts */
+[data-theme="dark"] .report-tab {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .report-tab.active,
+[data-theme="dark"] .report-tab:hover {
+    background-color: var(--green-primary);
+    border-color: var(--green-primary);
+    color: #0b1120;
+}
+
+[data-theme="dark"] .bar-track {
+    background-color: #334155;
+}
+
+/* Badges */
+[data-theme="dark"] .badge-neutral {
+    background-color: #334155;
+    color: #cbd5e1;
+}
+
+/* Auth Page */
+[data-theme="dark"] .auth-split {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .role-card {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .role-card:hover {
+    border-color: var(--green-primary);
+}
+
+/* Vouchers & Payouts Statement */
+[data-theme="dark"] .voucher-card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .voucher-title {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] .voucher-header {
+    border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .voucher-sub {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .info-box {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .info-box h4 {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .info-row span:first-child {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .info-row span:last-child {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] .calculation-card {
+    background-color: rgba(6, 78, 59, 0.25) !important;
+    border-color: #065f46 !important;
+}
+
+[data-theme="dark"] .calc-row {
+    border-bottom-color: rgba(6, 78, 59, 0.5) !important;
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] .calc-row.total {
+    border-top-color: #22c55e !important;
+    color: #4ade80 !important;
+}
+
+/* Bulk Upload Spreadsheet & Tabs */
+[data-theme="dark"] .tab-nav {
+    border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .tab-btn {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .tab-btn:hover {
+    color: #4ade80 !important;
+}
+
+[data-theme="dark"] .tab-btn.active {
+    color: #4ade80 !important;
+    border-bottom-color: #4ade80 !important;
+}
+
+[data-theme="dark"] .grid-table input,
+[data-theme="dark"] .grid-table select,
+[data-theme="dark"] .grid-table textarea {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .grid-table input:focus,
+[data-theme="dark"] .grid-table select:focus,
+[data-theme="dark"] .grid-table textarea:focus {
+    border-color: #22c55e !important;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25) !important;
+}
+
+/* Warning & Danger Banner Overrides */
+[data-theme="dark"] .card[style*="#fffbeb"],
+[data-theme="dark"] .card[style*="background: #fffbeb"],
+[data-theme="dark"] div[style*="#fffbeb"],
+[data-theme="dark"] div[style*="background: #fffbeb"] {
+    background-color: #451a03 !important;
+    border-color: #78350f !important;
+}
+
+[data-theme="dark"] .card[style*="#fffbeb"] strong,
+[data-theme="dark"] .card[style*="#fffbeb"] p,
+[data-theme="dark"] div[style*="#fffbeb"] strong,
+[data-theme="dark"] div[style*="#fffbeb"] p {
+    color: #fde68a !important;
+}
+
+[data-theme="dark"] .card[style*="#fff5f5"],
+[data-theme="dark"] .card[style*="background: #fff5f5"],
+[data-theme="dark"] div[style*="#fff5f5"],
+[data-theme="dark"] div[style*="background: #fff5f5"] {
+    background-color: #450a0a !important;
+    border-color: #7f1d1d !important;
+}
+
+[data-theme="dark"] .card[style*="#fff5f5"] strong,
+[data-theme="dark"] .card[style*="#fff5f5"] p,
+[data-theme="dark"] div[style*="#fff5f5"] strong,
+[data-theme="dark"] div[style*="#fff5f5"] p {
+    color: #fca5a5 !important;
+}
+
+[data-theme="dark"] h1[style*="#1e293b"],
+[data-theme="dark"] h2[style*="#1e293b"],
+[data-theme="dark"] h3[style*="#1e293b"],
+[data-theme="dark"] strong[style*="#1e293b"] {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] p[style*="#64748b"] {
+    color: #94a3b8 !important;
+}
+
+/* Lucide Icon Badges in Dark Mode */
+[data-theme="dark"] .stat-icon-emerald { background: #064e3b; color: #34d399; }
+[data-theme="dark"] .stat-icon-emerald .lucide { stroke: #34d399 !important; }
+
+[data-theme="dark"] .stat-icon-amber   { background: #451a03; color: #fbbf24; }
+[data-theme="dark"] .stat-icon-amber .lucide { stroke: #fbbf24 !important; }
+
+[data-theme="dark"] .stat-icon-cyan    { background: #082f49; color: #38bdf8; }
+[data-theme="dark"] .stat-icon-cyan .lucide { stroke: #38bdf8 !important; }
+
+[data-theme="dark"] .stat-icon-rose,
+[data-theme="dark"] .stat-icon-pink    { background: #4c0519; color: #fb7185; }
+[data-theme="dark"] .stat-icon-rose .lucide,
+[data-theme="dark"] .stat-icon-pink .lucide { stroke: #fb7185 !important; }
+
+[data-theme="dark"] .stat-icon-purple  { background: #2e1065; color: #c084fc; }
+[data-theme="dark"] .stat-icon-purple .lucide { stroke: #c084fc !important; }
+
+[data-theme="dark"] .stat-icon-blue    { background: #1e3a8a; color: #60a5fa; }
+[data-theme="dark"] .stat-icon-blue .lucide { stroke: #60a5fa !important; }
+
+[data-theme="dark"] .prop-icon-amber { background: #451a03; color: #fbbf24; }
+[data-theme="dark"] .prop-icon-amber .lucide { stroke: #fbbf24 !important; }
+
+[data-theme="dark"] .prop-icon-blue  { background: #082f49; color: #38bdf8; }
+[data-theme="dark"] .prop-icon-blue .lucide { stroke: #38bdf8 !important; }
+
+[data-theme="dark"] .prop-icon-green { background: #064e3b; color: #34d399; }
+[data-theme="dark"] .prop-icon-green .lucide { stroke: #34d399 !important; }
+
+[data-theme="dark"] .role-icon-buyer    { background: #1e3a8a !important; color: #60a5fa !important; }
+[data-theme="dark"] .role-icon-buyer .lucide { stroke: #60a5fa !important; }
+
+[data-theme="dark"] .role-icon-seller   { background: #451a03 !important; color: #fbbf24 !important; }
+[data-theme="dark"] .role-icon-seller .lucide { stroke: #fbbf24 !important; }
+
+[data-theme="dark"] .role-icon-delivery { background: #064e3b !important; color: #34d399 !important; }
+[data-theme="dark"] .role-icon-delivery .lucide { stroke: #34d399 !important; }
+
+/* ==========================================================================
+   Visual Order Progress Timeline Component (SokoHub Dispatch Tracker)
+   ========================================================================== */
+.order-timeline-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 1.15rem 1.25rem;
+    margin: 0.75rem 0;
+    box-shadow: var(--shadow-sm);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.order-timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.25rem;
+}
+
+.timeline-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    gap: 0.5rem;
+    margin: 1.25rem 0 1rem 0;
+}
+
+.timeline-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-step-connector {
+    position: absolute;
+    top: 19px;
+    left: -50%;
+    width: 100%;
+    height: 4px;
+    background: var(--border-color);
+    z-index: 1;
+    transition: background 0.3s ease;
+}
+
+.timeline-step:first-child .timeline-step-connector {
+    display: none;
+}
+
+.timeline-step.completed .timeline-step-connector {
+    background: var(--green-primary);
+}
+
+.timeline-step.active .timeline-step-connector {
+    background: linear-gradient(90deg, var(--green-primary), var(--amber-primary));
+}
+
+.timeline-icon-box {
+    width: 40px;
+    height: 40px;
+>>>>>>> feature/seller-kyc-admin
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+<<<<<<< HEAD
     font-size: 13px;
     cursor: pointer;
     line-height: 1;
@@ -1872,5 +2708,254 @@ table .lucide, table svg.lucide {
     .checkout-stepper .step-divider {
         display: none;
     }
+=======
+    background: var(--bg-surface);
+    border: 3px solid var(--border-color);
+    color: var(--text-muted);
+    transition: all 0.25s ease;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+.timeline-step.completed .timeline-icon-box {
+    background: var(--green-primary);
+    border-color: var(--green-primary);
+    color: #ffffff;
+}
+
+.timeline-step.completed .timeline-icon-box .lucide,
+.timeline-step.completed .timeline-icon-box svg {
+    stroke: #ffffff !important;
+}
+
+.timeline-step.active .timeline-icon-box {
+    background: var(--amber-primary);
+    border-color: var(--amber-primary);
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(216, 134, 11, 0.25);
+    animation: timeline-pulse 2s infinite;
+}
+
+.timeline-step.active .timeline-icon-box .lucide,
+.timeline-step.active .timeline-icon-box svg {
+    stroke: #ffffff !important;
+}
+
+@keyframes timeline-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(216, 134, 11, 0.45); }
+    70% { box-shadow: 0 0 0 10px rgba(216, 134, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(216, 134, 11, 0); }
+}
+
+.timeline-step-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+.timeline-step-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    color: var(--text-main);
+}
+
+.timeline-step-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    max-width: 140px;
+    line-height: 1.35;
+}
+
+.timeline-intel-box {
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+[data-theme="dark"] .timeline-intel-box {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.25);
+}
+
+/* Responsive Orders Layout: Desktop Table vs Mobile Cards */
+.mobile-orders-view {
+    display: none;
+}
+.desktop-orders-view {
+    display: block;
+}
+
+/* Mobile Responsiveness for Small Screens (<= 768px) */
+@media (max-width: 768px) {
+    .desktop-orders-view {
+        display: none !important;
+    }
+    .mobile-orders-view {
+        display: flex !important;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .order-timeline-wrap {
+        padding: 0.95rem 0.85rem;
+        margin: 0.5rem 0;
+    }
+
+    .order-timeline-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+        padding-bottom: 0.65rem;
+        margin-bottom: 1rem;
+    }
+
+    .timeline-steps {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        margin: 0.5rem 0 0.85rem 0;
+        padding-left: 0.25rem;
+    }
+
+    .timeline-step {
+        flex-direction: row;
+        align-items: flex-start;
+        text-align: left;
+        gap: 0.85rem;
+        width: 100%;
+        position: relative;
+        padding-bottom: 1.25rem;
+    }
+
+    .timeline-step:last-child {
+        padding-bottom: 0.25rem;
+    }
+
+    .timeline-icon-box {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+    }
+
+    .timeline-step-connector {
+        top: 36px;
+        left: 16px;
+        width: 4px;
+        height: calc(100% - 36px);
+        background: var(--border-color);
+        z-index: 1;
+    }
+
+    .timeline-step:first-child .timeline-step-connector {
+        display: block;
+    }
+
+    .timeline-step:last-child .timeline-step-connector {
+        display: none;
+    }
+
+    .timeline-step.completed .timeline-step-connector {
+        background: var(--green-primary);
+    }
+
+    .timeline-step.active .timeline-step-connector {
+        background: linear-gradient(180deg, var(--amber-primary), var(--border-color));
+    }
+
+    .timeline-step-content {
+        align-items: flex-start;
+        text-align: left;
+        flex: 1;
+        min-width: 0;
+        padding-top: 2px;
+    }
+
+    .timeline-step-label {
+        font-size: 0.85rem;
+        margin-top: 0;
+    }
+
+    .timeline-step-sub {
+        font-size: 0.76rem;
+        max-width: none;
+        margin-top: 0.15rem;
+        word-break: break-word;
+    }
+
+    .timeline-intel-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        padding: 0.85rem;
+    }
+
+    .timeline-intel-box .timeline-call-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 40px;
+    }
+
+    /* Mobile Order Card Component */
+    .mobile-order-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.15rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .mobile-order-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.75rem;
+    }
+
+    .mobile-order-card-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        font-size: 0.85rem;
+        background: rgba(0, 0, 0, 0.02);
+        padding: 0.75rem;
+        border-radius: var(--radius-sm);
+    }
+
+    [data-theme="dark"] .mobile-order-card-meta {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .mobile-order-card-items {
+        font-size: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .mobile-order-card-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+>>>>>>> feature/seller-kyc-admin
 }
 
