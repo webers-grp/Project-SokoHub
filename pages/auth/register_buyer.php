@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $hash = password_hash((string) $_POST['password'], PASSWORD_BCRYPT, ['cost' => 10]);
                 $stmt = $pdo->prepare(
-                    "INSERT INTO users (full_name, email, phone, password_hash, role, status)
-                     VALUES (:full_name, :email, :phone, :hash, 'buyer', 'active')"
+                    "INSERT INTO users (full_name, email, phone, password_hash, role, status, created_at)
+                     VALUES (:full_name, :email, :phone, :hash, 'buyer', 'pending_verification', NOW())"
                 );
                 $stmt->execute([
                     ':full_name' => $old['full_name'],
@@ -42,9 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':hash'      => $hash,
                 ]);
 
-                login_user($pdo, $old['email'], (string) $_POST['password'], false);
-                set_flash('success', 'Welcome to SokoHub, ' . $old['full_name'] . '! Your buyer account is ready.');
-                redirect('pages/dashboard/dashboard.php');
+                $userId = (int) $pdo->lastInsertId();
+                $otpCode = Security::generateOtp($userId, 'registration', 600);
+                Security::enqueueJob($pdo, 'send_email', [
+                    'to'       => $old['email'],
+                    'template' => 'otp_registration',
+                    'code'     => $otpCode,
+                    'subject'  => 'Welcome to SokoHub - Verify Your Account',
+                ]);
+                Security::logNotification($pdo, $userId, 'email', 'otp_registration', $old['email']);
+
+                $_SESSION['pending_otp_user_id'] = $userId;
+                $_SESSION['pending_otp_email'] = $old['email'];
+                $_SESSION['pending_otp_purpose'] = 'registration';
+
+                set_flash('success', 'Your buyer account has been created! Please enter the 6-digit verification code sent to ' . htmlspecialchars($old['email']));
+                redirect('pages/auth/verify_otp.php');
             }
         }
     }
@@ -106,6 +119,17 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
+                <!-- Password Strength Meter Widget -->
+                <div style="margin: 0.5rem 0 1rem;">
+                    <div style="height: 6px; width: 100%; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                        <div id="buyerStrengthBar" style="height: 100%; width: 0%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+                        <span class="small muted">Strength: <strong id="buyerStrengthLabel" style="color: #ef4444;">Too weak</strong></span>
+                        <div id="buyerMatchNotice" class="small" style="font-weight: 600; display: none;"></div>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-block">
                     <?= icon('user-plus') ?>
                     <span>Create Buyer Account</span>
@@ -118,5 +142,67 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pwd = document.getElementById('password');
+    const confirm = document.getElementById('confirm_password');
+    const bar = document.getElementById('buyerStrengthBar');
+    const label = document.getElementById('buyerStrengthLabel');
+    const matchNotice = document.getElementById('buyerMatchNotice');
+
+    if (!pwd || !confirm) return;
+
+    function checkStrength(val) {
+        let score = 0;
+        if (!val) return 0;
+        if (val.length >= 8) score += 25;
+        if (val.length >= 12) score += 15;
+        if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score += 25;
+        if (/[0-9]/.test(val)) score += 20;
+        if (/[^a-zA-Z0-9]/.test(val)) score += 15;
+        return Math.min(100, score);
+    }
+
+    pwd.addEventListener('input', function () {
+        const score = checkStrength(this.value);
+        bar.style.width = score + '%';
+
+        if (score < 40) {
+            bar.style.backgroundColor = '#ef4444';
+            label.textContent = 'Weak';
+            label.style.color = '#ef4444';
+        } else if (score < 75) {
+            bar.style.backgroundColor = '#f59e0b';
+            label.textContent = 'Medium';
+            label.style.color = '#d97706';
+        } else {
+            bar.style.backgroundColor = '#10b981';
+            label.textContent = 'Strong';
+            label.style.color = '#059669';
+        }
+        validateMatch();
+    });
+
+    function validateMatch() {
+        if (!confirm.value) {
+            matchNotice.style.display = 'none';
+            return;
+        }
+        matchNotice.style.display = 'block';
+        if (pwd.value === confirm.value) {
+            matchNotice.textContent = 'Passwords match';
+            matchNotice.style.color = '#059669';
+            confirm.style.borderColor = '#10b981';
+        } else {
+            matchNotice.textContent = 'Passwords do not match';
+            matchNotice.style.color = '#ef4444';
+            confirm.style.borderColor = '#ef4444';
+        }
+    }
+
+    confirm.addEventListener('input', validateMatch);
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

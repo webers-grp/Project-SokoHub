@@ -14,8 +14,10 @@ function e(mixed $value): string
 }
 
 /**
- * Render a Lucide vector icon with data-lucide attribute, compact sizing,
- * and optional semantic color classes.
+ * Render a Lucide vector icon element with data-lucide attribute.
+ * Automatically instantiated into crisp inline SVG icons by Lucide.
+ * Supports size modifier classes (.lucide-sm, .lucide-xs, .lucide-lg) and
+ * semantic color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
  */
 function icon(string $name, string $class = '', string $color = '', string $extraAttrs = ''): string
 {

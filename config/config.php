@@ -12,6 +12,7 @@ if (!defined('APP_NAME')) {
     define('APP_ROOT', str_replace('\\', '/', (string) realpath(__DIR__ . '/..')));
     define('UPLOAD_DIR', APP_ROOT . '/assets/img/uploads');
     define('MAX_UPLOAD_BYTES', 2 * 1024 * 1024); // 2 MB
+    define('APP_SECRET', getenv('APP_SECRET') ?: 'sokohub_app_secret_key_kirinyaga_2026_x87b');
 }
 
 /**
