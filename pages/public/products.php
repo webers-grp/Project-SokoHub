@@ -81,6 +81,18 @@ $listStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $listStmt->execute();
 $products = $listStmt->fetchAll();
 
+$authUser = current_user();
+$userWishlist = [];
+if ($authUser) {
+    try {
+        $wStmt = $pdo->prepare('SELECT product_id FROM wishlists WHERE user_id = :uid');
+        $wStmt->execute([':uid' => (int) $authUser['id']]);
+        $userWishlist = array_map('intval', $wStmt->fetchAll(PDO::FETCH_COLUMN));
+    } catch (Throwable) {
+        $userWishlist = [];
+    }
+}
+
 $pageTitle = 'SokoHub | Explore Products';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -159,19 +171,42 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php else: ?>
                 <div class="product-grid">
                     <?php foreach ($products as $product): ?>
-                        <?php $disc = discount_percent((float) $product['price'], $product['original_price'] !== null ? (float) $product['original_price'] : null); ?>
+                        <?php
+                        $pid = (int) $product['id'];
+                        $disc = discount_percent((float) $product['price'], $product['original_price'] !== null ? (float) $product['original_price'] : null);
+                        $isSaved = in_array($pid, $userWishlist, true);
+                        $ratingAvg = (float) ($product['rating_avg'] ?? 0.0);
+                        $ratingCnt = (int) ($product['rating_count'] ?? 0);
+                        ?>
                         <article class="product-card">
-                            <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="product-thumb">
-                                <img src="<?= e(url($product['image_path'])) ?>" alt="<?= e($product['name']) ?>">
-                                <?php if ($disc > 0): ?>
-                                    <span class="discount-badge"><?= $disc ?>% OFF</span>
-                                <?php endif; ?>
-                                <span class="condition-badge"><?= e($product['condition_type']) ?></span>
-                            </a>
+                            <div style="position: relative;">
+                                <a href="<?= e(url('pages/public/product_details.php?id=' . $pid)) ?>" class="product-thumb">
+                                    <img src="<?= e(url($product['image_path'])) ?>" alt="<?= e($product['name']) ?>">
+                                    <?php if ($disc > 0): ?>
+                                        <span class="discount-badge"><?= $disc ?>% OFF</span>
+                                    <?php endif; ?>
+                                    <span class="condition-badge"><?= e($product['condition_type']) ?></span>
+                                </a>
+                                <button type="button"
+                                        class="btn-wishlist-toggle <?= $isSaved ? 'active' : '' ?>"
+                                        data-product-id="<?= $pid ?>"
+                                        title="<?= $isSaved ? 'Remove from Wishlist' : 'Add to Wishlist' ?>"
+                                        aria-label="Wishlist toggle"
+                                        style="position: absolute; top: 10px; right: 10px;">
+                                    <?= icon('heart', 'lucide-xs', $isSaved ? 'rose' : '') ?>
+                                </button>
+                            </div>
                             <div class="product-body">
-                                <span class="product-category"><?= e($product['category_name']) ?></span>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="product-category"><?= e($product['category_name']) ?></span>
+                                    <?php if ($ratingCnt > 0): ?>
+                                        <span class="small" style="color: #b45309; font-weight: 700;">
+                                            <?= icon('star', 'lucide-xs', 'amber') ?> <?= number_format($ratingAvg, 1) ?> (<?= $ratingCnt ?>)
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <h3 class="product-title">
-                                    <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>"><?= e($product['name']) ?></a>
+                                    <a href="<?= e(url('pages/public/product_details.php?id=' . $pid)) ?>"><?= e($product['name']) ?></a>
                                 </h3>
                                 <p class="product-seller">
                                     <?= e($product['seller_name']) ?> &bull;
@@ -188,15 +223,15 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php endif; ?>
                                 </div>
                                 <div class="product-actions">
-                                    <a href="<?= e(url('pages/public/product_details.php?id=' . (int) $product['id'])) ?>" class="btn btn-outline btn-sm" style="flex:1;">
+                                    <a href="<?= e(url('pages/public/product_details.php?id=' . $pid)) ?>" class="btn btn-outline btn-sm" style="flex:1;">
                                         <?= icon('eye', 'lucide-xs', 'blue') ?>
                                         <span>View</span>
                                     </a>
                                     <?php if ((int) $product['stock_qty'] > 0): ?>
-                                        <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="flex:1;">
+                                        <form action="<?= e(url('cart_actions.php')) ?>" method="POST" style="flex:1;">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="add">
-                                            <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
+                                            <input type="hidden" name="product_id" value="<?= $pid ?>">
                                             <input type="hidden" name="quantity" value="1">
                                             <button type="submit" class="btn btn-primary btn-sm btn-block">
                                                 <?= icon('shopping-cart', 'lucide-xs', 'gold') ?>

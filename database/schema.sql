@@ -9,6 +9,10 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS contact_messages;
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS wishlists;
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS stock_movements;
 DROP TABLE IF EXISTS deliveries;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
@@ -77,11 +81,16 @@ CREATE TABLE products (
     image_path VARCHAR(255) NOT NULL DEFAULT 'assets/img/cart-icon.jpg',
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
     status ENUM('active', 'archived') NOT NULL DEFAULT 'active',
+    low_stock_threshold INT UNSIGNED NOT NULL DEFAULT 5,
+    rating_avg DECIMAL(3, 2) NOT NULL DEFAULT 0.00,
+    rating_count INT UNSIGNED NOT NULL DEFAULT 0,
+    version INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_products_category (category_id),
     INDEX idx_products_seller (seller_id),
     INDEX idx_products_status (status),
+    FULLTEXT INDEX ft_products_search (name, description),
     CONSTRAINT fk_product_seller FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -94,14 +103,19 @@ CREATE TABLE orders (
     total_amount DECIMAL(10, 2) NOT NULL,
     payment_method ENUM('M-Pesa', 'Cash on Delivery', 'Bank Card') NOT NULL DEFAULT 'M-Pesa',
     payment_status ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'paid',
-    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    order_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
     delivery_address VARCHAR(255) NOT NULL,
     delivery_town VARCHAR(100) NOT NULL,
     notes VARCHAR(255) NULL,
+    expires_at DATETIME NULL,
+    cancelled_at DATETIME NULL,
+    cancel_reason VARCHAR(255) NULL,
+    version INT UNSIGNED NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_orders_buyer (buyer_id),
     INDEX idx_orders_status (order_status),
+    INDEX idx_orders_status_expires (order_status, expires_at),
     CONSTRAINT fk_order_buyer FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -114,6 +128,7 @@ CREATE TABLE order_items (
     quantity INT UNSIGNED NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
     line_total DECIMAL(10, 2) NOT NULL,
+    product_name_snapshot VARCHAR(150) NULL,
     INDEX idx_order_items_order (order_id),
     INDEX idx_order_items_seller (seller_id),
     CONSTRAINT fk_item_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -149,6 +164,68 @@ CREATE TABLE contact_messages (
     message TEXT NOT NULL,
     status ENUM('new', 'read', 'resolved') NOT NULL DEFAULT 'new',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Buyer Saved Delivery Addresses (Group 2)
+CREATE TABLE addresses (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    recipient_name VARCHAR(120) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    county VARCHAR(80) NOT NULL DEFAULT 'Kirinyaga',
+    town VARCHAR(100) NOT NULL,
+    street_address VARCHAR(255) NOT NULL,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_addresses_user (user_id),
+    CONSTRAINT fk_address_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Wishlists (Group 2)
+CREATE TABLE wishlists (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_wishlist_user_product (user_id, product_id),
+    INDEX idx_wishlist_user (user_id),
+    CONSTRAINT fk_wishlist_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_wishlist_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. Verified Product Reviews & Ratings (Group 2)
+CREATE TABLE reviews (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL,
+    buyer_id INT UNSIGNED NOT NULL,
+    order_item_id INT UNSIGNED NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    comment TEXT NULL,
+    status ENUM('published', 'hidden') NOT NULL DEFAULT 'published',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_review_buyer_product (buyer_id, product_id),
+    INDEX idx_reviews_product (product_id, status),
+    CONSTRAINT chk_review_rating CHECK (rating BETWEEN 1 AND 5),
+    CONSTRAINT fk_review_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_review_buyer FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_review_order_item FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. Stock Movements Audit Ledger
+CREATE TABLE stock_movements (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL,
+    order_id INT UNSIGNED NULL,
+    change_qty INT NOT NULL,
+    reason ENUM('reserve', 'release', 'adjustment', 'import') NOT NULL,
+    balance_after INT NOT NULL,
+    created_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_stock_product (product_id, created_at),
+    INDEX idx_stock_order (order_id),
+    CONSTRAINT fk_stock_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_stock_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+    CONSTRAINT fk_stock_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

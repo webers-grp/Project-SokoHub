@@ -138,34 +138,52 @@ require_once __DIR__ . '/../../includes/header.php';
                     </thead>
                     <tbody>
                     <?php foreach ($cartItems as $item): ?>
-                        <tr>
+                        <tr id="cart-row-<?= (int) $item['id'] ?>" data-product-id="<?= (int) $item['id'] ?>" data-unit-price="<?= (float) $item['price'] ?>" data-stock-qty="<?= (int) $item['stock_qty'] ?>">
                             <td>
                                 <div style="display:flex; align-items:center; gap:0.75rem;">
                                     <img src="<?= e(url($item['image_path'])) ?>" alt="" class="table-thumb">
-                                    <strong><?= e($item['name']) ?></strong>
+                                    <div>
+                                        <strong><a href="<?= e(url('pages/public/product_details.php?id=' . (int) $item['id'])) ?>"><?= e($item['name']) ?></a></strong>
+                                        <div class="small muted">Available stock: <span class="stock-badge"><?= (int) $item['stock_qty'] ?></span></div>
+                                    </div>
                                 </div>
                             </td>
                             <td><?= e($item['seller_name']) ?></td>
                             <td><?= format_ksh($item['price']) ?></td>
                             <td>
-                                <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST" style="display:flex; gap:0.4rem; align-items:center;">
-                                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                    <input type="hidden" name="action" value="update">
-                                    <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
-                                    <input type="number" name="quantity" class="form-control" value="<?= (int) $item['cart_qty'] ?>" min="1" max="<?= (int) $item['stock_qty'] ?>" style="width:76px;">
-                                    <button type="submit" class="btn btn-outline btn-sm">
-                                        <?= icon('refresh-cw', 'lucide-xs', 'blue') ?>
-                                        <span>Update</span>
+                                <!-- Responsive AJAX Quantity Spinner (Group 2) -->
+                                <div class="cart-qty-spinner" data-product-id="<?= (int) $item['id'] ?>">
+                                    <button type="button" class="btn-spinner-dec" aria-label="Decrease quantity" <?= (int) $item['cart_qty'] <= 1 ? 'disabled' : '' ?>>
+                                        <?= icon('minus', 'lucide-xs') ?>
                                     </button>
-                                </form>
+                                    <input type="number"
+                                           name="quantity"
+                                           class="form-control cart-qty-input"
+                                           value="<?= (int) $item['cart_qty'] ?>"
+                                           min="1"
+                                           max="<?= (int) $item['stock_qty'] ?>"
+                                           data-product-id="<?= (int) $item['id'] ?>"
+                                           aria-label="Quantity for <?= e($item['name']) ?>">
+                                    <button type="button" class="btn-spinner-inc" aria-label="Increase quantity" <?= (int) $item['cart_qty'] >= (int) $item['stock_qty'] ? 'disabled' : '' ?>>
+                                        <?= icon('plus', 'lucide-xs') ?>
+                                    </button>
+                                </div>
+                                <noscript>
+                                    <form action="<?= e(url('cart_actions.php')) ?>" method="POST" style="margin-top:0.35rem;">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="update">
+                                        <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
+                                        <button type="submit" class="btn btn-outline btn-xs">Update</button>
+                                    </form>
+                                </noscript>
                             </td>
-                            <td><strong><?= format_ksh($item['line_total']) ?></strong></td>
+                            <td><strong class="line-total-cell" id="line-total-<?= (int) $item['id'] ?>"><?= format_ksh($item['line_total']) ?></strong></td>
                             <td>
-                                <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST">
+                                <form action="<?= e(url('cart_actions.php')) ?>" method="POST" class="cart-remove-form">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm">
+                                    <button type="submit" class="btn btn-danger btn-sm btn-cart-remove" data-product-id="<?= (int) $item['id'] ?>" title="Remove item from cart">
                                         <?= icon('trash-2', 'lucide-xs', 'white') ?>
                                         <span>Remove</span>
                                     </button>
@@ -178,7 +196,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border-color);">
-                <form action="<?= e(url('pages/buyer/cart.php')) ?>" method="POST">
+                <form action="<?= e(url('cart_actions.php')) ?>" method="POST">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="clear">
                     <button type="submit" class="btn btn-outline btn-sm" data-confirm="Clear all items from your cart?">
@@ -188,10 +206,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 </form>
 
                 <div style="text-align:right;">
-                    <p class="muted">Items Subtotal: <strong><?= format_ksh($subtotal) ?></strong></p>
-                    <p class="muted">Standard Local Delivery Fee: <strong><?= format_ksh($deliveryFee) ?></strong></p>
+                    <p class="muted">Items Subtotal: <strong id="cartSubtotal"><?= format_ksh($subtotal) ?></strong></p>
+                    <p class="muted">Standard Local Delivery Fee: <strong id="cartDeliveryFee"><?= format_ksh($deliveryFee) ?></strong></p>
                     <p style="font-size:1.3rem; margin:0.45rem 0 0.9rem;">
-                        Estimated Total: <strong style="color:var(--green-dark);"><?= format_ksh($subtotal + $deliveryFee) ?></strong>
+                        Estimated Total: <strong style="color:var(--green-dark);" id="cartGrandTotal"><?= format_ksh($subtotal + $deliveryFee) ?></strong>
                     </p>
                     <a href="<?= e(url('pages/buyer/checkout.php')) ?>" class="btn btn-amber">
                         <span>Proceed to Checkout</span>

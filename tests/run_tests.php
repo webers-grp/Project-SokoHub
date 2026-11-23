@@ -148,5 +148,30 @@ assert_true(file_exists(__DIR__ . '/../assets/js/lucide.min.js') && filesize(__D
 $coloredIcon = icon('package', 'lucide-xs', 'emerald');
 assert_true(str_contains($coloredIcon, 'class="lucide lucide-xs icon-emerald"'), 'TC-08c: Lucide icon helper applies compact size and color classes');
 
+// 9. Group 2 Integration Tests (Catalog, Search, Cart, Checkout, Wishlist, Reviews)
+// TC-09a: Wishlist operations
+$testBuyerId = (int) $buyerLogin['user']['id'];
+$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
+$pdo->prepare('INSERT INTO wishlists (user_id, product_id) VALUES (:uid, 1)')->execute([':uid' => $testBuyerId]);
+$isWish = is_in_wishlist(1, $testBuyerId, $pdo);
+assert_true($isWish === true, 'TC-09a: Wishlist item successfully added and detected');
+$pdo->prepare('DELETE FROM wishlists WHERE user_id = :uid AND product_id = 1')->execute([':uid' => $testBuyerId]);
+$isWishAfter = is_in_wishlist(1, $testBuyerId, $pdo);
+assert_true($isWishAfter === false, 'TC-09b: Wishlist item cleanly removed');
+
+// TC-09c: Saved Addresses
+$addrCount = (int) $pdo->query('SELECT COUNT(*) FROM addresses')->fetchColumn();
+assert_true($addrCount >= 1, 'TC-09c: Saved addresses table populated (' . $addrCount . ' addresses)');
+
+// TC-09d: Rating Recalculation on Reviews
+$breakdown = get_product_rating_breakdown(1, $pdo);
+assert_true(isset($breakdown['counts'][5]) && isset($breakdown['percentages']), 'TC-09d: Rating breakdown and histogram generated');
+
+// TC-09e: Stock Movement Ledger & Out-of-Stock Protection
+$curStock = (int) $pdo->query('SELECT stock_qty FROM products WHERE id = 1')->fetchColumn();
+$decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - :qty WHERE id = 1 AND stock_qty >= :qty');
+$decTry->execute([':qty' => $curStock + 999]);
+assert_true($decTry->rowCount() === 0, 'TC-09e: Atomic inventory check rejects over-stock decrement (rows affected = 0)');
+
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

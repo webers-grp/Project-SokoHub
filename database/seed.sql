@@ -51,15 +51,15 @@ INSERT INTO orders (id, order_code, buyer_id, total_amount, payment_method, paym
 (5, 'SKH-2026-1005', 4, 2350.00, 'Cash on Delivery', 'unpaid', 'processing', 'Kutus Kwa Mwea Road, Room 12', 'Kutus', 'Bring change for 3000', DATE_SUB(NOW(), INTERVAL 1 DAY)),
 (6, 'SKH-2026-1006', 5, 14500.00, 'M-Pesa', 'paid', 'pending', 'Sagana Highway Estate, House 8', 'Sagana', 'Confirm before dispatch', NOW());
 
-INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total) VALUES
-(1, 1, 2, 1, 1200.00, 1200.00),
-(1, 4, 3, 1, 1400.00, 1400.00),
-(2, 3, 3, 1, 4500.00, 4500.00),
-(3, 2, 2, 1, 18500.00, 18500.00),
-(4, 6, 2, 1, 3200.00, 3200.00),
-(5, 4, 3, 1, 1400.00, 1400.00),
-(5, 5, 3, 1, 950.00, 950.00),
-(6, 7, 2, 1, 14500.00, 14500.00);
+INSERT INTO order_items (id, order_id, product_id, seller_id, quantity, unit_price, line_total, product_name_snapshot) VALUES
+(1, 1, 1, 2, 1, 1200.00, 1200.00, '6kg Cooking Gas Refill & Cylinder'),
+(2, 1, 4, 3, 1, 1400.00, 1400.00, 'Organic Grocery Market Basket'),
+(3, 2, 3, 3, 1, 4500.00, 4500.00, 'Classic Winter & Trench Apparel Pack'),
+(4, 3, 2, 2, 1, 18500.00, 18500.00, 'Compact Home Fridge & Washer Bundle'),
+(5, 4, 6, 2, 1, 3200.00, 3200.00, '13kg Home Gas Safety Kit + Regulator'),
+(6, 5, 4, 3, 1, 1400.00, 1400.00, 'Organic Grocery Market Basket'),
+(7, 5, 5, 3, 1, 950.00, 950.00, 'Kirinyaga Farm Crate (Tomatoes & Peppers)'),
+(8, 6, 7, 2, 1, 14500.00, 14500.00, 'Smart LED Television 32-Inch');
 
 INSERT INTO deliveries (order_id, delivery_person_id, pickup_town, dropoff_address, delivery_fee, delivery_status, tracking_notes, assigned_at, delivered_at) VALUES
 (1, 6, 'Kutus Market', 'Kirinyaga University Gate B, Hostel 4', 150.00, 'delivered', 'Delivered to buyer in 35 mins', DATE_SUB(NOW(), INTERVAL 12 DAY), DATE_SUB(NOW(), INTERVAL 12 DAY)),
@@ -73,3 +73,27 @@ INSERT INTO contact_messages (name, email, subject, message, status) VALUES
 ('Mercy Njeri', 'mercy.njeri@example.com', 'Bulk Produce Order Inquiry', 'Hello SokoHub, can we schedule weekly vegetable deliveries for a hostel cafeteria in Kutus?', 'new'),
 ('David Mutua', 'david.mutua@example.com', 'Seller Verification Question', 'How long does it take to start listing electronics after seller registration?', 'read'),
 ('Alice Wambui', 'alice.wambui@example.com', 'Great Delivery Speed', 'My 6kg gas cylinder arrived at Gate B in under 40 minutes. Keep up the great service!', 'resolved');
+
+-- 10. Saved Addresses (Group 2)
+INSERT INTO addresses (id, user_id, recipient_name, phone, county, town, street_address, is_default) VALUES
+(1, 4, 'Kennedy Kalawa', '+254733400004', 'Kirinyaga', 'Kutus', 'Kirinyaga University Gate B, Hostel 4, Room 102', 1),
+(2, 4, 'Kennedy Kalawa (Work)', '+254733400004', 'Kirinyaga', 'Kerugoya', 'Kerugoya Plaza, 2nd Floor Suite 204', 0),
+(3, 5, 'Faith Muthoni', '+254744500005', 'Kirinyaga', 'Kerugoya', 'Kerugoya Town, Opposite Stage near Equity Bank', 1);
+
+-- 11. Wishlists (Group 2)
+INSERT INTO wishlists (user_id, product_id) VALUES
+(4, 3),
+(4, 7),
+(5, 1),
+(5, 10);
+
+-- 12. Verified Reviews (Group 2)
+INSERT INTO reviews (product_id, buyer_id, order_item_id, rating, comment, status, created_at) VALUES
+(1, 4, 1, 5, 'Super fast delivery and clean sealed cylinder. Arrived at Gate B in under 35 minutes!', 'published', DATE_SUB(NOW(), INTERVAL 11 DAY)),
+(4, 4, 2, 5, 'The kales and tomatoes were fresh and crisp. Packed neatly in farm crates.', 'published', DATE_SUB(NOW(), INTERVAL 11 DAY)),
+(3, 5, 3, 4, 'Warm quality fabric and fits nicely for chilly Kirinyaga mornings.', 'published', DATE_SUB(NOW(), INTERVAL 8 DAY)),
+(2, 4, 4, 5, 'Inspected and works perfectly. Energy efficient and great value.', 'published', DATE_SUB(NOW(), INTERVAL 5 DAY));
+
+-- Recalculate and update cached rating stats on products
+UPDATE products SET rating_avg = 5.00, rating_count = 1 WHERE id IN (1, 2, 4);
+UPDATE products SET rating_avg = 4.00, rating_count = 1 WHERE id = 3;

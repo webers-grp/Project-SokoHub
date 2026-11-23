@@ -17,6 +17,8 @@ $flash = get_flash();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
+    <meta name="base-url" content="<?= e(url('')) ?>">
+    <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . filemtime(__DIR__ . '/../assets/css/style.css'))) ?>">
 </head>
 <body>
@@ -27,6 +29,24 @@ $flash = get_flash();
                 <img src="<?= e(url('assets/img/sokohub-logo.jpg')) ?>" alt="SokoHub Logo" class="brand-logo">
                 <span class="brand-text"><span class="soko">Soko</span><span class="hub">Hub</span></span>
             </a>
+
+            <!-- Group 2: Instant Live Autocomplete Search Bar -->
+            <div class="header-search-wrap" id="headerSearchWrap">
+                <div class="header-search-box">
+                    <?= icon('search', 'lucide-sm', 'blue') ?>
+                    <input type="text"
+                           id="navSearchInput"
+                           class="header-search-input"
+                           placeholder="Search products, gas, food, clothes..."
+                           autocomplete="off"
+                           aria-label="Search marketplace products"
+                           aria-expanded="false"
+                           aria-controls="navSearchDropdown">
+                    <button type="button" class="search-clear-btn" id="navSearchClear" style="display:none;" aria-label="Clear search">&times;</button>
+                    <span class="search-spinner" id="navSearchSpinner" style="display:none;"></span>
+                </div>
+                <div class="search-dropdown" id="navSearchDropdown" role="listbox" style="display: none;"></div>
+            </div>
 
             <button class="nav-toggle" type="button" id="navToggle" aria-expanded="false" aria-controls="navMenu" aria-label="Toggle navigation menu">
                 <span></span>

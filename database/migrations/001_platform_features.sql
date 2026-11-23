@@ -139,14 +139,16 @@ CREATE TABLE audit_logs (
 
 -- Buyer address book
 CREATE TABLE addresses (
-    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id      INT UNSIGNED NOT NULL,
-    label        VARCHAR(40) NOT NULL DEFAULT 'Home',
-    town         VARCHAR(100) NOT NULL,
-    address_line VARCHAR(255) NOT NULL,
-    phone        VARCHAR(20) NOT NULL,
-    is_default   TINYINT(1) NOT NULL DEFAULT 0,
-    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT UNSIGNED NOT NULL,
+    recipient_name  VARCHAR(120) NOT NULL,
+    phone           VARCHAR(30) NOT NULL,
+    county          VARCHAR(80) NOT NULL DEFAULT 'Kirinyaga',
+    town            VARCHAR(100) NOT NULL,
+    street_address  VARCHAR(255) NOT NULL,
+    label           VARCHAR(40) NOT NULL DEFAULT 'Home',
+    is_default      TINYINT(1) NOT NULL DEFAULT 0,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_addresses_user (user_id),
     CONSTRAINT fk_address_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -173,10 +175,12 @@ CREATE TABLE delivery_zones (
 
 -- Wishlist: one row per buyer and product
 CREATE TABLE wishlists (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id    INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, product_id),
+    UNIQUE KEY uq_wishlist_user_product (user_id, product_id),
+    INDEX idx_wishlist_user (user_id),
     CONSTRAINT fk_wish_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_wish_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

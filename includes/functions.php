@@ -217,6 +217,7 @@ function get_nav_items(?array $user): array
         }
 
         $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'icon' => 'receipt', 'match' => ['orders.php', 'checkout.php']];
+        $items[] = ['label' => 'Wishlist', 'href' => 'pages/buyer/wishlist.php', 'icon' => 'heart', 'match' => ['wishlist.php']];
 
         if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
             $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'icon' => 'truck', 'match' => ['deliveries.php']];
@@ -372,4 +373,80 @@ function handle_product_image_upload(array $file, string $fallbackImage): array
     }
 
     return ['assets/img/uploads/' . $filename, null];
+}
+
+/**
+ * Check if a product is in a user's wishlist.
+ */
+function is_in_wishlist(int $productId, ?int $userId, ?PDO $pdo = null): bool
+{
+    if (!$userId || $productId <= 0) {
+        return false;
+    }
+    try {
+        if ($pdo === null) {
+            $pdo = get_db_connection();
+        }
+        $stmt = $pdo->prepare('SELECT 1 FROM wishlists WHERE user_id = :uid AND product_id = :pid LIMIT 1');
+        $stmt->execute([':uid' => $userId, ':pid' => $productId]);
+        return (bool) $stmt->fetchColumn();
+    } catch (Throwable) {
+        return false;
+    }
+}
+
+/**
+ * Retrieve rating distribution breakdown (histogram counts and percentages).
+ */
+function get_product_rating_breakdown(int $productId, ?PDO $pdo = null): array
+{
+    $histogram = [
+        5 => 0,
+        4 => 0,
+        3 => 0,
+        2 => 0,
+        1 => 0,
+    ];
+    $total = 0;
+    $avg = 0.0;
+
+    try {
+        if ($pdo === null) {
+            $pdo = get_db_connection();
+        }
+        $stmt = $pdo->prepare(
+            "SELECT rating, COUNT(*) AS cnt
+             FROM reviews
+             WHERE product_id = :pid AND status = 'published'
+             GROUP BY rating"
+        );
+        $stmt->execute([':pid' => $productId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $weightedSum = 0;
+        foreach ($rows as $r) {
+            $stars = (int) $r['rating'];
+            $count = (int) $r['cnt'];
+            if (isset($histogram[$stars])) {
+                $histogram[$stars] = $count;
+            }
+            $total += $count;
+            $weightedSum += ($stars * $count);
+        }
+        $avg = $total > 0 ? round($weightedSum / $total, 2) : 0.0;
+    } catch (Throwable) {
+        // Fallback default
+    }
+
+    $percentages = [];
+    foreach ($histogram as $stars => $cnt) {
+        $percentages[$stars] = $total > 0 ? round(($cnt / $total) * 100, 1) : 0;
+    }
+
+    return [
+        'total'       => $total,
+        'average'     => $avg,
+        'counts'      => $histogram,
+        'percentages' => $percentages,
+    ];
 }

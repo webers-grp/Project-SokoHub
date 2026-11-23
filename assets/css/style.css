@@ -1488,3 +1488,389 @@ table .lucide, table svg.lucide {
         border: 1px solid #ccc;
     }
 }
+
+/* ==========================================================================
+   Group 2: E-Commerce Catalog, Shopping Cart, Checkout, Wishlist & Ratings
+   ========================================================================== */
+
+/* 1. Instant Live Autocomplete Search Bar */
+.header-search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 440px;
+    margin: 0 1rem;
+}
+
+.header-search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-search-box:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.header-search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    font-size: 0.92rem;
+    color: #1e293b;
+}
+
+.header-search-input::placeholder {
+    color: #94a3b8;
+}
+
+.search-clear-btn {
+    border: none;
+    background: #e2e8f0;
+    color: #475569;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.search-clear-btn:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.search-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    max-height: 380px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.search-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+}
+
+.search-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.search-dropdown-item:hover,
+.search-dropdown-item.active {
+    background: #f8fafc;
+}
+
+.search-dropdown-thumb {
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.search-dropdown-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-dropdown-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-dropdown-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    margin-top: 0.15rem;
+}
+
+.search-dropdown-price {
+    font-weight: 700;
+    color: #059669;
+}
+
+.search-dropdown-empty {
+    padding: 1.25rem 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+/* 2. Responsive Quantity Spinners */
+.cart-qty-spinner {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.cart-qty-spinner .btn-spinner-dec,
+.cart-qty-spinner .btn-spinner-inc {
+    width: 30px;
+    height: 32px;
+    border: none;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cart-qty-spinner .btn-spinner-dec:hover:not(:disabled),
+.cart-qty-spinner .btn-spinner-inc:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.cart-qty-spinner .btn-spinner-dec:disabled,
+.cart-qty-spinner .btn-spinner-inc:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cart-qty-spinner .cart-qty-input {
+    width: 44px;
+    height: 32px;
+    border: none;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0;
+    margin: 0;
+    -moz-appearance: textfield;
+}
+
+.cart-qty-spinner .cart-qty-input::-webkit-outer-spin-button,
+.cart-qty-spinner .cart-qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* 3. Multi-Step Checkout Stepper */
+.checkout-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    max-width: 780px;
+    margin: 0 auto 1.5rem;
+}
+
+.checkout-stepper .step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+.checkout-stepper .step-item.active {
+    color: #059669;
+}
+
+.checkout-stepper .step-item.completed {
+    color: #2563eb;
+}
+
+.checkout-stepper .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.checkout-stepper .step-item.active .step-num {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1.5px solid #059669;
+}
+
+.checkout-stepper .step-divider {
+    flex: 1;
+    height: 2px;
+    background: #e2e8f0;
+    margin: 0 1rem;
+    max-width: 60px;
+}
+
+.address-card-radio {
+    display: block;
+    position: relative;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.85rem 1rem 0.85rem 2.5rem;
+    margin-bottom: 0.65rem;
+    cursor: pointer;
+    background: #ffffff;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.address-card-radio input[type="radio"] {
+    position: absolute;
+    top: 1rem;
+    left: 0.85rem;
+}
+
+.address-card-radio.selected {
+    border-color: #2563eb;
+    background: #f0f7ff;
+}
+
+.payment-selector-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.payment-method-card {
+    display: block;
+    position: relative;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.9rem 1rem 0.9rem 2.6rem;
+    cursor: pointer;
+    background: #ffffff;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.payment-method-card input[type="radio"] {
+    position: absolute;
+    top: 1.15rem;
+    left: 0.9rem;
+}
+
+.payment-method-card.selected {
+    border-color: #059669;
+    background: #f0fdf4;
+}
+
+/* 4. Wishlist Toggle Button & Rating Widget */
+.btn-wishlist-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+    padding: 0;
+}
+
+.btn-wishlist-toggle:hover {
+    transform: scale(1.1);
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+.btn-wishlist-toggle.active {
+    background: #ffe4e6;
+    color: #e11d48;
+    border-color: #fecdd3;
+}
+
+.btn-wishlist-toggle.active .lucide {
+    stroke: #e11d48 !important;
+    fill: #e11d48;
+}
+
+.interactive-star-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.interactive-star-widget .star-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0.15rem;
+    color: #cbd5e1;
+    transition: transform 0.1s ease, color 0.15s ease;
+}
+
+.interactive-star-widget .star-btn:hover {
+    transform: scale(1.2);
+}
+
+.interactive-star-widget .star-btn.active,
+.interactive-star-widget .star-btn.hover {
+    color: #f59e0b;
+}
+
+.interactive-star-widget .star-btn.active .lucide,
+.interactive-star-widget .star-btn.hover .lucide {
+    stroke: #f59e0b !important;
+    fill: #f59e0b;
+}
+
+@media (max-width: 768px) {
+    .header-search-wrap {
+        order: 3;
+        width: 100%;
+        max-width: 100%;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .checkout-stepper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .checkout-stepper .step-divider {
+        display: none;
+    }
+}
+
