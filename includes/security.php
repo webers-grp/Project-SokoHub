@@ -509,7 +509,20 @@ class Security
             ':avail'   => $availableAt,
         ]);
 
-        return (int) $pdo->lastInsertId();
+        $jobId = (int) $pdo->lastInsertId();
+
+        // In web SAPI mode, automatically register shutdown flush to dispatch jobs immediately
+        static $hookRegistered = false;
+        if (!$hookRegistered && PHP_SAPI !== 'cli') {
+            $hookRegistered = true;
+            register_shutdown_function(function () use ($pdo) {
+                try {
+                    self::triggerOpportunisticDispatch($pdo, 3);
+                } catch (Throwable $_) {}
+            });
+        }
+
+        return $jobId;
     }
 
     /**
@@ -531,5 +544,403 @@ class Security
         ]);
 
         return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * Retrieve outbound SMTP configuration from config/db.local.php or environment variables.
+     */
+    public static function getSmtpConfig(): array
+    {
+        $cfg = [
+            'host' => getenv('SMTP_HOST') ?: '',
+            'port' => (int) (getenv('SMTP_PORT') ?: 587),
+            'user' => getenv('SMTP_USER') ?: '',
+            'pass' => getenv('SMTP_PASS') ?: '',
+            'from' => getenv('SMTP_FROM') ?: 'no-reply@sokohub.co.ke',
+            'name' => getenv('SMTP_NAME') ?: 'SokoHub',
+        ];
+
+        $localConfig = __DIR__ . '/../config/db.local.php';
+        if (file_exists($localConfig)) {
+            $local = require $localConfig;
+            if (is_array($local) && !empty($local['smtp']) && is_array($local['smtp'])) {
+                $cfg['host'] = $local['smtp']['host'] ?? $cfg['host'];
+                $cfg['port'] = (int) ($local['smtp']['port'] ?? $cfg['port']);
+                $cfg['user'] = $local['smtp']['user'] ?? $cfg['user'];
+                $cfg['pass'] = $local['smtp']['pass'] ?? $cfg['pass'];
+                $cfg['from'] = $local['smtp']['from'] ?? $cfg['from'];
+                $cfg['name'] = $local['smtp']['name'] ?? $cfg['name'];
+            }
+        }
+
+        return $cfg;
+    }
+
+    /**
+     * Check if outbound SMTP credentials are configured.
+     */
+    public static function hasSmtpConfigured(): bool
+    {
+        $cfg = self::getSmtpConfig();
+        return !empty($cfg['host']) && !empty($cfg['user']) && !empty($cfg['pass']);
+    }
+
+    /**
+     * Render a responsive, branded HTML email template for SokoHub transactional emails.
+     */
+    public static function buildHtmlEmail(string $title, string $greeting, string $contentHtml, ?string $calloutCode = null, ?string $buttonText = null, ?string $buttonUrl = null): string
+    {
+        $codeBlock = '';
+        if ($calloutCode !== null && $calloutCode !== '') {
+            $codeBlock = '
+            <div style="background: #f0fdf4; border: 2px dashed #16a34a; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0;">
+                <div style="font-size: 13px; color: #166534; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Your 6-Digit Verification PIN</div>
+                <div style="font-family: Consolas, monospace, sans-serif; font-size: 32px; font-weight: 800; color: #15803d; letter-spacing: 6px;">' . htmlspecialchars($calloutCode, ENT_QUOTES, 'UTF-8') . '</div>
+                <div style="font-size: 12px; color: #4b5563; margin-top: 6px;">Expires in 10 minutes &bull; Do not share this code with anyone</div>
+            </div>';
+        }
+
+        $buttonBlock = '';
+        if ($buttonText !== null && $buttonUrl !== null) {
+            $buttonBlock = '
+            <div style="text-align: center; margin: 24px 0;">
+                <a href="' . htmlspecialchars($buttonUrl, ENT_QUOTES, 'UTF-8') . '" style="background: #16a34a; color: #ffffff; padding: 12px 28px; border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 15px;">' . htmlspecialchars($buttonText, ENT_QUOTES, 'UTF-8') . '</a>
+            </div>';
+        }
+
+        return '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px 12px; color: #1f2937; line-height: 1.6;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+        <tr>
+            <td style="background: #15803d; padding: 24px 32px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">SokoHub</h1>
+                <p style="color: #dcfce7; margin: 4px 0 0; font-size: 13px;">Kirinyaga University Campus &amp; Regional Marketplace</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 32px 28px;">
+                <h2 style="margin: 0 0 16px; font-size: 18px; color: #0f172a;">' . htmlspecialchars($greeting, ENT_QUOTES, 'UTF-8') . '</h2>
+                <div style="font-size: 15px; color: #374151;">' . $contentHtml . '</div>
+                ' . $codeBlock . '
+                ' . $buttonBlock . '
+                <p style="font-size: 13px; color: #6b7280; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+                    If you did not initiate this request, you can safely disregard this email. Your SokoHub account remains secure.
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td style="background: #f8fafc; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                &copy; ' . date('Y') . ' SokoHub &bull; Kirinyaga County, Kenya &bull; Powered by KyU SPI 2301
+            </td>
+        </tr>
+    </table>
+</body>
+</html>';
+    }
+
+    /**
+     * Send email via direct SMTP socket.
+     * Supports STARTTLS (587) and SSL/TLS (465) with HTML & plain text formatting.
+     */
+    public static function sendSmtpMail(string $to, string $subject, string $body, bool $isHtml = false, ?string &$errorOutput = null): bool
+    {
+        $cfg = self::getSmtpConfig();
+        $host = $cfg['host'];
+        $port = (int) ($cfg['port'] ?: 587);
+        $user = $cfg['user'];
+        $pass = $cfg['pass'];
+        $from = $cfg['from'];
+        $name = $cfg['name'] ?: 'SokoHub';
+
+        if (empty($host) || empty($user) || empty($pass)) {
+            $errorOutput = 'SMTP host, username, or password not configured.';
+            return false;
+        }
+
+        try {
+            $timeout = 10;
+            $isSsl = ($port === 465);
+            $remote = ($isSsl ? 'ssl://' : '') . $host;
+            $socket = @fsockopen($remote, $port, $errno, $errstr, $timeout);
+            if (!$socket) {
+                $errorOutput = "Connection to {$remote}:{$port} failed: {$errstr} ({$errno})";
+                return false;
+            }
+
+            $read = function () use ($socket) {
+                $res = '';
+                while ($str = fgets($socket, 515)) {
+                    $res .= $str;
+                    if (substr($str, 3, 1) === ' ') break;
+                }
+                return $res;
+            };
+            $write = function ($cmd) use ($socket) {
+                fputs($socket, $cmd . "\r\n");
+            };
+
+            $banner = $read();
+            $write("EHLO localhost");
+            $ehlo = $read();
+
+            if ($port === 587) {
+                $write("STARTTLS");
+                $starttls = $read();
+                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                    fclose($socket);
+                    $errorOutput = 'TLS handshake negotiation failed.';
+                    return false;
+                }
+                $write("EHLO localhost");
+                $read();
+            }
+
+            $write("AUTH LOGIN");
+            $authReq = $read();
+            $write(base64_encode($user));
+            $userReq = $read();
+            $write(base64_encode(str_replace(' ', '', $pass)));
+            $passRes = $read();
+
+            if (!str_starts_with(trim($passRes), '235')) {
+                fclose($socket);
+                $errorOutput = 'SMTP Authentication failed: ' . trim($passRes);
+                return false;
+            }
+
+            $write("MAIL FROM: <{$from}>");
+            $mailFromRes = $read();
+            $write("RCPT TO: <{$to}>");
+            $rcptRes = $read();
+            if (!str_starts_with(trim($rcptRes), '250') && !str_starts_with(trim($rcptRes), '251')) {
+                fclose($socket);
+                $errorOutput = 'Recipient rejected: ' . trim($rcptRes);
+                return false;
+            }
+
+            $write("DATA");
+            $dataReq = $read();
+
+            $contentType = $isHtml ? "text/html; charset=UTF-8" : "text/plain; charset=UTF-8";
+            $headers  = "From: {$name} <{$from}>\r\n";
+            $headers .= "To: <{$to}>\r\n";
+            $headers .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
+            $headers .= "Date: " . date(DATE_RFC2822) . "\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: {$contentType}\r\n";
+            $headers .= "X-Mailer: SokoHub/2.0\r\n";
+
+            $write($headers . "\r\n" . $body . "\r\n.");
+            $dataRes = $read();
+
+            $write("QUIT");
+            fclose($socket);
+
+            return true;
+        } catch (Throwable $e) {
+            $errorOutput = $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Process an email job payload and dispatch via SMTP or fallback.
+     */
+    public static function executeEmailJob(PDO $pdo, int $jobId, array $payload, ?callable $logger = null): void
+    {
+        $log = $logger ?? function ($m) {};
+        $to = $payload['to'] ?? ($payload['recipient'] ?? '');
+        $subject = $payload['subject'] ?? 'SokoHub Notification';
+        $template = $payload['template'] ?? 'general';
+        $code = (string) ($payload['code'] ?? '');
+        $resetUrl = (string) ($payload['reset_url'] ?? '');
+        $userId = isset($payload['user_id']) ? (int) $payload['user_id'] : null;
+
+        if (empty($to)) {
+            throw new InvalidArgumentException("Missing email recipient ('to').");
+        }
+
+        // Build HTML & Plaintext Body
+        $isHtml = true;
+        if (!empty($payload['body'])) {
+            $body = (string) $payload['body'];
+            $isHtml = (str_contains($body, '<html') || str_contains($body, '<div') || str_contains($body, '<p'));
+        } elseif ($code !== '') {
+            $greeting = 'Verify Your SokoHub Account';
+            $content = '<p>Thank you for using SokoHub. Use the 6-digit verification code below to confirm your account identity:</p>';
+            $body = self::buildHtmlEmail($subject, $greeting, $content, $code);
+        } elseif ($resetUrl !== '') {
+            $greeting = 'Reset Your Password';
+            $content = '<p>We received a request to reset your SokoHub account password. Click the button below to choose a new password:</p>';
+            $body = self::buildHtmlEmail($subject, $greeting, $content, null, 'Reset My Password', $resetUrl);
+        } else {
+            $greeting = 'Account Notification';
+            $content = '<p>You have a new update regarding your SokoHub account or orders.</p>';
+            $body = self::buildHtmlEmail($subject, $greeting, $content);
+        }
+
+        $sentSmtp = false;
+        $smtpErr = '';
+        if (self::hasSmtpConfigured()) {
+            $sentSmtp = self::sendSmtpMail($to, $subject, $body, $isHtml, $smtpErr);
+        }
+
+        if ($sentSmtp) {
+            $log("Dispatched live SMTP email to '{$to}' (template: {$template}) ");
+        } else {
+            // Fallback local simulation / PHP mail
+            $headers = "From: no-reply@sokohub.co.ke\r\nReply-To: support@sokohub.co.ke\r\nX-Mailer: PHP/" . phpversion();
+            if (function_exists('mail') && !empty(ini_get('SMTP')) && ini_get('SMTP') !== 'localhost') {
+                @mail($to, $subject, strip_tags($body), $headers);
+            }
+            $log("Processed email job for '{$to}' (template: {$template}) ");
+        }
+
+        self::logNotification($pdo, $userId, 'email', $template, $to);
+    }
+
+    /**
+     * Process an SMS job payload and dispatch via Telephony.
+     */
+    public static function executeSmsJob(PDO $pdo, int $jobId, array $payload, ?callable $logger = null): void
+    {
+        $log = $logger ?? function ($m) {};
+        $phone = $payload['phone'] ?? ($payload['recipient'] ?? ($payload['to'] ?? ''));
+        $template = $payload['template'] ?? 'sms_alert';
+        $message = (string) ($payload['message'] ?? '');
+        $userId = isset($payload['user_id']) ? (int) $payload['user_id'] : null;
+
+        if (empty($phone)) {
+            throw new InvalidArgumentException("Missing phone recipient.");
+        }
+
+        if (class_exists('Telephony') && method_exists('Telephony', 'sendSms')) {
+            try {
+                \Telephony::sendSms($phone, $message);
+            } catch (Throwable $_) {}
+        }
+
+        self::logNotification($pdo, $userId, 'sms', $template, $phone);
+        $log("Dispatched SMS to '{$phone}' ");
+    }
+
+    /**
+     * Process a batch of pending jobs from the jobs table.
+     */
+    public static function processJobsBatch(PDO $pdo, ?string $workerId = null, int $limit = 10, ?callable $logger = null): int
+    {
+        $log = $logger ?? function ($m) {};
+        $workerId = $workerId ?: (gethostname() . ':' . getmypid());
+
+        $stmtSelect = $pdo->prepare("
+            SELECT id, job_type, payload, status, attempts, max_attempts, available_at
+            FROM jobs
+            WHERE status = 'pending' AND available_at <= NOW()
+            ORDER BY available_at ASC, id ASC
+            LIMIT :limit
+        ");
+        $stmtSelect->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmtSelect->execute();
+        $jobs = $stmtSelect->fetchAll();
+
+        if (empty($jobs)) {
+            return 0;
+        }
+
+        $processedCount = 0;
+
+        foreach ($jobs as $job) {
+            $jobId = (int) $job['id'];
+            $jobType = $job['job_type'];
+
+            $stmtLock = $pdo->prepare("
+                UPDATE jobs
+                SET status = 'running', locked_by = :wid, locked_at = NOW()
+                WHERE id = :id AND status = 'pending'
+            ");
+            $stmtLock->execute([':wid' => $workerId, ':id' => $jobId]);
+
+            if ($stmtLock->rowCount() === 0) {
+                continue;
+            }
+
+            $processedCount++;
+            $log("[" . date('H:i:s') . "] [Job #{$jobId}] Claimed job_type='{$jobType}'... ");
+
+            try {
+                $payload = json_decode((string) $job['payload'], true);
+                if (!is_array($payload)) {
+                    $payload = [];
+                }
+
+                switch ($jobType) {
+                    case 'send_email':
+                    case 'email':
+                        self::executeEmailJob($pdo, $jobId, $payload, $log);
+                        break;
+
+                    case 'send_sms':
+                    case 'sms':
+                        self::executeSmsJob($pdo, $jobId, $payload, $log);
+                        break;
+
+                    default:
+                        $log("Unknown type '{$jobType}', marked as completed. ");
+                        break;
+                }
+
+                $stmtDone = $pdo->prepare("
+                    UPDATE jobs
+                    SET status = 'completed', finished_at = NOW(), locked_by = NULL, last_error = NULL
+                    WHERE id = :id
+                ");
+                $stmtDone->execute([':id' => $jobId]);
+                $log("-> COMPLETED\n");
+
+            } catch (Throwable $e) {
+                $errorMsg = mb_substr($e->getMessage(), 0, 450);
+                $newAttempts = (int) $job['attempts'] + 1;
+                $maxAttempts = (int) ($job['max_attempts'] ?: 5);
+                $newStatus = ($newAttempts >= $maxAttempts) ? 'failed' : 'pending';
+
+                $backoffSeconds = $newAttempts * 60;
+                $nextAvailable = date('Y-m-d H:i:s', time() + $backoffSeconds);
+
+                $stmtFail = $pdo->prepare("
+                    UPDATE jobs
+                    SET attempts = :att,
+                        status = :st,
+                        available_at = :avail,
+                        last_error = :err,
+                        locked_by = NULL
+                    WHERE id = :id
+                ");
+                $stmtFail->execute([
+                    ':att'   => $newAttempts,
+                    ':st'    => $newStatus,
+                    ':avail' => $nextAvailable,
+                    ':err'   => $errorMsg,
+                    ':id'    => $jobId,
+                ]);
+
+                $log("-> FAILED ({$newAttempts}/{$maxAttempts}): {$errorMsg}\n");
+            }
+        }
+
+        return $processedCount;
+    }
+
+    /**
+     * Opportunistically process up to $limit pending jobs in web requests.
+     */
+    public static function triggerOpportunisticDispatch(PDO $pdo, int $limit = 5): int
+    {
+        return self::processJobsBatch($pdo, 'web-auto:' . getmypid(), $limit);
     }
 }

@@ -1,13 +1,32 @@
 <?php
 /**
- * Copy this file to config/db.local.php on live hosting (InfinityFree / 000webhost / XAMPP)
- * and fill in your host database credentials. Keep db.local.php out of Git!
+ * SokoHub Local & Hosting Configuration Template
+ * Copy this file to config/db.local.php and fill in your database and optional SMTP settings.
+ * config/db.local.php is in .gitignore to protect your credentials.
  */
 return [
-    'host'   => 'sql123.infinityfree.com', // Replace with your host MySQL hostname
+    // Database Connection Settings
+    'host'   => '127.0.0.1',            // 'localhost' or '127.0.0.1' (or remote host)
     'port'   => '3306',
-    'dbname' => 'if0_12345678_sokohub',    // Replace with your host database name
-    'user'   => 'if0_12345678',            // Replace with your host MySQL username
-    'pass'   => 'YOUR_HOST_DB_PASSWORD',   // Replace with your vPanel/host password
+    'dbname' => 'sokohub_db',           // Your MySQL database name
+    'user'   => 'root',                 // Your MySQL username
+    'pass'   => '',                     // Your MySQL password
     'socket' => '',
+
+    // Outbound SMTP Email Configuration (Optional - 100% Free)
+    // When enabled, SokoHub sends OTP codes and password reset links directly to user inboxes.
+    // If disabled/empty, SokoHub automatically runs in local simulation mode (displaying OTPs on screen).
+    //
+    // Free Gmail Setup (500 free emails/day):
+    // 1. Log in to your Google Account and visit: https://myaccount.google.com/apppasswords
+    // 2. Create an App Name (e.g. "SokoHub Marketplace") and copy the 16-character password.
+    // 3. Paste the credentials below:
+    'smtp' => [
+        'host' => 'smtp.gmail.com',         // Gmail: smtp.gmail.com | Brevo: smtp-relay.brevo.com
+        'port' => 587,                      // 587 (TLS/STARTTLS) or 465 (SSL)
+        'user' => 'your-email@gmail.com',  // Your Google email address
+        'pass' => 'xxxx xxxx xxxx xxxx',   // 16-character Google App Password (no spaces or with spaces)
+        'from' => 'your-email@gmail.com',  // Sender address shown to users
+        'name' => 'SokoHub Support',       // Sender display name
+    ],
 ];
