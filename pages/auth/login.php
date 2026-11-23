@@ -34,7 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = get_db_connection();
             $result = login_user($pdo, $emailInput, $password, $rememberMe);
 
-            if ($result['ok']) {
+            if (!empty($result['requires_2fa'])) {
+                Audit::record('auth.login_2fa_prompted', 'user', (int) $_SESSION['2fa_user_id'], ['email' => $emailInput]);
+                redirect('pages/auth/admin_2fa.php');
+            } elseif (!empty($result['requires_verification'])) {
+                set_flash('info', $result['error']);
+                redirect('pages/auth/verify_otp.php');
+            } elseif ($result['ok']) {
                 Audit::record('auth.login_success', 'user', (int) $result['user']['id'], ['email' => $emailInput, 'role' => $result['user']['role']]);
                 set_flash('success', 'Welcome back, ' . $result['user']['full_name'] . '!');
                 redirect('pages/dashboard/dashboard.php');
@@ -81,7 +87,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="login_password">Password</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label for="login_password" style="margin: 0;">Password</label>
+                        <a href="<?= e(url('pages/auth/forgot_password.php')) ?>" class="small muted">Forgot Password?</a>
+                    </div>
                     <input type="password" id="login_password" name="password" class="form-control" required placeholder="Enter your password">
                 </div>
 

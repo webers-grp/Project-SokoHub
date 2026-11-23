@@ -14,15 +14,10 @@ function e(mixed $value): string
 }
 
 /**
-<<<<<<< HEAD
  * Render a Lucide vector icon element with data-lucide attribute.
  * Automatically instantiated into crisp inline SVG icons by Lucide.
  * Supports size modifier classes (.lucide-sm, .lucide-xs, .lucide-lg) and
- * color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
-=======
- * Render a Lucide vector icon with data-lucide attribute, compact sizing,
- * and optional semantic color classes.
->>>>>>> feature/seller-kyc-admin
+ * semantic color classes (.icon-emerald, .icon-amber, .icon-blue, .icon-rose, etc.).
  */
 function icon(string $name, string $class = '', string $color = '', string $extraAttrs = ''): string
 {
@@ -429,30 +424,6 @@ function get_preset_product_images(): array
 function get_nav_items(?array $user): array
 {
     $items = [
-<<<<<<< HEAD
-        ['label' => 'Home', 'href' => 'index.php', 'icon' => 'home', 'match' => ['index.php']],
-        ['label' => 'Products', 'href' => 'pages/public/products.php', 'icon' => 'shopping-bag', 'match' => ['products.php', 'product_details.php']],
-        ['label' => 'About Us', 'href' => 'pages/public/about.php', 'icon' => 'info', 'match' => ['about.php']],
-        ['label' => 'Contact Us', 'href' => 'pages/public/contact.php', 'icon' => 'mail', 'match' => ['contact.php']],
-    ];
-
-    if ($user !== null) {
-        $items[] = ['label' => 'Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'icon' => 'layout-dashboard', 'match' => ['dashboard.php']];
-
-        if (in_array($user['role'], ['seller', 'admin'], true)) {
-            $items[] = ['label' => 'My Products', 'href' => 'pages/dashboard/manage_products.php', 'icon' => 'package', 'match' => ['manage_products.php']];
-        }
-
-        $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'icon' => 'receipt', 'match' => ['orders.php', 'checkout.php']];
-        $items[] = ['label' => 'Wishlist', 'href' => 'pages/buyer/wishlist.php', 'icon' => 'heart', 'match' => ['wishlist.php']];
-
-        if (in_array($user['role'], ['delivery', 'admin', 'buyer'], true)) {
-            $items[] = ['label' => 'Deliveries', 'href' => 'pages/dashboard/deliveries.php', 'icon' => 'truck', 'match' => ['deliveries.php']];
-        }
-
-        if (in_array($user['role'], ['seller', 'delivery', 'admin'], true)) {
-            $items[] = ['label' => 'Reports', 'href' => 'pages/dashboard/reports.php', 'icon' => 'bar-chart-2', 'match' => ['reports.php']];
-=======
         ['label' => 'Home', 'href' => 'index.php', 'match' => ['index.php'], 'icon' => 'home'],
         ['label' => 'Products', 'href' => 'pages/public/products.php', 'match' => ['products.php', 'product_details.php'], 'icon' => 'shopping-bag'],
         ['label' => 'About Us', 'href' => 'pages/public/about.php', 'match' => ['about.php'], 'icon' => 'info'],
@@ -472,6 +443,7 @@ function get_nav_items(?array $user): array
         }
 
         $items[] = ['label' => 'Orders', 'href' => 'pages/buyer/orders.php', 'match' => ['orders.php', 'checkout.php'], 'icon' => 'receipt'];
+        $items[] = ['label' => 'Wishlist', 'href' => 'pages/buyer/wishlist.php', 'match' => ['wishlist.php'], 'icon' => 'heart'];
 
         if ($user['role'] === 'buyer') {
             $items[] = ['label' => 'Alerts', 'href' => 'pages/buyer/notifications.php', 'match' => ['notifications.php'], 'icon' => 'bell'];
@@ -492,7 +464,6 @@ function get_nav_items(?array $user): array
 
         if (in_array($user['role'], ['seller', 'admin'], true)) {
             $items[] = ['label' => 'Payouts', 'href' => 'pages/dashboard/payouts.php', 'match' => ['payouts.php'], 'icon' => 'wallet'];
->>>>>>> feature/seller-kyc-admin
         }
     }
 

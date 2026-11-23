@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/security.php';
 
 /**
  * Start a hardened PHP session once per request and track visitor cookies.
@@ -108,27 +109,111 @@ function is_logged_in(): bool
 }
 
 /**
- * Attempt user login using email + password_verify().
- * Returns ['ok' => bool, 'error' => ?string, 'user' => ?array].
+ * Attempt user login using email + password_verify() with brute-force throttling and admin 2FA.
+ * Returns ['ok' => bool, 'error' => ?string, 'user' => ?array, 'requires_2fa' => ?bool, 'redirect' => ?string].
  */
 function login_user(PDO $pdo, string $email, string $password, bool $rememberMe = false): array
 {
+    Security::ensureSchema();
+
+    $cleanEmail = strtolower(trim($email));
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+    // 1. Check brute-force throttling (>= 5 failures on email in 15m, or >= 20 from IP in 10m, or locked_until)
+    $throttle = Security::checkLoginThrottling($pdo, $cleanEmail, $ip);
+    if ($throttle['throttled']) {
+        Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, false);
+        return [
+            'ok'    => false,
+            'error' => $throttle['message'],
+            'user'  => null,
+        ];
+    }
+
+    // 2. Fetch user details
     $stmt = $pdo->prepare(
-        'SELECT id, full_name, email, phone, password_hash, role, status
+        'SELECT id, full_name, email, phone, password_hash, role, status, two_factor_enabled, failed_login_count, locked_until
          FROM users
          WHERE email = :email
          LIMIT 1'
     );
-    $stmt->execute([':email' => $email]);
+    $stmt->execute([':email' => $cleanEmail]);
     $user = $stmt->fetch();
 
+    // 3. Validate password
     if (!$user || !password_verify($password, $user['password_hash'])) {
+        Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, false);
+        Security::handleLoginFailure($pdo, $cleanEmail);
+
+        // Check if just locked out
+        $recheck = Security::checkLoginThrottling($pdo, $cleanEmail, $ip);
+        if ($recheck['throttled']) {
+            return ['ok' => false, 'error' => $recheck['message'], 'user' => null];
+        }
+
         return ['ok' => false, 'error' => 'Invalid email address or password.', 'user' => null];
     }
 
-    if ($user['status'] !== 'active') {
+    // 4. Check account status
+    if ($user['status'] === 'suspended') {
+        Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, false);
         return ['ok' => false, 'error' => 'Your account is currently suspended. Contact support.', 'user' => null];
     }
+
+    if ($user['status'] === 'pending_verification') {
+        Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, false);
+        $_SESSION['pending_otp_user_id'] = (int) $user['id'];
+        $_SESSION['pending_otp_email'] = $user['email'];
+        $_SESSION['pending_otp_purpose'] = 'registration';
+        $otpCode = Security::generateOtp((int) $user['id'], 'registration', 600);
+        Security::enqueueJob($pdo, 'send_email', [
+            'to'       => $user['email'],
+            'template' => 'otp_registration',
+            'code'     => $otpCode,
+            'subject'  => 'SokoHub Account Verification Code',
+        ]);
+        Security::logNotification($pdo, (int) $user['id'], 'email', 'otp_registration', $user['email']);
+
+        return [
+            'ok'                    => false,
+            'error'                 => 'Your account requires email verification. We have sent a new verification code.',
+            'requires_verification' => true,
+            'redirect'              => 'verify_otp.php',
+            'user'                  => null,
+        ];
+    }
+
+    // 5. Admin Two-Factor Authentication (2FA) check
+    if ((int) ($user['two_factor_enabled'] ?? 0) === 1 && $user['role'] === 'admin') {
+        Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, true);
+        Security::handleSuccessfulLogin($pdo, (int) $user['id']);
+
+        $_SESSION['2fa_user_id'] = (int) $user['id'];
+        $_SESSION['2fa_email'] = $user['email'];
+        $_SESSION['2fa_remember'] = $rememberMe;
+
+        // Generate 6-digit code and enqueue notification
+        $otpCode = Security::generateOtp((int) $user['id'], 'admin_2fa', 600);
+        Security::enqueueJob($pdo, 'send_email', [
+            'to'       => $user['email'],
+            'template' => 'admin_2fa',
+            'code'     => $otpCode,
+            'subject'  => 'SokoHub Admin 2FA Security Code',
+        ]);
+        Security::logNotification($pdo, (int) $user['id'], 'email', 'admin_2fa', $user['email']);
+
+        return [
+            'ok'           => true,
+            'requires_2fa' => true,
+            'redirect'     => 'admin_2fa.php',
+            'user'         => null,
+        ];
+    }
+
+    // 6. Regular successful login
+    Security::logLoginAttempt($pdo, $cleanEmail, $ip, $userAgent, true);
+    Security::handleSuccessfulLogin($pdo, (int) $user['id']);
 
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
