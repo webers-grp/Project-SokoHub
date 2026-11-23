@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/layout.php';
 dev_require_auth();
 
 $pdo = get_db_connection();
+$dbStatus = test_db_connection();
 
 // 1. DB Latency Benchmark
 $startDb = microtime(true);
@@ -121,13 +122,41 @@ dev_header('System Health & Operations Dashboard', 'dashboard');
 <?php endif; ?>
 
 <!-- Metric Cards Grid -->
-<div class="metric-grid">
+<div class="metric-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
+    <div class="metric-card">
+        <div class="metric-label">PHP Runtime</div>
+        <div class="metric-value">PHP <?= e(PHP_VERSION) ?></div>
+        <div class="metric-sub"><?= icon('check-circle', 'lucide-xs') ?> Active &bull; <?= php_sapi_name() ?></div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">Session Engine</div>
+        <div class="metric-value"><?= session_status() === PHP_SESSION_ACTIVE ? 'Running' : 'Inactive' ?></div>
+        <div class="metric-sub"><?= icon('check-circle', 'lucide-xs') ?> SOKOHUB_DEV_SESSID</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">MySQL / MariaDB</div>
+        <div class="metric-value" style="color: <?= $dbStatus['ok'] ? '#34d399' : '#f87171' ?>;">
+            <?= $dbStatus['ok'] ? 'Connected' : 'Error' ?>
+        </div>
+        <div class="metric-sub"><?= icon('database', 'lucide-xs') ?> <?= $dbStatus['ok'] ? e($dbStatus['version']) : 'Connection Failed' ?></div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">Database Tables</div>
+        <div class="metric-value" style="color: <?= count($dbStatus['tables']) >= 9 ? '#34d399' : '#f59e0b' ?>;">
+            <?= count($dbStatus['tables']) ?> <span style="font-size: 0.9rem;">/ 9</span>
+        </div>
+        <div class="metric-sub"><?= icon('table', 'lucide-xs') ?> <?= count($dbStatus['tables']) >= 9 ? 'Schema Ready' : 'Incomplete' ?></div>
+    </div>
+
     <div class="metric-card">
         <div class="metric-label">Database Latency</div>
         <div class="metric-value" style="color: <?= $dbLatencyMs < 20 ? '#34d399' : '#f59e0b' ?>;">
             <?= $dbLatencyMs ?> <span style="font-size: 0.9rem;">ms</span>
         </div>
-        <div class="metric-sub"><?= icon('database', 'lucide-xs') ?> MySQL 8.0 / InnoDB</div>
+        <div class="metric-sub"><?= icon('gauge', 'lucide-xs') ?> Query Response</div>
     </div>
 
     <div class="metric-card">
@@ -223,6 +252,43 @@ dev_header('System Health & Operations Dashboard', 'dashboard');
             </tr>
         </table>
     </div>
+</div>
+
+<!-- Detected Database Tables Diagnostic Card -->
+<div class="card" style="margin-top: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div class="card-title" style="margin-bottom: 0;">
+            <?= icon('table', 'lucide-sm') ?> Detected Database Tables (<?= count($dbStatus['tables']) ?>)
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="<?= dev_url('pages/database/schema.php') ?>" class="btn btn-secondary btn-sm">
+                <?= icon('layers', 'lucide-xs') ?> Schema Browser
+            </a>
+            <a href="<?= dev_url('pages/database/browser.php') ?>" class="btn btn-secondary btn-sm">
+                <?= icon('database', 'lucide-xs') ?> Data Browser
+            </a>
+        </div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0; margin-bottom: 0.75rem;">
+        Active database schema verified via PDO probe. Click any table name to inspect its schema and rows.
+    </p>
+    <?php if ($dbStatus['ok'] && !empty($dbStatus['tables'])): ?>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+            <?php foreach ($dbStatus['tables'] as $tbl): ?>
+                <a href="<?= dev_url('pages/database/browser.php?table=' . urlencode($tbl)) ?>"
+                   class="badge badge-neutral"
+                   style="text-decoration: none; padding: 0.35rem 0.65rem; font-family: monospace; font-size: 0.8rem; border: 1px solid var(--border);"
+                   title="Browse table <?= htmlspecialchars($tbl) ?>">
+                    <?= htmlspecialchars($tbl) ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <div class="alert alert-danger">
+            <?= icon('alert-circle', 'lucide-sm') ?>
+            <span>Database error: <?= htmlspecialchars($dbStatus['error'] ?? 'No tables found') ?></span>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php dev_footer(); ?>

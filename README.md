@@ -11,7 +11,7 @@ SokoHub is a clean, modular **PHP 8+ and MySQL/MariaDB** e-commerce marketplace 
 ```text
 Project-SokoHub/
 ├── index.php                  # Storefront Home Page (entry point)
-├── health.php                 # Week-1 Deployment & DB Health Check
+├── devconsole/                # Isolated Developer Console & System Health Ops
 ├── README.md                  # Quickstart, folder map & demo credentials
 ├── Dockerfile                 # Render.com container deployment
 ├── .htaccess                  # Protects config/, database/, includes/, docs/, tests/
@@ -104,7 +104,7 @@ git push -u origin feature/your-feature-name
 2. Open phpMyAdmin, create database `sokohub_db` (`utf8mb4_unicode_ci`), and import:
    - `database/schema.sql`
    - `database/seed.sql`
-3. Open `http://localhost/sokohub/health.php` to verify PDO connectivity and all 9 tables.
+3. Sign in to Developer Console at `http://localhost/sokohub/devconsole/` (or port 8088) to verify PDO connectivity, runtime status, and database tables.
 4. Click **Sign In** (`pages/auth/login.php`) and test any demo account (password: `SokoHub@2026`):
    - **Buyer:** `buyer@sokohub.co.ke`
    - **Seller:** `seller@sokohub.co.ke`

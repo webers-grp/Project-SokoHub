@@ -37,7 +37,6 @@ $footerCartCount = cart_count();
                 <li><a href="<?= e(url('pages/auth/register_seller.php')) ?>"><?= icon('store', 'lucide-xs', 'amber') ?> <span>Become a Seller</span></a></li>
                 <li><a href="<?= e(url('pages/auth/register_delivery.php')) ?>"><?= icon('truck', 'lucide-xs', 'emerald') ?> <span>Join Delivery Team</span></a></li>
                 <li><a href="<?= e(url('pages/auth/login.php')) ?>"><?= icon('log-in', 'lucide-xs', 'purple') ?> <span>Sign In</span></a></li>
-                <li><a href="<?= e(url('health.php')) ?>"><?= icon('activity', 'lucide-xs', 'teal') ?> <span>System Health Check</span></a></li>
             </ul>
         </div>
     </div>

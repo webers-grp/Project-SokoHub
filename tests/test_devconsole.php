@@ -68,6 +68,12 @@ assert_test('DEV-01g: login.php contains no demo account shortcuts or demoFill()
 $robotsTxt = (string) @file_get_contents(APP_ROOT . '/robots.txt');
 assert_test('DEV-01h: robots.txt explicitly disallows /devconsole/', str_contains($robotsTxt, 'Disallow: /devconsole/'), 'robots.txt missing disallow rule');
 
+$rootHealth = APP_ROOT . '/health.php';
+assert_test('DEV-01i: health.php does NOT exist on main site root', !file_exists($rootHealth), 'health.php was not deleted');
+
+$footerSrc = (string) file_get_contents(APP_ROOT . '/includes/footer.php');
+assert_test('DEV-01j: footer.php contains no link to health.php', !str_contains($footerSrc, 'health.php'), 'Found health.php in footer.php');
+
 echo "\n2. Developer Table & Account Isolation\n";
 // Ensure developer table exists
 $devCols = $pdo->query("DESCRIBE developers")->fetchAll(PDO::FETCH_COLUMN);
@@ -164,6 +170,9 @@ assert_test('DEV-08a: HTTP GET /pages/api/mpesa_simulate.php returns 404 Not Fou
 
 $healthHttpCode = http_get_status($baseUrl . '/pages/dashboard/system_health.php');
 assert_test('DEV-08b: HTTP GET /pages/dashboard/system_health.php returns 404 Not Found', $healthHttpCode === 404, "Got HTTP {$healthHttpCode}");
+
+$rootHealthHttpCode = http_get_status($baseUrl . '/health.php');
+assert_test('DEV-08e: HTTP GET /health.php returns 404 Not Found', $rootHealthHttpCode === 404, "Got HTTP {$rootHealthHttpCode}");
 
 $consoleDashCode = http_get_status($baseUrl . '/devconsole/dashboard.php');
 assert_test('DEV-08c: HTTP GET /devconsole/dashboard.php unauthenticated redirects (HTTP 302)', $consoleDashCode === 302, "Got HTTP {$consoleDashCode}");
