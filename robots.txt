@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /devconsole/
+Disallow: /config/
+Disallow: /database/
+Disallow: /includes/
+Disallow: /logs/
+Disallow: /backups/
+Disallow: /assets/img/uploads/kyc/

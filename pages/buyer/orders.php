@@ -256,21 +256,12 @@ require_once __DIR__ . '/../../includes/header.php';
             <div style="margin: 1.25rem 0;" id="spinnerWrap">
                 <div class="spinner" style="width: 24px; height: 24px; border: 3px solid #cbd5e1; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto;"></div>
             </div>
-
-            <?php if (get_mpesa_config()['allow_simulation']): ?>
-                <div style="background: #f1f5f9; padding: 0.75rem; border-radius: 6px; margin: 1rem 0;">
-                    <span class="small muted" style="font-weight: 700;">Sandbox Simulation:</span>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="simCallback('success')">Simulate PIN Success</button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="simCallback('cancel')">Simulate Cancel</button>
-                </div>
-            <?php endif; ?>
         </div>
 
         <script>
         const chkId = <?= json_encode($stkModal['checkout_request_id']) ?>;
         const oId = <?= (int) $stkModal['order_id'] ?>;
         const statUrl = <?= json_encode(url('pages/api/mpesa_status.php')) ?>;
-        const simUrl = <?= json_encode(url('pages/api/mpesa_simulate.php')) ?>;
 
         const pInt = setInterval(async () => {
             try {
@@ -290,14 +281,6 @@ require_once __DIR__ . '/../../includes/header.php';
                 }
             } catch(e) {}
         }, 2500);
-
-        async function simCallback(act) {
-            await fetch(simUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `checkout_request_id=${encodeURIComponent(chkId)}&action=${act}`
-            });
-        }
         </script>
         <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
     <?php endif; ?>

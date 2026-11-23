@@ -300,28 +300,8 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="auth-links">
                 Don't have an account? <a href="<?= e(url('pages/auth/register.php')) ?>">Create one here</a>
             </div>
-
-            <!-- Demo Accounts -->
-            <div class="demo-section">
-                <div class="demo-title"><?= icon('key-round', 'lucide-xs') ?> <span>Quick Demo Accounts (Password: SokoHub@2026)</span></div>
-                <div class="demo-btns-row">
-                    <button type="button" class="demo-btn" data-demo-email="buyer@sokohub.co.ke" data-demo-pass="SokoHub@2026">Buyer</button>
-                    <button type="button" class="demo-btn" data-demo-email="seller@sokohub.co.ke" data-demo-pass="SokoHub@2026">Seller</button>
-                    <button type="button" class="demo-btn" data-demo-email="rider@sokohub.co.ke" data-demo-pass="SokoHub@2026">Delivery</button>
-                    <button type="button" class="demo-btn" data-demo-email="admin@sokohub.co.ke" data-demo-pass="SokoHub@2026">Admin</button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
-
-<script>
-document.querySelectorAll('[data-demo-email]').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.getElementById('login_email').value = this.dataset.demoEmail;
-        document.getElementById('login_password').value = this.dataset.demoPass;
-    });
-});
-</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

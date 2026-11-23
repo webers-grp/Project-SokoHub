@@ -122,3 +122,4 @@ git push -u origin feature/your-feature-name
 5. [`docs/05-DEPLOYMENT-GUIDE.md`](docs/05-DEPLOYMENT-GUIDE.md) — GitHub workflow and live hosting instructions for InfinityFree, 000webhost, and Render.
 6. [`docs/06-USER-MANUAL.md`](docs/06-USER-MANUAL.md) — Role-by-role user guide with real UI screenshots.
 7. [`docs/07-FINAL-REPORT-COMPILATION.md`](docs/07-FINAL-REPORT-COMPILATION.md) — Ready-to-submit SPI 2301 rubric map and title page template.
+8. [`DEVCONSOLE.md`](DEVCONSOLE.md) — Isolated Developer Console Architecture, Tools Catalogue, 2FA TOTP Enrollment, and Deployment Guide.

@@ -54,6 +54,66 @@ class Security
         if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
         }
+
+        // Check if maintenance mode is enabled
+        self::checkMaintenanceMode();
+    }
+
+    /**
+     * Verify if platform is in maintenance mode and enforce 503 response.
+     */
+    public static function checkMaintenanceMode(): void
+    {
+        if (PHP_SAPI === 'cli') {
+            return;
+        }
+
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        // Skip devconsole completely
+        if (str_contains($uri, '/devconsole')) {
+            return;
+        }
+        // Skip webhooks / payment callbacks
+        if (str_contains($uri, 'mpesa_callback.php')) {
+            return;
+        }
+
+        try {
+            $pdo = get_db_connection();
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('maintenance_mode', 'maintenance_message', 'maintenance_allowed_ips')");
+            $settings = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $settings[$row['setting_key']] = $row['setting_value'];
+            }
+
+            if (!empty($settings['maintenance_mode']) && $settings['maintenance_mode'] === '1') {
+                $clientIp = self::getClientIp();
+                $allowedIps = array_filter(array_map('trim', explode(',', $settings['maintenance_allowed_ips'] ?? '')));
+
+                if (!in_array($clientIp, $allowedIps, true)) {
+                    http_response_code(503);
+                    header('Retry-After: 300');
+
+                    $isApi = str_contains($uri, '/api/') || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'));
+                    $msg = !empty($settings['maintenance_message']) ? $settings['maintenance_message'] : 'SokoHub is currently undergoing scheduled platform maintenance. We will be back online shortly.';
+
+                    if ($isApi) {
+                        header('Content-Type: application/json; charset=UTF-8');
+                        echo json_encode([
+                            'error' => 'Service Unavailable',
+                            'message' => $msg,
+                            'status' => 503,
+                        ]);
+                        exit;
+                    }
+
+                    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Scheduled Maintenance | SokoHub</title><link rel="stylesheet" href="' . htmlspecialchars(url('assets/css/style.css')) . '"><style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b1120;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;margin:0;padding:1.5rem;}.maint-box{background:#0f172a;border:1px solid #1e293b;border-radius:1rem;padding:2.5rem;max-width:540px;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);}.badge{display:inline-block;padding:0.35rem 0.75rem;background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);border-radius:9999px;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1.5rem;}h1{font-size:1.75rem;margin:0 0 1rem;color:#ffffff;}p{color:#94a3b8;line-height:1.6;margin:0 0 1.5rem;}.footer-text{font-size:0.8rem;color:#64748b;margin-top:2rem;}</style></head><body><div class="maint-box"><span class="badge">Scheduled System Maintenance</span><h1>SokoHub Under Maintenance</h1><p>' . htmlspecialchars($msg) . '</p><div class="footer-text">&copy; ' . date('Y') . ' SokoHub Kenya. All marketplace transactions are safely queued.</div></div></body></html>';
+                    exit;
+                }
+            }
+        } catch (Throwable $e) {
+            // Fail open if table or database is temporarily unavailable during migration
+        }
     }
 
     /**

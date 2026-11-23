@@ -13,8 +13,8 @@ Review and complete every item before opening SokoHub to live public transaction
 ---
 
 ### Phase 2: Environment & Debugging Posture
-- [ ] **Disable Display Errors**: Verify that `APP_ENV=production` is set in `.env` and `display_errors` is confirmed `0` via `pages/dashboard/system_health.php`.
-- [ ] **Disable Simulation Endpoints**: Verify that `MPESA_ALLOW_SIMULATION=false` and `is_live=true` so that simulation fallbacks cannot be reached by external callers.
+- [ ] **Disable Display Errors**: Verify that `APP_ENV=production` is set in `.env` and `display_errors` is confirmed `0` via Developer Console (`devconsole/dashboard.php` or `devconsole/pages/config/env.php`).
+- [ ] **Disable Simulation Endpoints**: Verify that `MPESA_ALLOW_SIMULATION=false`, `MPESA_ENV=production`, and public simulation scripts have been removed. Verify Developer Console simulator is automatically locked down in production.
 - [ ] **Verify HTTP Security Headers**: Test site via `curl -I https://sokohub.co.ke` and verify presence of:
   - `Content-Security-Policy`
   - `X-Content-Type-Options: nosniff`
@@ -45,3 +45,13 @@ Review and complete every item before opening SokoHub to live public transaction
 - [ ] **Automated Daily Backups**: Verify that `0 2 * * * php /var/www/sokohub/scripts/backup.php` is running in cron and backup files are generating in `/backups/`.
 - [ ] **Payment Reconciliation Cron**: Verify `*/5 * * * * php /var/www/sokohub/scripts/reconcile_payments.php` is active.
 - [ ] **Log Monitoring**: Confirm error logs are writing to `/logs/app_error.log` and no warnings are being emitted.
+
+---
+
+### Phase 6: Developer Console (Internal Ops) Readiness
+- [ ] **Public Site Cleanliness**: Verify that old simulation and health URLs return HTTP 404 (`/pages/api/mpesa_simulate.php`, `/pages/dashboard/system_health.php`).
+- [ ] **Robots Exclusion**: Verify `robots.txt` disallows `/devconsole/` and HTTP headers return `X-Robots-Tag: noindex, nofollow, noarchive`.
+- [ ] **2FA Setup on All Developer Accounts**: Ensure every engineer has enrolled in mandatory RFC 6238 TOTP.
+- [ ] **Production Write Prohibitions**: Verify `DEVCONSOLE_ALLOW_PROD_WRITES=false` in `.env`.
+- [ ] **IP Allowlisting Enforced**: Verify `DEVCONSOLE_ALLOWED_IPS` restricts console access to approved static IPs/VPNs.
+- [ ] **Owner Account Password Rotation**: Rotate default developer passwords (`DevOwner@2026!Pass`) created during initialization.

@@ -169,3 +169,22 @@ If a major issue occurs post-deployment:
    php scripts/backup.php --restore backups/sokohub_backup_PRE_DEPLOY.sql --target-db sokohub_prod
    ```
 3. Restart PHP-FPM and Nginx/Apache.
+
+---
+
+## 8. Developer Console Production Hardening
+
+The internal developer operations console (`/devconsole`) must be hardened before public traffic is routed:
+
+1. **IP Allowlisting**: Configure `DEVCONSOLE_ALLOWED_IPS` in `.env` with office and VPN IPs:
+   ```dotenv
+   DEVCONSOLE_ALLOWED_IPS=197.237.10.45,10.8.0.2
+   DEVCONSOLE_ALLOW_PROD_WRITES=false
+   ```
+2. **Subdomain Separation (Recommended)**: Route `dev.sokohub.co.ke` directly to `/var/www/sokohub/devconsole` and restrict via Nginx or Cloudflare Access.
+3. **Provision First Owner Account via CLI**:
+   ```bash
+   php devconsole/bin/create_developer.php --username=lead_dev --email=lead@sokohub.co.ke --role=owner
+   ```
+4. **Mandatory 2FA Enrollment**: Sign in immediately at `/devconsole/login.php` to scan the TOTP QR code into Google Authenticator / Authy.
+5. **Verify Public Site Isolation**: Ensure `/robots.txt` disallows `/devconsole/` and probe removed tools (`/pages/api/mpesa_simulate.php`) to confirm HTTP 404.

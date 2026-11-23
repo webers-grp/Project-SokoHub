@@ -359,23 +359,9 @@ require_once __DIR__ . '/../../includes/header.php';
                 <span class="small muted" id="modalTimerText">Waiting for Safaricom confirmation (polling)...</span>
             </div>
 
-            <!-- Development Simulation Bar (Only shown in sandbox/simulation mode) -->
-            <?php if (get_mpesa_config()['allow_simulation']): ?>
-                <div style="background: #f1f5f9; border-radius: 8px; padding: 0.85rem; margin: 1.25rem 0; text-align: left;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span class="small" style="font-weight: 700; color: #475569;">Developer Sandbox Controls:</span>
-                        <span class="badge badge-neutral" style="font-size: 0.7rem;">Simulate Handset</span>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="simulateMpesa('success')">
-                            <?= icon('check', 'lucide-xs', 'white') ?>
-                            <span>Simulate Correct PIN (Success)</span>
-                        </button>
-                        <button type="button" class="btn btn-outline btn-sm" onclick="simulateMpesa('cancel')">
-                            <?= icon('x', 'lucide-xs', 'rose') ?>
-                            <span>Simulate User Cancel</span>
-                        </button>
-                    </div>
+            <?php if (getenv('MPESA_ENV') === 'sandbox'): ?>
+                <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.5rem; text-align: center;">
+                    M-Pesa Gateway Mode: Sandbox
                 </div>
             <?php endif; ?>
 
@@ -394,7 +380,6 @@ require_once __DIR__ . '/../../includes/header.php';
         const checkoutId = <?= json_encode($stkState['checkout_request_id']) ?>;
         const orderId = <?= (int) $stkState['order_id'] ?>;
         const statusUrl = <?= json_encode(url('pages/api/mpesa_status.php')) ?>;
-        const simulateUrl = <?= json_encode(url('pages/api/mpesa_simulate.php')) ?>;
 
         let pollCount = 0;
         const maxPolls = 35;
@@ -437,20 +422,6 @@ require_once __DIR__ . '/../../includes/header.php';
                 document.getElementById('modalActionArea').style.display = 'block';
             }
         }, 2500);
-
-        async function simulateMpesa(action) {
-            try {
-                const res = await fetch(simulateUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `checkout_request_id=${encodeURIComponent(checkoutId)}&action=${action}`
-                });
-                const data = await res.json();
-                console.log('Simulated response:', data);
-            } catch (e) {
-                console.error(e);
-            }
-        }
         </script>
         <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
