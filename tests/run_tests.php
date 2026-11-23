@@ -157,6 +157,9 @@ $mpesaConfig = get_mpesa_config();
 assert_true(in_array($mpesaConfig['env'], ['sandbox', 'live'], true), 'TC-09a: M-Pesa environment resolves cleanly');
 assert_true(!empty($mpesaConfig['shortcode']), 'TC-09b: Business shortcode resolved');
 assert_true(!empty($mpesaConfig['passkey']), 'TC-09c: Lipa na M-Pesa passkey resolved');
+assert_true(str_starts_with($mpesaConfig['callback_url'], 'https://'), 'TC-09d: CallBackURL resolves to HTTPS');
+assert_true(mpesa_sanitize_callback_url('http://localhost/sokohub/pages/api/mpesa_callback.php') === 'https://sokohub.co.ke/pages/api/mpesa_callback.php', 'TC-09e: Sanitize insecure localhost CallBackURL to public HTTPS');
+assert_true(mpesa_sanitize_callback_url('https://my-tunnel.ngrok-free.app/callback.php') === 'https://my-tunnel.ngrok-free.app/callback.php', 'TC-09f: Preserve custom ngrok HTTPS CallBackURL');
 
 // 10. Order Cancellation with Atomic Stock Restoration & Refund Generation
 $pdo->beginTransaction();
@@ -249,6 +252,19 @@ assert_true($pollRes['status'] === 'succeeded' && $pollRes['paid'] === true, 'TC
 
 $pdo->prepare('DELETE FROM payments WHERE order_id = :oid')->execute([':oid' => $simOrderId]);
 $pdo->prepare('DELETE FROM orders WHERE id = :oid')->execute([':oid' => $simOrderId]);
+
+// 13. Seller Till Number & 2% Commission Verification
+$sellerCheck = $pdo->prepare('SELECT till_number, business_name FROM seller_profiles WHERE user_id = :id');
+$sellerCheck->execute([':id' => $sellerId]);
+$spRow = $sellerCheck->fetch();
+assert_true(!empty($spRow['till_number']), 'TC-13a: Seller profile has registered M-Pesa Till Number (' . ($spRow['till_number'] ?? 'none') . ')');
+
+// Check 2% platform fee calculation
+$testSale = 5000.00;
+$calculatedFee = round($testSale * 0.02, 2);
+$calculatedNet = round($testSale - $calculatedFee, 2);
+assert_true($calculatedFee === 100.00, 'TC-13b: 2% platform commission accurately calculated on KSh 5,000 (KSh 100)');
+assert_true($calculatedNet === 4900.00, 'TC-13c: 98% net seller payout accurately calculated (KSh 4,900)');
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

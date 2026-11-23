@@ -200,9 +200,10 @@ if (!empty($orders)) {
 
     // Line items
     $itStmt = $pdo->prepare(
-        "SELECT oi.*, p.name AS product_name
+        "SELECT oi.*, p.name AS product_name, sp.business_name, sp.till_number
          FROM order_items oi
          INNER JOIN products p ON p.id = oi.product_id
+         LEFT JOIN seller_profiles sp ON sp.user_id = oi.seller_id
          WHERE oi.order_id IN ({$ph})"
     );
     $itStmt->execute($oIds);
@@ -317,7 +318,30 @@ require_once __DIR__ . '/../../includes/header.php';
 
                             <td>
                                 <?php foreach ($lineItems as $li): ?>
-                                    <div class="small"><?= e($li['product_name']) ?> &times; <?= (int) $li['quantity'] ?></div>
+                                    <div class="small">
+                                        <strong><?= e($li['product_name']) ?></strong> &times; <?= (int) $li['quantity'] ?>
+                                        <?php if (!empty($li['business_name'])): ?>
+                                            <span class="muted">(<?= e($li['business_name']) ?>)</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($role === 'seller' || $role === 'admin'): ?>
+                                        <?php 
+                                            $fee = (float) ($li['platform_fee'] ?? 0);
+                                            $earn = (float) ($li['seller_earnings'] ?? 0);
+                                            if ($fee <= 0 && (float) $li['line_total'] > 0) {
+                                                $fee = round((float) $li['line_total'] * 0.02, 2);
+                                                $earn = round((float) $li['line_total'] - $fee, 2);
+                                            }
+                                        ?>
+                                        <div class="small muted" style="font-size:0.78rem; margin-top:0.15rem;">
+                                            Gross: <?= format_ksh($li['line_total']) ?> |
+                                            <span style="color:var(--danger,#c62828);">Fee (2%): -<?= format_ksh($fee) ?></span> |
+                                            <span style="color:var(--green-dark,#1b5e20); font-weight:600;">Net: <?= format_ksh($earn) ?></span>
+                                            <?php if (!empty($li['till_number'])): ?>
+                                                <span class="badge badge-info" style="font-size:0.7rem; padding:0.1rem 0.35rem;">Till: <?= e($li['till_number']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                                 <?php if ($isCancelled): ?>
                                     <span class="badge badge-success small" style="margin-top:0.3rem;">✓ Stock Restored</span>

@@ -83,6 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
+            require_once __DIR__ . '/../../includes/orders.php';
+            ensure_order_schema_tables($pdo);
             $pdo->beginTransaction();
             try {
                 $verifiedItems = [];
@@ -130,19 +132,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $orderId = (int) $pdo->lastInsertId();
 
                 $itemStmt = $pdo->prepare(
-                    'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total)
-                     VALUES (:oid, :pid, :sid, :qty, :price, :line)'
+                    'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total, platform_fee, seller_earnings)
+                     VALUES (:oid, :pid, :sid, :qty, :price, :line, :fee, :earn)'
                 );
                 $stockStmt = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - :qty WHERE id = :pid');
 
                 foreach ($verifiedItems as $vi) {
+                    $lineTotal = (float) $vi['line_total'];
+                    // 2% Platform Fee / Tax deducted for SokoHub platform earnings
+                    $platformFee = round($lineTotal * 0.02, 2);
+                    $sellerEarnings = round($lineTotal - $platformFee, 2);
+
                     $itemStmt->execute([
                         ':oid'   => $orderId,
                         ':pid'   => $vi['id'],
                         ':sid'   => $vi['seller_id'],
                         ':qty'   => $vi['qty'],
                         ':price' => $vi['unit_price'],
-                        ':line'  => $vi['line_total'],
+                        ':line'  => $lineTotal,
+                        ':fee'   => $platformFee,
+                        ':earn'  => $sellerEarnings,
                     ]);
                     $stockStmt->execute([
                         ':qty' => $vi['qty'],

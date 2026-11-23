@@ -17,14 +17,20 @@ return [
     // 'sandbox' for testing with Safaricom Daraja simulator, 'live' for production
     'env' => 'sandbox',
 
+    // Payment Type: 'paybill' (CustomerPayBillOnline) or 'till' / 'buy_goods' (CustomerBuyGoodsOnline)
+    'type' => 'paybill',
+
     // Your Daraja App Consumer Key from developer.safaricom.co.ke
     'consumer_key' => 'YOUR_CONSUMER_KEY_HERE',
 
     // Your Daraja App Consumer Secret
     'consumer_secret' => 'YOUR_CONSUMER_SECRET_HERE',
 
-    // Paybill / Till Number (Sandbox default: 174379)
+    // Paybill Business Shortcode or Store Number (Sandbox default: 174379)
     'shortcode' => '174379',
+
+    // Till Number (Buy Goods only: if type is 'till', specify your Till number if different from shortcode)
+    'till_number' => '',
 
     // Lipa na M-Pesa Online Passkey
     // In Sandbox, use the official Safaricom test passkey:

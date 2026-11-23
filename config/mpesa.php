@@ -60,15 +60,39 @@ function get_mpesa_config(): array
     $passkey = $local['passkey'] ?? getenv('MPESA_PASSKEY') ?: $defaultSandboxPasskey;
 
     // Detect default callback URL based on server environment
-    $defaultCallback = '';
-    if (!empty($_SERVER['HTTP_HOST'])) {
-        $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $defaultCallback = $proto . $_SERVER['HTTP_HOST'] . url('pages/api/mpesa_callback.php');
+    // Note: Safaricom Daraja strictly requires a public HTTPS URL. Localhost/HTTP is rejected with HTTP 400 (Invalid CallBackURL).
+    $customCallback = trim((string) ($local['callback_url'] ?? getenv('MPESA_CALLBACK_URL') ?: ''));
+    if ($customCallback !== '') {
+        $callbackUrl = $customCallback;
+    } else {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $isLocal = empty($host)
+            || str_contains($host, 'localhost')
+            || str_contains($host, '127.0.0.1')
+            || str_ends_with($host, '.test')
+            || str_ends_with($host, '.local');
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+
+        if (!$isLocal && $isHttps) {
+            $callbackUrl = 'https://' . $host . url('pages/api/mpesa_callback.php');
+        } else {
+            // Valid public HTTPS callback format for Daraja Sandbox validation
+            $callbackUrl = 'https://sokohub.co.ke/pages/api/mpesa_callback.php';
+        }
     }
-    $callbackUrl = $local['callback_url'] ?? getenv('MPESA_CALLBACK_URL') ?: $defaultCallback;
+
+    $type = strtolower(trim((string) ($local['type'] ?? getenv('MPESA_TYPE') ?: 'till')));
+    if (!in_array($type, ['paybill', 'till', 'buy_goods'], true)) {
+        $type = 'till';
+    }
+    $tillNumber = trim((string) ($local['till_number'] ?? getenv('MPESA_TILL_NUMBER') ?: '1648753'));
+    $accountName = trim((string) ($local['account_name'] ?? getenv('MPESA_ACCOUNT_NAME') ?: 'sokohub'));
 
     $config = [
         'env'             => $env,
+        'type'            => $type, // 'paybill' (CustomerPayBillOnline) or 'till' / 'buy_goods' (CustomerBuyGoodsOnline)
+        'till_number'     => $tillNumber,
+        'account_name'    => $accountName !== '' ? $accountName : 'sokohub',
         'consumer_key'    => trim((string) $consumerKey),
         'consumer_secret' => trim((string) $consumerSecret),
         'shortcode'       => trim((string) $shortcode),

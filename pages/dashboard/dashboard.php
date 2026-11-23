@@ -3,9 +3,11 @@
  * SokoHub Role-Aware User Dashboard
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/orders.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
+ensure_order_schema_tables($pdo);
 
 $role = $user['role'];
 $userId = (int) $user['id'];
@@ -42,6 +44,10 @@ if ($role === 'buyer') {
     $recStmt->execute([':id' => $userId]);
     $recentRows = $recStmt->fetchAll();
 } elseif ($role === 'seller') {
+    $spStmt = $pdo->prepare('SELECT business_name, till_number, town FROM seller_profiles WHERE user_id = :id LIMIT 1');
+    $spStmt->execute([':id' => $userId]);
+    $sellerProfile = $spStmt->fetch() ?: ['business_name' => 'My Business', 'till_number' => '1648753', 'town' => 'Kutus'];
+
     $prodCount = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active'");
     $prodCount->execute([':id' => $userId]);
 
@@ -49,7 +55,10 @@ if ($role === 'buyer') {
     $lowStock->execute([':id' => $userId]);
 
     $revStmt = $pdo->prepare(
-        "SELECT COALESCE(SUM(oi.line_total), 0) AS rev, COALESCE(SUM(oi.quantity), 0) AS units
+        "SELECT COALESCE(SUM(oi.line_total), 0) AS gross_rev,
+                COALESCE(SUM(oi.quantity), 0) AS units,
+                COALESCE(SUM(oi.platform_fee), 0) AS total_fee,
+                COALESCE(SUM(oi.seller_earnings), 0) AS net_earn
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
          WHERE oi.seller_id = :id AND o.order_status <> 'cancelled'"
@@ -57,15 +66,23 @@ if ($role === 'buyer') {
     $revStmt->execute([':id' => $userId]);
     $rev = $revStmt->fetch();
 
+    $gross = (float) $rev['gross_rev'];
+    $platformFee = (float) $rev['total_fee'];
+    $netPayout = (float) $rev['net_earn'];
+    if ($platformFee <= 0 && $gross > 0) {
+        $platformFee = round($gross * 0.02, 2);
+        $netPayout = round($gross - $platformFee, 2);
+    }
+
     $kpis = [
-        ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn()],
-        ['label' => 'Low Stock Alerts', 'value' => (int) $lowStock->fetchColumn()],
-        ['label' => 'Units Sold', 'value' => (int) $rev['units']],
-        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev'])],
+        ['label' => 'Gross Sales', 'value' => format_ksh($gross)],
+        ['label' => 'SokoHub Fee (2%)', 'value' => '-' . format_ksh($platformFee)],
+        ['label' => 'Net Payout (98%)', 'value' => format_ksh($netPayout)],
+        ['label' => 'Payout Till Number', 'value' => 'Till: ' . e($sellerProfile['till_number'])],
     ];
 
     $recStmt = $pdo->prepare(
-        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, o.order_status, o.created_at
+        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, oi.platform_fee, oi.seller_earnings, o.order_status, o.created_at
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
          INNER JOIN products p ON p.id = oi.product_id
@@ -103,11 +120,24 @@ if ($role === 'buyer') {
     $recStmt->execute([':id' => $userId]);
     $recentRows = $recStmt->fetchAll();
 } else { // admin
+    $totVolume = (float) $pdo->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn();
+    $adminFeeStmt = $pdo->query(
+        "SELECT COALESCE(SUM(oi.platform_fee), 0) AS total_fee, COALESCE(SUM(oi.line_total), 0) AS total_gross
+         FROM order_items oi
+         INNER JOIN orders o ON o.id = oi.order_id
+         WHERE o.order_status <> 'cancelled'"
+    );
+    $adminFeeRow = $adminFeeStmt->fetch();
+    $adminTotalFee = (float) $adminFeeRow['total_fee'];
+    if ($adminTotalFee <= 0 && $totVolume > 0) {
+        $adminTotalFee = round($totVolume * 0.02, 2);
+    }
+
     $kpis = [
-        ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn()],
+        ['label' => 'Total Marketplace Volume', 'value' => format_ksh($totVolume)],
+        ['label' => 'SokoHub 2% Earnings', 'value' => format_ksh($adminTotalFee)],
         ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn()],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn())],
-        ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn()],
+        ['label' => 'Platform Collection Till', 'value' => 'Till: 1648753 (sokohub)'],
     ];
 
     $recentRows = $pdo->query(
@@ -184,7 +214,9 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Order Code</th>
                             <th>Product</th>
                             <th>Qty</th>
-                            <th>Revenue</th>
+                            <th>Gross Sale</th>
+                            <th>2% Fee</th>
+                            <th>Net Payout</th>
                             <th>Status</th>
                             <th>Date</th>
                         </tr>
@@ -219,12 +251,22 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td><?= e(date('d M Y, H:i', strtotime($row['created_at']))) ?></td>
                             </tr>
                         <?php elseif ($role === 'seller'): ?>
-                            <?php $oBadge = get_status_badge($row['order_status']); ?>
+                            <?php 
+                                $oBadge = get_status_badge($row['order_status']); 
+                                $itemFee = (float) ($row['platform_fee'] ?? 0);
+                                $itemEarn = (float) ($row['seller_earnings'] ?? 0);
+                                if ($itemFee <= 0 && (float) $row['line_total'] > 0) {
+                                    $itemFee = round((float) $row['line_total'] * 0.02, 2);
+                                    $itemEarn = round((float) $row['line_total'] - $itemFee, 2);
+                                }
+                            ?>
                             <tr>
                                 <td><strong><?= e($row['order_code']) ?></strong></td>
                                 <td><?= e($row['product_name']) ?></td>
                                 <td><?= (int) $row['quantity'] ?></td>
                                 <td><?= format_ksh($row['line_total']) ?></td>
+                                <td style="color:var(--danger,#c62828);">-<?= format_ksh($itemFee) ?></td>
+                                <td style="color:var(--green-dark,#1b5e20); font-weight:700;"><?= format_ksh($itemEarn) ?></td>
                                 <td><span class="badge <?= e($oBadge['class']) ?>"><?= e($oBadge['label']) ?></span></td>
                                 <td><?= e(date('d M Y', strtotime($row['created_at']))) ?></td>
                             </tr>

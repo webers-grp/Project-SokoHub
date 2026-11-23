@@ -114,6 +114,29 @@ function mpesa_get_access_token(?array $config = null): array
 }
 
 /**
+ * Ensures CallBackURL complies with Safaricom Daraja specifications:
+ * - Must use HTTPS
+ * - Must be a valid public hostname (not localhost, 127.0.0.1, or .test/.local)
+ */
+function mpesa_sanitize_callback_url(?string $url): string
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return 'https://sokohub.co.ke/pages/api/mpesa_callback.php';
+    }
+
+    $parsed = parse_url($url);
+    $scheme = strtolower($parsed['scheme'] ?? '');
+    $host = strtolower($parsed['host'] ?? '');
+
+    if ($scheme !== 'https' || empty($host) || in_array($host, ['localhost', '127.0.0.1'], true) || str_ends_with($host, '.test') || str_ends_with($host, '.local')) {
+        return 'https://sokohub.co.ke/pages/api/mpesa_callback.php';
+    }
+
+    return $url;
+}
+
+/**
  * Initiates an M-Pesa STK Push (Lipa na M-Pesa Online) request.
  *
  * @param PDO    $pdo
@@ -143,7 +166,26 @@ function mpesa_stk_push(
     // Rounded integer amount per Safaricom Lipa na M-Pesa specification
     $stkAmount = max(1, (int) round($amount));
     $timestamp = date('YmdHis');
-    $password = base64_encode($config['shortcode'] . $config['passkey'] . $timestamp);
+
+    // In Sandbox, Safaricom Daraja testbed strictly requires CustomerPayBillOnline on shortcode 174379.
+    // In Live production, it supports CustomerBuyGoodsOnline for Till Numbers or CustomerPayBillOnline for Paybills.
+    if ($config['env'] === 'live') {
+        $isTill = in_array($config['type'] ?? 'till', ['till', 'buy_goods'], true);
+        $businessShortCode = !empty($config['shortcode']) ? $config['shortcode'] : '1648753';
+        $passkey = $config['passkey'];
+        $transactionType = $isTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
+        $partyB = ($isTill && !empty($config['till_number'])) ? $config['till_number'] : $businessShortCode;
+    } else {
+        // Sandbox environment: Safaricom Daraja test shortcode 174379 requires CustomerPayBillOnline
+        $businessShortCode = '174379';
+        $passkey = !empty($config['passkey']) && $config['passkey'] !== 'YOUR_PASSKEY_HERE'
+            ? $config['passkey']
+            : 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+        $transactionType = 'CustomerPayBillOnline';
+        $partyB = '174379';
+    }
+
+    $password = base64_encode($businessShortCode . $passkey . $timestamp);
 
     // If live credentials are not present, trigger local presentation simulation
     if (!is_mpesa_live_configured()) {
@@ -180,18 +222,18 @@ function mpesa_stk_push(
 
     $accessToken = $tokenResult['token'];
 
-    // 2. Build STK Push Request Payload
+    // 2. Build STK Push Request Payload (Supports both Paybill and Buy Goods / Till Number)
     $postData = [
-        'BusinessShortCode' => $config['shortcode'],
+        'BusinessShortCode' => $businessShortCode,
         'Password'          => $password,
         'Timestamp'         => $timestamp,
-        'TransactionType'   => 'CustomerPayBillOnline',
+        'TransactionType'   => $transactionType,
         'Amount'            => $stkAmount,
         'PartyA'            => $formattedPhone,
-        'PartyB'            => $config['shortcode'],
+        'PartyB'            => $partyB,
         'PhoneNumber'       => $formattedPhone,
-        'CallBackURL'       => $config['callback_url'] ?: 'https://sokohub.co.ke/pages/api/mpesa_callback.php',
-        'AccountReference'  => substr($accountReference, 0, 12),
+        'CallBackURL'       => mpesa_sanitize_callback_url($config['callback_url']),
+        'AccountReference'  => substr(!empty($config['account_name']) ? $config['account_name'] : $accountReference, 0, 12),
         'TransactionDesc'   => substr($description, 0, 13),
     ];
 
@@ -320,11 +362,13 @@ function mpesa_poll_status(PDO $pdo, int $orderId, ?string $checkoutRequestId = 
     if (is_mpesa_live_configured() && !empty($payment['checkout_request_id'])) {
         $tokenRes = mpesa_get_access_token($config);
         if ($tokenRes['ok']) {
+            $queryShortcode = ($config['env'] === 'live') ? (!empty($config['shortcode']) ? $config['shortcode'] : '1648753') : '174379';
+            $queryPasskey = ($config['env'] === 'live') ? $config['passkey'] : (!empty($config['passkey']) ? $config['passkey'] : 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919');
             $timestamp = date('YmdHis');
-            $password = base64_encode($config['shortcode'] . $config['passkey'] . $timestamp);
+            $password = base64_encode($queryShortcode . $queryPasskey . $timestamp);
 
             $queryPayload = [
-                'BusinessShortCode' => $config['shortcode'],
+                'BusinessShortCode' => $queryShortcode,
                 'Password'          => $password,
                 'Timestamp'         => $timestamp,
                 'CheckoutRequestID' => $payment['checkout_request_id'],

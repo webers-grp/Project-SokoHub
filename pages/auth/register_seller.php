@@ -14,6 +14,7 @@ $errors = [];
 $old = [
     'full_name'     => '',
     'business_name' => '',
+    'till_number'   => '',
     'business_type' => '',
     'town'          => 'Kutus',
     'email'         => '',
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $old['full_name'] = trim((string) ($_POST['full_name'] ?? ''));
         $old['business_name'] = trim((string) ($_POST['business_name'] ?? ''));
+        $old['till_number'] = trim((string) ($_POST['till_number'] ?? ''));
         $old['business_type'] = (string) ($_POST['business_type'] ?? '');
         $old['town'] = trim((string) ($_POST['town'] ?? 'Kutus'));
         $old['email'] = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -36,7 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors = validate_registration_fields($_POST);
 
         if (mb_strlen($old['business_name']) < 3) {
-            $errors[] = 'Business name must be at least 3 characters long.';
+            $errors[] = 'Business name is strictly required and must be at least 3 characters long.';
+        }
+        if (empty($old['till_number']) || !preg_match('/^[0-9]{5,8}$/', $old['till_number'])) {
+            $errors[] = 'M-Pesa Buy Goods Till Number is strictly required and must be between 5 and 8 digits.';
         }
         if (!array_key_exists($old['business_type'], $businessTypes)) {
             $errors[] = 'Please choose a valid business category.';
@@ -47,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $pdo = get_db_connection();
+            require_once __DIR__ . '/../../includes/orders.php';
+            ensure_order_schema_tables($pdo);
             $exists = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
             $exists->execute([':email' => $old['email']]);
 
@@ -69,12 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $userId = (int) $pdo->lastInsertId();
 
                     $sStmt = $pdo->prepare(
-                        'INSERT INTO seller_profiles (user_id, business_name, business_type, town, description)
-                         VALUES (:user_id, :business_name, :business_type, :town, :description)'
+                        'INSERT INTO seller_profiles (user_id, business_name, till_number, business_type, town, description)
+                         VALUES (:user_id, :business_name, :till_number, :business_type, :town, :description)'
                     );
                     $sStmt->execute([
                         ':user_id'       => $userId,
                         ':business_name' => $old['business_name'],
+                        ':till_number'   => $old['till_number'],
                         ':business_type' => $old['business_type'],
                         ':town'          => $old['town'] !== '' ? $old['town'] : 'Kutus',
                         ':description'   => $old['description'],
@@ -124,19 +132,32 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label for="full_name">Owner Full Name</label>
+                        <label for="full_name">Owner Full Name <span style="color:var(--danger,#c62828);">*</span></label>
                         <input type="text" id="full_name" name="full_name" class="form-control" value="<?= e($old['full_name']) ?>" required data-minlength="3" placeholder="e.g. Ian Mwangi">
                     </div>
 
                     <div class="form-group">
-                        <label for="business_name">Business Name</label>
+                        <label for="business_name">Business Name <span style="color:var(--danger,#c62828);">*</span></label>
                         <input type="text" id="business_name" name="business_name" class="form-control" value="<?= e($old['business_name']) ?>" required data-minlength="3" placeholder="e.g. Ian's Fresh Produce">
                     </div>
                 </div>
 
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label for="business_type">Type of Business</label>
+                        <label for="till_number">M-Pesa Buy Goods Till Number <span style="color:var(--danger,#c62828);">*</span></label>
+                        <input type="text" id="till_number" name="till_number" class="form-control" value="<?= e($old['till_number']) ?>" required pattern="[0-9]{5,8}" placeholder="e.g. 1648753 or 882910">
+                        <span class="small muted" style="display:block; margin-top:0.25rem;">Strictly required for your 98% sales payout (2% SokoHub platform fee deducted).</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="town">Primary Town / Market <span style="color:var(--danger,#c62828);">*</span></label>
+                        <input type="text" id="town" name="town" class="form-control" value="<?= e($old['town']) ?>" required placeholder="e.g. Kutus, Kerugoya">
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="business_type">Type of Business <span style="color:var(--danger,#c62828);">*</span></label>
                         <select id="business_type" name="business_type" class="form-control" required>
                             <option value="">Select a category</option>
                             <?php foreach ($businessTypes as $key => $label): ?>
@@ -148,21 +169,14 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
 
                     <div class="form-group">
-                        <label for="town">Primary Town / Market</label>
-                        <input type="text" id="town" name="town" class="form-control" value="<?= e($old['town']) ?>" required placeholder="e.g. Kutus, Kerugoya">
+                        <label for="phone">Phone Number <span style="color:var(--danger,#c62828);">*</span></label>
+                        <input type="tel" id="phone" name="phone" class="form-control" value="<?= e($old['phone']) ?>" required placeholder="+254 712 345 678">
                     </div>
                 </div>
 
-                <div class="form-grid-2">
-                    <div class="form-group">
-                        <label for="email">Official Email Address</label>
-                        <input type="email" id="email" name="email" class="form-control" value="<?= e($old['email']) ?>" required placeholder="business@example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" class="form-control" value="<?= e($old['phone']) ?>" required placeholder="+254 712 345 678">
-                    </div>
+                <div class="form-group">
+                    <label for="email">Official Email Address <span style="color:var(--danger,#c62828);">*</span></label>
+                    <input type="email" id="email" name="email" class="form-control" value="<?= e($old['email']) ?>" required placeholder="business@example.com">
                 </div>
 
                 <div class="form-group">

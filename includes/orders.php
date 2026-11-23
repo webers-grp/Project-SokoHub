@@ -120,6 +120,26 @@ function ensure_order_schema_tables(PDO $pdo): void
         // Table or columns may already exist
     }
 
+    // Check if till_number exists on seller_profiles table
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'till_number'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN till_number VARCHAR(30) NOT NULL DEFAULT '1648753' AFTER town");
+        }
+    } catch (Throwable) {
+        // Table or column may already exist
+    }
+
+    // Check if platform_fee and seller_earnings exist on order_items table
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM order_items LIKE 'platform_fee'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN platform_fee DECIMAL(10, 2) NOT NULL DEFAULT 0.00, ADD COLUMN seller_earnings DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+        }
+    } catch (Throwable) {
+        // Table or columns may already exist
+    }
+
     $ensured = true;
 }
 
