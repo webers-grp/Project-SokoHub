@@ -114,6 +114,24 @@ if (str_contains($email, '@')) {
     }
 }
 
+// In local development / XAMPP, retrieve the generated code for convenient testing
+$isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true)
+    || (PHP_SAPI === 'cli-server') || empty($_SERVER['SERVER_NAME']);
+$devOtpCode = null;
+if ($isLocal && $userId > 0) {
+    try {
+        $stmtJob = $pdo->prepare("SELECT payload FROM jobs WHERE job_type IN ('send_email', 'email') ORDER BY id DESC LIMIT 10");
+        $stmtJob->execute();
+        while ($jRow = $stmtJob->fetch()) {
+            $p = json_decode((string) $jRow['payload'], true);
+            if (!empty($p['code']) && !empty($p['to']) && strtolower($p['to']) === strtolower($email)) {
+                $devOtpCode = (string) $p['code'];
+                break;
+            }
+        }
+    } catch (Throwable $_) {}
+}
+
 $pageTitle = 'SokoHub | Verify 6-Digit Code';
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -201,6 +219,35 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
             </div>
         </div>
+
+        <?php if ($isLocal && !empty($devOtpCode)): ?>
+            <div class="demo-box" style="margin-top: 1.5rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="font-size: 0.88rem; color: #92400e; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                    <?= icon('info', 'lucide-xs', 'amber') ?>
+                    <span>Local Development / Demo Helper</span>
+                </div>
+                <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
+                    Local XAMPP does not have an outbound SMTP relay to send emails across the internet to Gmail. Your generated verification code is:
+                </p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <code id="devOtpVal" style="font-size: 1.4rem; font-weight: 800; color: #b45309; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #d97706;"><?= e($devOtpCode) ?></code>
+                    <button type="button" class="btn btn-outline btn-xs" id="btnCopyOtp" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                        <?= icon('copy', 'lucide-xs') ?> Autofill
+                    </button>
+                </div>
+            </div>
+            <script>
+            document.getElementById('btnCopyOtp')?.addEventListener('click', function () {
+                const code = <?= json_encode((string) $devOtpCode) ?>;
+                const digits = document.querySelectorAll('.otp-digit');
+                code.split('').forEach((c, idx) => {
+                    if (digits[idx]) digits[idx].value = c;
+                });
+                document.getElementById('fullOtpCode').value = code;
+                this.textContent = 'Autofilled!';
+            });
+            </script>
+        <?php endif; ?>
     </div>
 </main>
 
