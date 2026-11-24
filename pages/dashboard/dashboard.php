@@ -203,7 +203,15 @@ require_once __DIR__ . '/../../includes/header.php';
                     <span>Delivery Report</span>
                 </a>
             <?php else: ?>
-                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-primary">
+                <a href="<?= e(url('pages/dashboard/users.php')) ?>" class="btn btn-primary">
+                    <?= icon('users', 'lucide-xs') ?>
+                    <span>User Management</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/system_health.php')) ?>" class="btn btn-outline" style="border-color: #22c55e; color: #16a34a;">
+                    <?= icon('activity', 'lucide-xs') ?>
+                    <span>System Health</span>
+                </a>
+                <a href="<?= e(url('pages/dashboard/manage_products.php')) ?>" class="btn btn-outline">
                     <?= icon('package', 'lucide-xs') ?>
                     <span>Manage Catalog</span>
                 </a>

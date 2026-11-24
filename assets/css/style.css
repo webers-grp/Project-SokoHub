@@ -33,6 +33,7 @@
     --bg-page: #0b1120;
     --bg-surface: #1e293b;
     --text-main: #f8fafc;
+    --text-dark: #f8fafc;
     --text-muted: #94a3b8;
     --border-color: #334155;
     --green-primary: #22c55e;
@@ -51,6 +52,185 @@
     --warning-bg: #451a03;
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+/* ==========================================================================
+   Global High-Contrast Dark Mode Typography & Visibility Protection
+   ========================================================================== */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label,
+[data-theme="dark"] legend {
+    color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] strong,
+[data-theme="dark"] b {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .muted,
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .small.muted,
+[data-theme="dark"] span.muted,
+[data-theme="dark"] p.muted {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .auth-body,
+[data-theme="dark"] .auth-split,
+[data-theme="dark"] .filter-panel,
+[data-theme="dark"] .role-card,
+[data-theme="dark"] .product-card,
+[data-theme="dark"] .order-timeline-wrap,
+[data-theme="dark"] .mobile-order-card {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main);
+}
+
+/* Universal text color overrides for hardcoded inline colors in templates */
+[data-theme="dark"] [style*="color: #000"],
+[data-theme="dark"] [style*="color:#000"],
+[data-theme="dark"] [style*="color: #111"],
+[data-theme="dark"] [style*="color:#111"],
+[data-theme="dark"] [style*="color: #0f172a"],
+[data-theme="dark"] [style*="color:#0f172a"],
+[data-theme="dark"] [style*="color: #1e293b"],
+[data-theme="dark"] [style*="color:#1e293b"],
+[data-theme="dark"] [style*="color: #111827"],
+[data-theme="dark"] [style*="color:#111827"],
+[data-theme="dark"] [style*="color: #1f2937"],
+[data-theme="dark"] [style*="color:#1f2937"],
+[data-theme="dark"] [style*="color: #334155"],
+[data-theme="dark"] [style*="color:#334155"],
+[data-theme="dark"] [style*="color: #374151"],
+[data-theme="dark"] [style*="color:#374151"],
+[data-theme="dark"] [style*="color: black"],
+[data-theme="dark"] [style*="color:black"] {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] [style*="color: #475569"],
+[data-theme="dark"] [style*="color:#475569"],
+[data-theme="dark"] [style*="color: #64748b"],
+[data-theme="dark"] [style*="color:#64748b"] {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] [style*="color: #166534"],
+[data-theme="dark"] [style*="color:#166534"],
+[data-theme="dark"] [style*="color: #15803d"],
+[data-theme="dark"] [style*="color:#15803d"],
+[data-theme="dark"] [style*="color: #16a34a"],
+[data-theme="dark"] [style*="color:#16a34a"],
+[data-theme="dark"] [style*="color: #065f46"],
+[data-theme="dark"] [style*="color:#065f46"] {
+    color: #4ade80 !important;
+}
+
+[data-theme="dark"] [style*="color: #92400e"],
+[data-theme="dark"] [style*="color:#92400e"],
+[data-theme="dark"] [style*="color: #b45309"],
+[data-theme="dark"] [style*="color:#b45309"],
+[data-theme="dark"] [style*="color: #d97706"],
+[data-theme="dark"] [style*="color:#d97706"] {
+    color: #fbbf24 !important;
+}
+
+[data-theme="dark"] [style*="color: #1e40af"],
+[data-theme="dark"] [style*="color:#1e40af"],
+[data-theme="dark"] [style*="color: #1d4ed8"],
+[data-theme="dark"] [style*="color:#1d4ed8"] {
+    color: #60a5fa !important;
+}
+
+/* Surface backgrounds in dark mode */
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background:#ffffff"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background:#fff"],
+[data-theme="dark"] [style*="background: white"],
+[data-theme="dark"] [style*="background:white"] {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] [style*="background: #f8fafc"],
+[data-theme="dark"] [style*="background:#f8fafc"],
+[data-theme="dark"] [style*="background: #f1f5f9"],
+[data-theme="dark"] [style*="background:#f1f5f9"] {
+    background-color: #0f172a !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] [style*="background: #f0fdf4"],
+[data-theme="dark"] [style*="background:#f0fdf4"],
+[data-theme="dark"] [style*="background: #ecfdf5"],
+[data-theme="dark"] [style*="background:#ecfdf5"] {
+    background-color: rgba(34, 197, 94, 0.12) !important;
+    border-color: rgba(34, 197, 94, 0.3) !important;
+}
+
+[data-theme="dark"] [style*="background: #fffbeb"],
+[data-theme="dark"] [style*="background:#fffbeb"],
+[data-theme="dark"] [style*="background: #fef3c7"],
+[data-theme="dark"] [style*="background:#fef3c7"] {
+    background-color: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+[data-theme="dark"] [style*="background: #eff6ff"],
+[data-theme="dark"] [style*="background:#eff6ff"] {
+    background-color: rgba(56, 189, 248, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Alert Boxes in Dark Mode */
+[data-theme="dark"] .alert-error,
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(239, 68, 68, 0.18) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .alert-success {
+    background-color: rgba(34, 197, 94, 0.18) !important;
+    border-color: rgba(34, 197, 94, 0.4) !important;
+    color: #86efac !important;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(245, 158, 11, 0.18) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fde047 !important;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(56, 189, 248, 0.18) !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+    color: #7dd3fc !important;
+}
+
+[data-theme="dark"] .demo-box {
+    background-color: rgba(245, 158, 11, 0.14) !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+    color: #fde047 !important;
+}
+
+[data-theme="dark"] .demo-box code {
+    background: #0f172a !important;
+    color: #fbbf24 !important;
+    border-color: #d97706 !important;
 }
 
 *, *::before, *::after {
@@ -941,6 +1121,83 @@ a:hover {
     font-size: 1.7rem;
     color: var(--green-dark);
     margin-bottom: 0.35rem;
+}
+
+/* Role Selector Tabs */
+.role-selector-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: #f1f5f9;
+    padding: 0.35rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.role-tab-btn {
+    padding: 0.65rem 0.5rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.role-tab-btn.active {
+    background: #ffffff;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-main);
+}
+
+.role-tab-btn[data-role="seller"].active {
+    color: var(--amber-dark);
+}
+
+.role-tab-btn[data-role="buyer"].active,
+.role-tab-btn[data-role="delivery"].active {
+    color: var(--green-dark);
+}
+
+[data-theme="dark"] .role-selector-tabs {
+    background: #0f172a !important;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .role-tab-btn {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .role-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .role-tab-btn.active {
+    background: #1e293b !important;
+    color: #f8fafc !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .role-tab-btn[data-role="seller"].active {
+    color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .role-tab-btn[data-role="buyer"].active,
+[data-theme="dark"] .role-tab-btn[data-role="delivery"].active {
+    color: #4ade80 !important;
 }
 
 .role-grid {

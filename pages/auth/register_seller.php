@@ -160,7 +160,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
                 <!-- Section 1: Store Owner & Login Credentials -->
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--green-dark); font-weight: 700; font-size: 1.05rem;">
                         <?= icon('user-check', 'lucide-sm') ?>
                         <span>1. Store Owner &amp; Login Security</span>
@@ -209,7 +209,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Section 2: Store Identity & Campus Location Details -->
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--green-dark); font-weight: 700; font-size: 1.05rem;">
                         <?= icon('store', 'lucide-sm') ?>
                         <span>2. Store Identity &amp; Campus Location</span>
@@ -260,19 +260,19 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
 
                     <!-- Kirinyaga University Student / Staff Entrepreneur Affiliation -->
-                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
                         <div class="checkbox-row" style="margin: 0;">
                             <input id="is_student_vendor" name="is_student_vendor" type="checkbox" value="1" <?= $old['is_student_vendor'] ? 'checked' : '' ?>>
-                            <label for="is_student_vendor" style="margin: 0; font-weight: 600; color: #166534; display: flex; align-items: center; gap: 0.4rem;">
+                            <label for="is_student_vendor" style="margin: 0; font-weight: 600; color: var(--green-dark); display: flex; align-items: center; gap: 0.4rem;">
                                 <?= icon('graduation-cap', 'lucide-xs', 'emerald') ?>
                                 I am a Kirinyaga University (KyU) Student or Staff Entrepreneur
                             </label>
                         </div>
 
                         <div id="studentRegContainer" style="margin-top: 0.75rem; display: <?= $old['is_student_vendor'] ? 'block' : 'none' ?>;">
-                            <label for="student_reg_no" class="small" style="font-weight: 600; color: #15803d;">Student / Staff Registration Number *</label>
+                            <label for="student_reg_no" class="small" style="font-weight: 600; color: var(--green-dark);">Student / Staff Registration Number *</label>
                             <input type="text" id="student_reg_no" name="student_reg_no" class="form-control" value="<?= e($old['student_reg_no']) ?>" placeholder="e.g. EB1/12345/22 or Staff ID">
-                            <div class="small" style="color: #15803d; margin-top: 0.35rem;">
+                            <div class="small" style="color: var(--green-dark); margin-top: 0.35rem;">
                                 <?= icon('award', 'lucide-xs') ?> Verified campus student vendors receive an exclusive <strong>KyU Student Entrepreneur</strong> badge on listings.
                             </div>
                         </div>
@@ -285,7 +285,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- KYC & Payouts Post-Registration Notice -->
-                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                <div style="background: rgba(56, 189, 248, 0.1); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
                     <?= icon('shield-check', 'lucide-sm', 'blue') ?>
                     <div class="small muted" style="line-height: 1.4;">
                         <strong>KYC Verification &amp; Payouts:</strong> To keep registration quick, official KYC verification (National ID upload and M-Pesa Payout Account) will be completed from your Seller Dashboard after account activation.

@@ -47,17 +47,17 @@ require_once __DIR__ . '/../../includes/header.php';
             <p class="muted" style="margin-bottom: 1.25rem;">Select your role to get started with SokoHub</p>
 
             <!-- Role Selector Tabs -->
-            <div class="role-selector-tabs" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; background: #f1f5f9; padding: 0.35rem; border-radius: 10px;">
-                <button type="button" class="role-tab-btn <?= $selectedRole === 'buyer' ? 'active' : '' ?>" data-role="buyer" style="padding: 0.6rem 0.5rem; border: none; background: <?= $selectedRole === 'buyer' ? '#ffffff' : 'transparent' ?>; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; box-shadow: <?= $selectedRole === 'buyer' ? 'var(--shadow-sm)' : 'none' ?>; color: <?= $selectedRole === 'buyer' ? 'var(--green-dark)' : 'var(--text-muted)' ?>;">
-                    <?= icon('shopping-bag', 'lucide-xs', 'blue') ?>
+            <div class="role-selector-tabs">
+                <button type="button" class="role-tab-btn <?= $selectedRole === 'buyer' ? 'active' : '' ?>" data-role="buyer">
+                    <?= icon('shopping-bag', 'lucide-xs') ?>
                     <span>Buyer</span>
                 </button>
-                <button type="button" class="role-tab-btn <?= $selectedRole === 'seller' ? 'active' : '' ?>" data-role="seller" style="padding: 0.6rem 0.5rem; border: none; background: <?= $selectedRole === 'seller' ? '#ffffff' : 'transparent' ?>; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; box-shadow: <?= $selectedRole === 'seller' ? 'var(--shadow-sm)' : 'none' ?>; color: <?= $selectedRole === 'seller' ? 'var(--amber-dark)' : 'var(--text-muted)' ?>;">
-                    <?= icon('store', 'lucide-xs', 'amber') ?>
+                <button type="button" class="role-tab-btn <?= $selectedRole === 'seller' ? 'active' : '' ?>" data-role="seller">
+                    <?= icon('store', 'lucide-xs') ?>
                     <span>Seller</span>
                 </button>
-                <button type="button" class="role-tab-btn <?= $selectedRole === 'delivery' ? 'active' : '' ?>" data-role="delivery" style="padding: 0.6rem 0.5rem; border: none; background: <?= $selectedRole === 'delivery' ? '#ffffff' : 'transparent' ?>; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; box-shadow: <?= $selectedRole === 'delivery' ? 'var(--shadow-sm)' : 'none' ?>; color: <?= $selectedRole === 'delivery' ? 'var(--green-dark)' : 'var(--text-muted)' ?>;">
-                    <?= icon('truck', 'lucide-xs', 'emerald') ?>
+                <button type="button" class="role-tab-btn <?= $selectedRole === 'delivery' ? 'active' : '' ?>" data-role="delivery">
+                    <?= icon('truck', 'lucide-xs') ?>
                     <span>Delivery</span>
                 </button>
             </div>
@@ -101,26 +101,89 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Seller-specific Extra Fields -->
-                <div id="sellerExtraFields" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px;">
+                <div id="sellerExtraFields" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1.25rem; background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--amber-dark); margin-bottom: 0.85rem;">
+                        <?= icon('store', 'lucide-xs') ?>
+                        <span>Store Identity &amp; Campus Location</span>
+                    </div>
+
                     <div class="form-grid-2">
                         <div class="form-group">
-                            <label for="reg_bname">Business / Store Name</label>
-                            <input type="text" id="reg_bname" name="business_name" class="form-control" placeholder="e.g. Kirinyaga Fresh Groceries">
+                            <label for="reg_bname">Store / Business Name *</label>
+                            <input type="text" id="reg_bname" name="business_name" class="form-control" placeholder="e.g. Soko Fresh Grocers">
                         </div>
                         <div class="form-group">
-                            <label for="reg_btype">Business Category</label>
+                            <label for="reg_btype">Store Category *</label>
                             <select id="reg_btype" name="business_type" class="form-control">
                                 <option value="retail">Retail / General Merchant</option>
                                 <option value="food_beverage">Fresh Produce &amp; Groceries</option>
                                 <option value="crafts">Apparel &amp; Handcrafts</option>
                                 <option value="services">Electronics &amp; Hardware</option>
+                                <option value="other">Other Specialties</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="reg_town">Primary Town / Market *</label>
+                            <input type="text" id="reg_town" name="town" class="form-control" value="Kutus" placeholder="e.g. Kutus, Kerugoya, Kagio">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg_stall_location">Campus / Stall / Street Location</label>
+                            <input type="text" id="reg_stall_location" name="stall_location" class="form-control" placeholder="e.g. KyU Gate B Stall 4, Hostel 3 Complex">
+                            <span class="small muted">Helps dispatch riders and campus shoppers find your store.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="reg_operating_hours">Daily Operating Hours</label>
+                            <input type="text" id="reg_operating_hours" name="operating_hours" class="form-control" value="8:00 AM - 8:00 PM" placeholder="e.g. 8:00 AM - 8:00 PM">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg_whatsapp_phone">WhatsApp Business Line (Optional)</label>
+                            <input type="tel" id="reg_whatsapp_phone" name="whatsapp_phone" class="form-control" placeholder="e.g. +254 712 345 678">
+                        </div>
+                    </div>
+
+                    <!-- Kirinyaga University Student / Staff Entrepreneur Affiliation -->
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 0.85rem 1rem; margin: 0.85rem 0;">
+                        <div class="checkbox-row" style="margin: 0;">
+                            <input id="reg_is_student_vendor" name="is_student_vendor" type="checkbox" value="1">
+                            <label for="reg_is_student_vendor" style="margin: 0; font-weight: 600; color: var(--green-dark); display: flex; align-items: center; gap: 0.4rem;">
+                                <?= icon('graduation-cap', 'lucide-xs', 'emerald') ?>
+                                I am a Kirinyaga University (KyU) Student or Staff Entrepreneur
+                            </label>
+                        </div>
+
+                        <div id="regStudentRegContainer" style="margin-top: 0.65rem; display: none;">
+                            <label for="reg_student_reg_no" class="small" style="font-weight: 600; color: var(--green-dark);">Student / Staff Registration Number *</label>
+                            <input type="text" id="reg_student_reg_no" name="student_reg_no" class="form-control" placeholder="e.g. EB1/12345/22 or Staff ID">
+                            <div class="small" style="color: var(--green-dark); margin-top: 0.35rem;">
+                                <?= icon('award', 'lucide-xs') ?> Verified campus vendors receive an exclusive <strong>KyU Student Entrepreneur</strong> badge on listings.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="reg_description">Short Store Description (Optional)</label>
+                        <input type="text" id="reg_description" name="description" class="form-control" placeholder="What products or services do you specialize in?">
+                    </div>
+
+                    <!-- KYC Verification Notice -->
+                    <div style="margin-top: 0.85rem; padding: 0.65rem 0.85rem; border-radius: 6px; background: rgba(56, 189, 248, 0.1); border: 1px dashed rgba(56, 189, 248, 0.4); display: flex; align-items: center; gap: 0.5rem;">
+                        <?= icon('shield-check', 'lucide-xs', 'blue') ?>
+                        <span class="small muted" style="line-height: 1.35;">
+                            <strong>KYC Verification &amp; Payouts:</strong> Official verification (National ID upload &amp; M-Pesa Payout Account) will be completed from your Seller Dashboard after activation.
+                        </span>
                     </div>
                 </div>
 
                 <!-- Delivery-specific Extra Fields -->
-                <div id="deliveryExtraFields" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px;">
+                <div id="deliveryExtraFields" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px;">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="reg_transport">Transport Method</label>
@@ -233,15 +296,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             roleBtns.forEach(b => {
                 b.classList.remove('active');
-                b.style.background = 'transparent';
-                b.style.boxShadow = 'none';
-                b.style.color = 'var(--text-muted)';
+                b.style.removeProperty('background');
+                b.style.removeProperty('box-shadow');
+                b.style.removeProperty('color');
             });
 
             this.classList.add('active');
-            this.style.background = '#ffffff';
-            this.style.boxShadow = 'var(--shadow-sm)';
-            this.style.color = role === 'seller' ? 'var(--amber-dark)' : 'var(--green-dark)';
 
             if (role === 'seller') {
                 sellerFields.style.display = 'block';
@@ -261,6 +321,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Kirinyaga University Student Entrepreneur registration toggle
+    const regStudentCheck = document.getElementById('reg_is_student_vendor');
+    const regStudentBox = document.getElementById('regStudentRegContainer');
+    const regStudentInput = document.getElementById('reg_student_reg_no');
+    if (regStudentCheck && regStudentBox) {
+        regStudentCheck.addEventListener('change', function () {
+            regStudentBox.style.display = this.checked ? 'block' : 'none';
+            if (this.checked && regStudentInput) {
+                regStudentInput.focus();
+            }
+        });
+    }
 
     // Password Strength Evaluator
     function evaluatePassword(val) {

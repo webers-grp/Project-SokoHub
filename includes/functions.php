@@ -480,6 +480,8 @@ function get_nav_items(?array $user): array
             'icon'     => 'shield-alert',
             'children' => [
                 ['label' => 'Admin Dashboard', 'href' => 'pages/dashboard/dashboard.php', 'match' => ['dashboard.php'], 'icon' => 'layout-dashboard'],
+                ['label' => 'User Management', 'href' => 'pages/dashboard/users.php', 'match' => ['users.php'], 'icon' => 'users'],
+                ['label' => 'System Health', 'href' => 'pages/dashboard/system_health.php', 'match' => ['system_health.php'], 'icon' => 'activity'],
                 ['label' => 'Manage Catalog', 'href' => 'pages/dashboard/manage_products.php', 'match' => ['manage_products.php'], 'icon' => 'package'],
                 ['label' => 'Bulk CSV Import', 'href' => 'pages/dashboard/bulk_upload.php', 'match' => ['bulk_upload.php'], 'icon' => 'file-spreadsheet'],
                 ['label' => 'KYC Review Queue', 'href' => 'pages/dashboard/seller_verification.php', 'match' => ['seller_verification.php'], 'icon' => 'shield-check'],
