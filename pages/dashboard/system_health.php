@@ -256,7 +256,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="stat-card">
             <span class="stat-label">Background Job Queue</span>
-            <strong class="stat-value" style="color: <?= $jobsCounts['pending'] > 0 ? 'var(--amber-bright)' : '#22c55e' ?>;">
+            <strong class="stat-value" style="color: <?= $jobsCounts['pending'] > 0 ? '#f59e0b' : '#22c55e' ?>;">
                 <?= $jobsCounts['pending'] ?> Pending
             </strong>
             <span class="badge <?= $jobsCounts['failed'] > 0 ? 'badge-danger' : 'badge-neutral' ?>">
@@ -266,7 +266,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="stat-card">
             <span class="stat-label">Outbound Mail Engine</span>
-            <strong class="stat-value" style="color: <?= $hasLiveSmtp ? '#22c55e' : 'var(--amber-bright)' ?>;">
+            <strong class="stat-value" style="color: <?= $hasLiveSmtp ? '#22c55e' : '#f59e0b' ?>;">
                 <?= $hasLiveSmtp ? 'Live SMTP' : 'Log Fallback' ?>
             </strong>
             <span class="badge <?= $hasLiveSmtp ? 'badge-success' : 'badge-warning' ?>">
@@ -310,19 +310,19 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Queue Status Summary -->
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; margin-bottom: 1.25rem;">
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem;">
                     <div class="small muted">Pending</div>
                     <strong style="font-size: 1.15rem; color: #f59e0b;"><?= $jobsCounts['pending'] ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem;">
                     <div class="small muted">Processing</div>
                     <strong style="font-size: 1.15rem; color: #3b82f6;"><?= $jobsCounts['processing'] ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem;">
                     <div class="small muted">Completed</div>
                     <strong style="font-size: 1.15rem; color: #22c55e;"><?= $jobsCounts['completed'] ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem;">
                     <div class="small muted">Failed</div>
                     <strong style="font-size: 1.15rem; color: #ef4444;"><?= $jobsCounts['failed'] ?></strong>
                 </div>
@@ -335,7 +335,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php else: ?>
                 <div style="display: flex; flex-direction: column; gap: 0.45rem;">
                     <?php foreach ($recentJobs as $jb): ?>
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.82rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.82rem;">
                             <div>
                                 <span style="font-family: monospace; font-weight: 700;">#<?= $jb['id'] ?></span>
                                 <span style="margin: 0 0.25rem;">&bull;</span>
@@ -370,7 +370,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <!-- SMTP Config Review -->
-            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.84rem; line-height: 1.6;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.84rem; line-height: 1.6;">
                 <div style="display: flex; justify-content: space-between;">
                     <span class="muted">Gateway Host:</span>
                     <strong><?= e($smtpConfig['host'] ?: 'None (Local Log Fallback)') ?></strong>
@@ -538,19 +538,19 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.65rem; margin-bottom: 1.25rem; font-size: 0.85rem;">
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.6rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem;">
                     <span class="muted">PHP Version:</span><br>
                     <strong><?= PHP_VERSION ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.6rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem;">
                     <span class="muted">Memory Limit:</span><br>
                     <strong><?= ini_get('memory_limit') ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.6rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem;">
                     <span class="muted">Upload Max Size:</span><br>
                     <strong><?= ini_get('upload_max_filesize') ?></strong>
                 </div>
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.6rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem;">
                     <span class="muted">Max Exec Time:</span><br>
                     <strong><?= ini_get('max_execution_time') ?>s</strong>
                 </div>
@@ -559,7 +559,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="small" style="font-weight: 700; margin-bottom: 0.5rem;">Required Extensions</div>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; font-size: 0.82rem; margin-bottom: 1.25rem;">
                 <?php foreach ($extStatus as $ext => $info): ?>
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem 0.6rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.4rem 0.6rem;">
                         <span><?= e($ext) ?></span>
                         <?php if ($info['loaded']): ?>
                             <span style="color: #22c55e; font-weight: 700;">&#10003; Active</span>
@@ -573,7 +573,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="small" style="font-weight: 700; margin-bottom: 0.5rem;">Storage Upload Folders</div>
             <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
                 <?php foreach ($dirPermissions as $dir => $ok): ?>
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem 0.6rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.4rem 0.6rem;">
                         <code><?= e($dir) ?></code>
                         <?php if ($ok): ?>
                             <span class="badge badge-success" style="font-size: 0.72rem;">Writable</span>

@@ -17,8 +17,6 @@ $old = [
     'business_type'     => '',
     'town'              => 'Kutus',
     'stall_location'    => '',
-    'is_student_vendor' => 0,
-    'student_reg_no'    => '',
     'operating_hours'   => '8:00 AM - 8:00 PM',
     'whatsapp_phone'    => '',
     'email'             => '',
@@ -35,8 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old['business_type'] = (string) ($_POST['business_type'] ?? '');
         $old['town'] = trim((string) ($_POST['town'] ?? 'Kutus'));
         $old['stall_location'] = trim((string) ($_POST['stall_location'] ?? ''));
-        $old['is_student_vendor'] = !empty($_POST['is_student_vendor']) ? 1 : 0;
-        $old['student_reg_no'] = trim((string) ($_POST['student_reg_no'] ?? ''));
         $old['operating_hours'] = trim((string) ($_POST['operating_hours'] ?? '8:00 AM - 8:00 PM'));
         $old['whatsapp_phone'] = trim((string) ($_POST['whatsapp_phone'] ?? ''));
         $old['email'] = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -50,9 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!array_key_exists($old['business_type'], $businessTypes)) {
             $errors[] = 'Please choose a valid business category.';
-        }
-        if ($old['is_student_vendor'] && mb_strlen($old['student_reg_no']) < 3) {
-            $errors[] = 'Please enter your Kirinyaga University Student or Staff Registration Number.';
         }
         if (empty($_POST['terms'])) {
             $errors[] = 'You must agree to the SokoHub Terms of Service and Privacy Policy.';
@@ -84,12 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $sStmt = $pdo->prepare(
                         'INSERT INTO seller_profiles (
                             user_id, business_name, business_type, town,
-                            stall_location, is_student_vendor, student_reg_no,
-                            operating_hours, whatsapp_phone, description
+                            stall_location, operating_hours, whatsapp_phone, description
                          ) VALUES (
                             :user_id, :business_name, :business_type, :town,
-                            :stall_location, :is_student_vendor, :student_reg_no,
-                            :operating_hours, :whatsapp_phone, :description
+                            :stall_location, :operating_hours, :whatsapp_phone, :description
                          )'
                     );
                     $sStmt->execute([
@@ -98,8 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':business_type'     => $old['business_type'],
                         ':town'              => $old['town'] !== '' ? $old['town'] : 'Kutus',
                         ':stall_location'    => $old['stall_location'] !== '' ? $old['stall_location'] : null,
-                        ':is_student_vendor' => $old['is_student_vendor'],
-                        ':student_reg_no'    => $old['is_student_vendor'] && $old['student_reg_no'] !== '' ? $old['student_reg_no'] : null,
                         ':operating_hours'   => $old['operating_hours'] !== '' ? $old['operating_hours'] : '8:00 AM - 8:00 PM',
                         ':whatsapp_phone'    => $old['whatsapp_phone'] !== '' ? $old['whatsapp_phone'] : null,
                         ':description'       => $old['description'],
@@ -160,8 +149,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
                 <!-- Section 1: Store Owner & Login Credentials -->
-                <div style="background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--green-dark); font-weight: 700; font-size: 1.05rem;">
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: #15803d; font-weight: 700; font-size: 1.05rem;">
                         <?= icon('user-check', 'lucide-sm') ?>
                         <span>1. Store Owner &amp; Login Security</span>
                     </div>
@@ -209,8 +198,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Section 2: Store Identity & Campus Location Details -->
-                <div style="background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--green-dark); font-weight: 700; font-size: 1.05rem;">
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: #15803d; font-weight: 700; font-size: 1.05rem;">
                         <?= icon('store', 'lucide-sm') ?>
                         <span>2. Store Identity &amp; Campus Location</span>
                     </div>
@@ -256,25 +245,6 @@ require_once __DIR__ . '/../../includes/header.php';
                         <div class="form-group">
                             <label for="whatsapp_phone">WhatsApp Business Line (Optional)</label>
                             <input type="tel" id="whatsapp_phone" name="whatsapp_phone" class="form-control" value="<?= e($old['whatsapp_phone']) ?>" placeholder="e.g. 0712 345 678">
-                        </div>
-                    </div>
-
-                    <!-- Kirinyaga University Student / Staff Entrepreneur Affiliation -->
-                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-                        <div class="checkbox-row" style="margin: 0;">
-                            <input id="is_student_vendor" name="is_student_vendor" type="checkbox" value="1" <?= $old['is_student_vendor'] ? 'checked' : '' ?>>
-                            <label for="is_student_vendor" style="margin: 0; font-weight: 600; color: var(--green-dark); display: flex; align-items: center; gap: 0.4rem;">
-                                <?= icon('graduation-cap', 'lucide-xs', 'emerald') ?>
-                                I am a Kirinyaga University (KyU) Student or Staff Entrepreneur
-                            </label>
-                        </div>
-
-                        <div id="studentRegContainer" style="margin-top: 0.75rem; display: <?= $old['is_student_vendor'] ? 'block' : 'none' ?>;">
-                            <label for="student_reg_no" class="small" style="font-weight: 600; color: var(--green-dark);">Student / Staff Registration Number *</label>
-                            <input type="text" id="student_reg_no" name="student_reg_no" class="form-control" value="<?= e($old['student_reg_no']) ?>" placeholder="e.g. EB1/12345/22 or Staff ID">
-                            <div class="small" style="color: var(--green-dark); margin-top: 0.35rem;">
-                                <?= icon('award', 'lucide-xs') ?> Verified campus student vendors receive an exclusive <strong>KyU Student Entrepreneur</strong> badge on listings.
-                            </div>
                         </div>
                     </div>
 
@@ -369,19 +339,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     confirm.addEventListener('input', validateMatch);
-
-    // Kirinyaga University Student Entrepreneur registration number toggle
-    const studentCheck = document.getElementById('is_student_vendor');
-    const studentBox = document.getElementById('studentRegContainer');
-    const studentInput = document.getElementById('student_reg_no');
-    if (studentCheck && studentBox) {
-        studentCheck.addEventListener('change', function () {
-            studentBox.style.display = this.checked ? 'block' : 'none';
-            if (this.checked && studentInput) {
-                studentInput.focus();
-            }
-        });
-    }
 });
 </script>
 

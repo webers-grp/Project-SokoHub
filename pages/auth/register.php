@@ -101,8 +101,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Seller-specific Extra Fields -->
-                <div id="sellerExtraFields" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1.25rem; background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px;">
-                    <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--amber-dark); margin-bottom: 0.85rem;">
+                <div id="sellerExtraFields" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1.25rem; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #d97706; margin-bottom: 0.85rem;">
                         <?= icon('store', 'lucide-xs') ?>
                         <span>Store Identity &amp; Campus Location</span>
                     </div>
@@ -149,25 +149,6 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
                     </div>
 
-                    <!-- Kirinyaga University Student / Staff Entrepreneur Affiliation -->
-                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 0.85rem 1rem; margin: 0.85rem 0;">
-                        <div class="checkbox-row" style="margin: 0;">
-                            <input id="reg_is_student_vendor" name="is_student_vendor" type="checkbox" value="1">
-                            <label for="reg_is_student_vendor" style="margin: 0; font-weight: 600; color: var(--green-dark); display: flex; align-items: center; gap: 0.4rem;">
-                                <?= icon('graduation-cap', 'lucide-xs', 'emerald') ?>
-                                I am a Kirinyaga University (KyU) Student or Staff Entrepreneur
-                            </label>
-                        </div>
-
-                        <div id="regStudentRegContainer" style="margin-top: 0.65rem; display: none;">
-                            <label for="reg_student_reg_no" class="small" style="font-weight: 600; color: var(--green-dark);">Student / Staff Registration Number *</label>
-                            <input type="text" id="reg_student_reg_no" name="student_reg_no" class="form-control" placeholder="e.g. EB1/12345/22 or Staff ID">
-                            <div class="small" style="color: var(--green-dark); margin-top: 0.35rem;">
-                                <?= icon('award', 'lucide-xs') ?> Verified campus vendors receive an exclusive <strong>KyU Student Entrepreneur</strong> badge on listings.
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="reg_description">Short Store Description (Optional)</label>
                         <input type="text" id="reg_description" name="description" class="form-control" placeholder="What products or services do you specialize in?">
@@ -183,7 +164,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Delivery-specific Extra Fields -->
-                <div id="deliveryExtraFields" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 8px;">
+                <div id="deliveryExtraFields" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px;">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="reg_transport">Transport Method</label>
@@ -322,19 +303,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Kirinyaga University Student Entrepreneur registration toggle
-    const regStudentCheck = document.getElementById('reg_is_student_vendor');
-    const regStudentBox = document.getElementById('regStudentRegContainer');
-    const regStudentInput = document.getElementById('reg_student_reg_no');
-    if (regStudentCheck && regStudentBox) {
-        regStudentCheck.addEventListener('change', function () {
-            regStudentBox.style.display = this.checked ? 'block' : 'none';
-            if (this.checked && regStudentInput) {
-                regStudentInput.focus();
-            }
-        });
-    }
-
     // Password Strength Evaluator
     function evaluatePassword(val) {
         let score = 0;
@@ -363,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function () {
             element.style.color = '#059669';
             element.innerHTML = '&#10003; ' + element.querySelector('span').outerHTML;
         } else {
-            element.style.color = 'var(--text-muted)';
+            element.style.color = '#94a3b8';
             element.innerHTML = '&#9675; ' + element.querySelector('span').outerHTML;
         }
     }

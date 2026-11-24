@@ -23,12 +23,6 @@ class UserManagement
         $totalUsers = (int) $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
         $activeBuyers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'buyer' AND status = 'active'")->fetchColumn();
         $totalSellers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'seller'")->fetchColumn();
-        $studentVendors = (int) $pdo->query("
-            SELECT COUNT(*) 
-            FROM seller_profiles sp 
-            JOIN users u ON sp.user_id = u.id 
-            WHERE sp.is_student_vendor = 1
-        ")->fetchColumn();
         $totalRiders = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'delivery'")->fetchColumn();
         $suspendedUsers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE status = 'suspended'")->fetchColumn();
         $pendingVerification = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE status = 'pending_verification'")->fetchColumn();
@@ -38,7 +32,6 @@ class UserManagement
             'total'                => $totalUsers,
             'buyers_active'        => $activeBuyers,
             'sellers'              => $totalSellers,
-            'student_vendors'      => $studentVendors,
             'riders'               => $totalRiders,
             'suspended'            => $suspendedUsers,
             'pending_verification' => $pendingVerification,
@@ -97,8 +90,6 @@ class UserManagement
                     sp.business_name,
                     sp.town,
                     sp.stall_location,
-                    sp.is_student_vendor,
-                    sp.student_reg_no,
                     sp.verification_status AS seller_kyc_status,
                     dp.transport_method,
                     dp.vehicle_plate_number,
@@ -139,8 +130,6 @@ class UserManagement
                 sp.stall_location,
                 sp.operating_hours,
                 sp.whatsapp_phone,
-                sp.is_student_vendor,
-                sp.student_reg_no,
                 sp.verification_status AS seller_kyc_status,
                 dp.transport_method,
                 dp.vehicle_plate_number,
@@ -447,14 +436,13 @@ class UserManagement
 
         $q = trim((string) ($filters['q'] ?? ''));
         if ($q !== '') {
-            $clauses[] = "(u.full_name LIKE :q1 OR u.email LIKE :q2 OR u.phone LIKE :q3 OR sp.business_name LIKE :q4 OR sp.student_reg_no LIKE :q5 OR dp.vehicle_plate_number LIKE :q6)";
+            $clauses[] = "(u.full_name LIKE :q1 OR u.email LIKE :q2 OR u.phone LIKE :q3 OR sp.business_name LIKE :q4 OR dp.vehicle_plate_number LIKE :q5)";
             $qVal = '%' . $q . '%';
             $params[':q1'] = $qVal;
             $params[':q2'] = $qVal;
             $params[':q3'] = $qVal;
             $params[':q4'] = $qVal;
             $params[':q5'] = $qVal;
-            $params[':q6'] = $qVal;
         }
 
         $role = trim((string) ($filters['role'] ?? ''));
