@@ -16,6 +16,8 @@ require_once __DIR__ . '/../includes/payouts.php';
 require_once __DIR__ . '/../includes/bulk_import.php';
 require_once __DIR__ . '/../includes/payments.php';
 require_once __DIR__ . '/../includes/telephony.php';
+require_once __DIR__ . '/../includes/mpesa.php';
+require_once __DIR__ . '/../includes/orders.php';
 
 $passed = 0;
 $failed = 0;
@@ -51,6 +53,8 @@ assert_true($prodCount >= 10, 'TC-01d: Seeded products loaded (' . $prodCount . 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     @session_start();
 }
+$pdo->exec("UPDATE users SET locked_until = NULL, failed_login_count = 0 WHERE email = 'buyer@sokohub.co.ke'");
+$pdo->exec("DELETE FROM login_attempts WHERE email = 'buyer@sokohub.co.ke'");
 $badLogin = login_user($pdo, 'buyer@sokohub.co.ke', 'WrongPass123', false);
 assert_true($badLogin['ok'] === false, 'TC-02a: Reject invalid login password');
 
@@ -101,6 +105,8 @@ $updatedProd = $readStmt->fetch();
 assert_true((float) $updatedProd['price'] === 790.00 && (int) $updatedProd['stock_qty'] === 15, 'TC-04c: Update product price and stock');
 
 // 5. Buyer Order Placement & Stock Decrement + Cancel Restore
+$pdo->exec("UPDATE users SET locked_until = NULL, failed_login_count = 0 WHERE email = 'buyer@sokohub.co.ke'");
+$pdo->exec("DELETE FROM login_attempts WHERE email = 'buyer@sokohub.co.ke'");
 $buyerLogin = login_user($pdo, 'buyer@sokohub.co.ke', 'SokoHub@2026', false);
 $buyerId = (int) $buyerLogin['user']['id'];
 $pdo->beginTransaction();
@@ -1092,6 +1098,236 @@ $overQty = $curStock + 999;
 $decTry = $pdo->prepare('UPDATE products SET stock_qty = stock_qty - ? WHERE id = 1 AND stock_qty >= ?');
 $decTry->execute([$overQty, $overQty]);
 assert_true($decTry->rowCount() === 0, 'TC-20e: Atomic inventory check rejects over-stock decrement (rows affected = 0)');
+
+// 21. M-Pesa STK Push, Seller Till/Payout Validation, 2% Fee Split, and Order Cancellation with Stock Restoration
+ensure_order_schema_tables($pdo);
+
+// TC-21a: Daraja Configuration Loader
+$mpesaConfig = mpesa_config();
+assert_true(
+    isset($mpesaConfig['env'], $mpesaConfig['shortcode'], $mpesaConfig['till_number'], $mpesaConfig['platform_fee_percent']) &&
+    $mpesaConfig['platform_fee_percent'] === 2.0 &&
+    $mpesaConfig['shortcode'] === '174379',
+    'TC-21a: mpesa_config() loads unified Daraja credentials with 2% platform commission'
+);
+
+// TC-21b: Phone Normalization
+$n1 = mpesa_normalize_phone('0712345678');
+$n2 = mpesa_normalize_phone('+254712345678');
+$n3 = mpesa_normalize_phone('254712345678');
+$n4 = mpesa_normalize_phone('0112345678');
+$n5 = mpesa_normalize_phone('invalid-phone');
+assert_true(
+    $n1 === '254712345678' &&
+    $n2 === '254712345678' &&
+    $n3 === '254712345678' &&
+    $n4 === '254112345678' &&
+    $n5 === null,
+    'TC-21b: mpesa_normalize_phone() standardizes Kenyan phone variants to 254... and rejects bad input'
+);
+
+// TC-21c: Payout Destination Validation
+$vTill = validate_payout_destination('till', '1648753');
+$vPochi = validate_payout_destination('pochi', '0712345678');
+$vBadTill = validate_payout_destination('till', 'ABC123');
+assert_true(
+    $vTill['ok'] === true &&
+    $vPochi['ok'] === true &&
+    $vBadTill['ok'] === false,
+    'TC-21c: validate_payout_destination() verifies Till numbers and Pochi / Phone fallbacks'
+);
+
+// TC-21d: 2% Platform Fee & 98% Seller Earning Calculation
+$lineAmt = 1500.00;
+$fee = round($lineAmt * 0.02, 2);
+$earning = round($lineAmt - $fee, 2);
+assert_true(
+    $fee === 30.00 && $earning === 1470.00,
+    'TC-21d: Order item fee split precisely allocates 2% (KSh 30.00) platform fee and 98% (KSh 1470.00) net merchant earnings'
+);
+
+// TC-21e: Atomic Order Cancellation with Stock Restoration
+// Clean up any stale test records from aborted previous runs
+$pdo->exec("DELETE FROM orders WHERE order_code LIKE 'ORD-TEST-%'");
+
+$testProd = $pdo->query('SELECT id, stock_qty FROM products WHERE status = "active" LIMIT 1')->fetch();
+$targetProdId = (int) $testProd['id'];
+$initialStock = (int) $testProd['stock_qty'];
+$orderQty = 3;
+
+// Temporarily decrement stock to simulate order checkout
+$pdo->prepare('UPDATE products SET stock_qty = stock_qty - ? WHERE id = ?')->execute([$orderQty, $targetProdId]);
+$decrementedStock = (int) $pdo->query("SELECT stock_qty FROM products WHERE id = {$targetProdId}")->fetchColumn();
+assert_true($decrementedStock === ($initialStock - $orderQty), 'TC-21e-1: Stock decremented for test order placement');
+
+$restoreOrderCode = 'ORD-TEST-RESTORE-' . bin2hex(random_bytes(3));
+$ordIns = $pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_status, payment_method, order_status, delivery_town, delivery_address, campus_landmark)
+    VALUES (:code, :buyer_id, 999.00, 'unpaid', 'Cash on Delivery', 'pending', 'Kutus', 'Hostel Block B', 'Gate B')
+");
+$ordIns->execute([':code' => $restoreOrderCode, ':buyer_id' => $testBuyerId]);
+$cancelTestOrderId = (int) $pdo->lastInsertId();
+
+$itemIns = $pdo->prepare("
+    INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total, platform_fee, seller_earnings)
+    VALUES (:oid, :pid, :sid, :qty, 333.00, 999.00, 19.98, 979.02)
+");
+$itemIns->execute([
+    ':oid' => $cancelTestOrderId,
+    ':pid' => $targetProdId,
+    ':sid' => $sellerId,
+    ':qty' => $orderQty,
+]);
+
+// Now cancel the order with atomic stock restoration
+$cancelResult = cancel_order_with_stock_restore(
+    $pdo,
+    $cancelTestOrderId,
+    $testBuyerId,
+    'buyer',
+    'Customer requested cancellation test'
+);
+
+assert_true($cancelResult['ok'] === true, 'TC-21e-2: cancel_order_with_stock_restore() executes successfully');
+
+$restoredStock = (int) $pdo->query("SELECT stock_qty FROM products WHERE id = {$targetProdId}")->fetchColumn();
+assert_true($restoredStock === $initialStock, 'TC-21e-3: Product stock quantity fully and atomically restored (+3 units)');
+
+$orderStatusAfter = $pdo->query("SELECT order_status FROM orders WHERE id = {$cancelTestOrderId}")->fetchColumn();
+assert_true($orderStatusAfter === 'cancelled', 'TC-21e-4: Order status transitioned to cancelled');
+
+$movementCheck = $pdo->prepare("SELECT COUNT(*) FROM stock_movements WHERE order_id = :oid AND reason = 'release'");
+$movementCheck->execute([':oid' => $cancelTestOrderId]);
+assert_true((int) $movementCheck->fetchColumn() >= 1, 'TC-21e-5: Stock movement release record written to inventory ledger');
+
+// TC-21f: Paid Order Cancellation Queues Refund & Process Refund Resolves It
+$refundOrderCode = 'ORD-TEST-REFUND-' . bin2hex(random_bytes(3));
+$ordPaidIns = $pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_status, payment_method, order_status, delivery_town, delivery_address, mpesa_receipt)
+    VALUES (:code, :buyer_id, 500.00, 'paid', 'M-Pesa Express', 'pending', 'Kutus', 'Hostel C', 'QHJ1234567')
+");
+$ordPaidIns->execute([':code' => $refundOrderCode, ':buyer_id' => $testBuyerId]);
+$refundTestOrderId = (int) $pdo->lastInsertId();
+
+$pdo->prepare("
+    INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total, platform_fee, seller_earnings)
+    VALUES (:oid, :pid, :sid, 1, 500.00, 500.00, 10.00, 490.00)
+")->execute([
+    ':oid' => $refundTestOrderId,
+    ':pid' => $targetProdId,
+    ':sid' => $sellerId,
+]);
+
+$cancelPaidResult = cancel_order_with_stock_restore(
+    $pdo,
+    $refundTestOrderId,
+    $testBuyerId,
+    'buyer',
+    'Item defective on inspection'
+);
+
+assert_true(
+    $cancelPaidResult['ok'] === true && !empty($cancelPaidResult['refund_requested']),
+    'TC-21f-1: Cancelling paid order automatically queues refund record in refunds'
+);
+
+$rfCheck = $pdo->query("SELECT id, status, amount FROM refunds WHERE order_id = {$refundTestOrderId}")->fetch();
+assert_true(
+    $rfCheck && $rfCheck['status'] === 'requested' && (float) $rfCheck['amount'] === 500.00,
+    'TC-21f-2: Refund initialized with status requested and matching order total'
+);
+
+$refundId = (int) $rfCheck['id'];
+$resolveResult = process_order_refund(
+    $pdo,
+    $refundId,
+    1,
+    'admin',
+    'complete',
+    'REV998877XX',
+    'Disbursed via Safaricom reversal'
+);
+assert_true($resolveResult['ok'] === true, 'TC-21f-3: process_order_refund() resolves refund to completed');
+
+$rfResolved = $pdo->query("SELECT status, provider_reference, decided_at FROM refunds WHERE id = {$refundId}")->fetch();
+assert_true(
+    $rfResolved['status'] === 'completed' &&
+    $rfResolved['provider_reference'] === 'REV998877XX' &&
+    !empty($rfResolved['decided_at']),
+    'TC-21f-4: Refund record reflects completed status, M-Pesa provider reference, and timestamp'
+);
+
+// TC-21g: Reorder Items
+$reorderResult = reorder_order_items($refundTestOrderId);
+assert_true(
+    $reorderResult['ok'] === true && $reorderResult['reordered_count'] >= 1,
+    'TC-21g: reorder_order_items() restores order line items into active customer cart'
+);
+
+// TC-21h: Daraja Gateway Ping Diagnostics
+$pingTest = mpesa_ping_gateway();
+assert_true(
+    is_array($pingTest) && isset($pingTest['ok'], $pingTest['latency_ms']),
+    'TC-21h: mpesa_ping_gateway() executes diagnostic check and measures roundtrip latency'
+);
+
+// TC-21i: Buyer M-Pesa Payment Flow (Prompt, Live Status Polling & PIN Approval Simulation)
+$flowOrderCode = 'ORD-TEST-MPESA-' . bin2hex(random_bytes(3));
+$ordFlowIns = $pdo->prepare("
+    INSERT INTO orders (order_code, buyer_id, total_amount, payment_status, payment_method, order_status, delivery_town, delivery_address)
+    VALUES (:code, :buyer_id, 750.00, 'unpaid', 'M-Pesa', 'pending', 'Kutus', 'Hostel D')
+");
+$ordFlowIns->execute([':code' => $flowOrderCode, ':buyer_id' => $testBuyerId]);
+$flowOrderId = (int) $pdo->lastInsertId();
+
+// 1. Dispatch STK Push Prompt
+$stkFlow = mpesa_stk_push($pdo, $flowOrderId, '0712345678', 750.00, $flowOrderCode);
+assert_true(
+    $stkFlow['ok'] === true && !empty($stkFlow['checkout_request_id']),
+    'TC-21i-1: mpesa_stk_push() successfully issues prompt and generates checkout_request_id'
+);
+$cridFlow = $stkFlow['checkout_request_id'];
+
+// 2. Verify Payment Tracking Entry
+$payChk = $pdo->prepare('SELECT status, checkout_request_id, amount FROM payments WHERE order_id = :oid LIMIT 1');
+$payChk->execute([':oid' => $flowOrderId]);
+$payRow = $payChk->fetch(PDO::FETCH_ASSOC);
+assert_true(
+    $payRow && $payRow['status'] === 'prompted' && $payRow['checkout_request_id'] === $cridFlow,
+    'TC-21i-2: Payment entry tracked with status prompted and matching checkout_request_id'
+);
+
+// 3. Poll Status Prior to Customer PIN Entry
+$pollInitial = mpesa_poll_status($pdo, $flowOrderId, $cridFlow);
+assert_true(
+    $pollInitial['paid'] === false && in_array($pollInitial['status'], ['prompted', 'pending'], true),
+    'TC-21i-3: mpesa_poll_status() reports unpaid while customer PIN is pending'
+);
+
+// 4. Simulate Customer PIN Approval on Handset
+$simResult = mpesa_simulate_success($pdo, $flowOrderId);
+assert_true(
+    $simResult['ok'] === true && !empty($simResult['receipt']),
+    'TC-21i-4: mpesa_simulate_success() registers valid Safaricom confirmation receipt'
+);
+
+// 5. Verify Order & Polling Status Transitioned to Paid
+$ordPaidCheck = $pdo->query("SELECT payment_status, mpesa_receipt FROM orders WHERE id = {$flowOrderId}")->fetch();
+$pollConfirmed = mpesa_poll_status($pdo, $flowOrderId, $cridFlow);
+assert_true(
+    $ordPaidCheck['payment_status'] === 'paid' &&
+    $pollConfirmed['paid'] === true &&
+    $pollConfirmed['receipt'] === $simResult['receipt'],
+    'TC-21i-5: Order payment marked paid and mpesa_poll_status() detects live receipt confirmation'
+);
+
+// Cleanup test orders
+$pdo->prepare('DELETE FROM payments WHERE order_id = ?')->execute([$flowOrderId]);
+$pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$flowOrderId]);
+$pdo->prepare('DELETE FROM refunds WHERE order_id IN (?, ?)')->execute([$cancelTestOrderId, $refundTestOrderId]);
+$pdo->prepare('DELETE FROM stock_movements WHERE order_id IN (?, ?)')->execute([$cancelTestOrderId, $refundTestOrderId]);
+$pdo->prepare('DELETE FROM order_items WHERE order_id IN (?, ?)')->execute([$cancelTestOrderId, $refundTestOrderId]);
+$pdo->prepare('DELETE FROM orders WHERE id IN (?, ?)')->execute([$cancelTestOrderId, $refundTestOrderId]);
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);

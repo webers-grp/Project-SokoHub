@@ -17,11 +17,15 @@
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/inventory.php';
 require_once __DIR__ . '/includes/kyc.php';
+require_once __DIR__ . '/includes/orders.php';
+require_once __DIR__ . '/includes/mpesa.php';
 require_once __DIR__ . '/includes/payments.php';
 require_once __DIR__ . '/includes/telephony.php';
 init_session();
 $user = require_login();
 
+$pdo = get_db_connection();
+ensure_order_schema_tables($pdo);
 Payments::ensureSchema();
 Telephony::ensureSchema();
 
@@ -175,27 +179,46 @@ try {
         throw new RuntimeException('None of the items in your cart could be processed.');
     }
 
+    // Verify none of the sellers are on vacation / closed
+    $sellerIds = array_unique(array_map(fn($it) => (int) $it['seller_id'], $orderItemsData));
+    if (!empty($sellerIds)) {
+        $sPlaceholders = implode(',', array_fill(0, count($sellerIds), '?'));
+        $sStmt = $pdo->prepare("SELECT user_id, business_name, is_open FROM seller_profiles WHERE user_id IN ({$sPlaceholders})");
+        $sStmt->execute($sellerIds);
+        foreach ($sStmt->fetchAll(PDO::FETCH_ASSOC) as $sp) {
+            if ((int) ($sp['is_open'] ?? 1) === 0) {
+                throw new RuntimeException("Merchant '{$sp['business_name']}' is currently on a study/rest break and cannot accept orders right now.");
+            }
+        }
+    }
+
     $grandTotal = $productsSubtotal;
     $orderCode = 'SKH-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
-    $paymentStatus = ($paymentMethod === 'Cash on Delivery') ? 'unpaid' : 'paid';
+    $paymentStatus = 'unpaid';
+    $landmark = trim((string) ($_POST['campus_landmark'] ?? ''));
+    $mpesaPhoneInput = trim((string) ($_POST['mpesa_phone'] ?? $phone));
     $fullDeliveryAddress = $streetAddress . ', ' . $town . ', ' . $county . ' (' . $recipientName . ' - ' . $phone . ')';
+    if ($landmark !== '') {
+        $fullDeliveryAddress = $landmark . ' - ' . $fullDeliveryAddress;
+    }
 
     // 1. Insert Master Order Record
     $ordStmt = $pdo->prepare(
         'INSERT INTO orders
-         (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, notes, expires_at, version)
-         VALUES (:code, :buyer, :total, :pmethod, :pstatus, :ostatus, :addr, :town, :notes, DATE_ADD(NOW(), INTERVAL 30 MINUTE), 0)'
+         (order_code, buyer_id, total_amount, payment_method, payment_status, order_status, delivery_address, delivery_town, delivery_landmark, notes, expires_at, version)
+         VALUES (:code, :buyer, :total, :pmethod, :pstatus, :ostatus, :addr, :town, :landmark, :notes, DATE_ADD(NOW(), INTERVAL 30 MINUTE), 0)'
     );
     $ordStmt->execute([
-        ':code'    => $orderCode,
-        ':buyer'   => (int) $user['id'],
-        ':total'   => $grandTotal,
-        ':pmethod' => $paymentMethod,
-        ':pstatus' => $paymentStatus,
-        ':ostatus' => 'pending',
-        ':addr'    => $fullDeliveryAddress,
-        ':town'    => $town,
-        ':notes'   => $notes !== '' ? $notes : null,
+        ':code'     => $orderCode,
+        ':buyer'    => (int) $user['id'],
+        ':total'    => $grandTotal,
+        ':pmethod'  => $paymentMethod,
+        ':pstatus'  => $paymentStatus,
+        ':ostatus'  => 'pending',
+        ':addr'     => $fullDeliveryAddress,
+        ':town'     => $town,
+        ':landmark' => $landmark !== '' ? $landmark : null,
+        ':notes'    => $notes !== '' ? $notes : null,
     ]);
     $orderId = (int) $pdo->lastInsertId();
 
@@ -209,8 +232,8 @@ try {
          VALUES (?, ?, ?, 'reserve', ?, ?)"
     );
     $orderItemStmt = $pdo->prepare(
-        'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total, product_name_snapshot)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO order_items (order_id, product_id, seller_id, quantity, unit_price, line_total, platform_fee, seller_earnings, product_name_snapshot)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     foreach ($orderItemsData as $item) {
@@ -236,7 +259,10 @@ try {
             (int) $user['id'],
         ]);
 
-        // Insert Order Line Item with historical name snapshot
+        $itemFee = round($item['line_total'] * 0.02, 2);
+        $itemEarn = round($item['line_total'] - $itemFee, 2);
+
+        // Insert Order Line Item with 2% platform fee & 98% seller earnings
         $orderItemStmt->execute([
             $orderId,
             $pid,
@@ -244,6 +270,8 @@ try {
             $qty,
             $item['unit_price'],
             $item['line_total'],
+            $itemFee,
+            $itemEarn,
             $item['product_name_snapshot'],
         ]);
     }
@@ -261,18 +289,20 @@ try {
     $deliveryId = (int) $pdo->lastInsertId();
 
     // 4. Create initial pending payment record for Digital Pay-on-Delivery / STK push
-    $cleanMpesa = Kyc::cleanMpesaPhone($phone) ?: $phone;
+    $chargePhone = $mpesaPhoneInput ?: $phone;
+    $cleanMpesa = Kyc::cleanMpesaPhone($chargePhone) ?: $chargePhone;
+    $totalPayable = $grandTotal + $deliveryFee;
+
     $payStmt = $pdo->prepare("
         INSERT INTO payments (order_id, delivery_id, buyer_phone, amount, payment_method, status)
-        VALUES (:oid, :did, :phone, :amt, :pmethod, :pstatus)
+        VALUES (:oid, :did, :phone, :amt, :pmethod, 'pending')
     ");
     $payStmt->execute([
         ':oid'     => $orderId,
         ':did'     => $deliveryId,
         ':phone'   => $cleanMpesa,
-        ':amt'     => $grandTotal + $deliveryFee,
+        ':amt'     => $totalPayable,
         ':pmethod' => $paymentMethod,
-        ':pstatus' => ($paymentMethod === 'Cash on Delivery' || $paymentMethod === 'M-Pesa') ? 'pending' : 'completed',
     ]);
     $paymentId = (int) $pdo->lastInsertId();
 
@@ -291,15 +321,25 @@ try {
         } catch (Throwable $_) {}
     }
 
+    // 6. Initiate STK Push if M-Pesa is selected
+    $stkPromptInitiated = false;
+    $crid = '';
+    if ($paymentMethod === 'M-Pesa') {
+        $stk = mpesa_stk_push($pdo, $orderId, $cleanMpesa, $totalPayable, $orderCode);
+        if ($stk['ok']) {
+            $stkPromptInitiated = true;
+            $crid = $stk['checkout_request_id'] ?? '';
+        }
+    }
+
     // Commit All Changes Atomically
     $pdo->commit();
 
     // Clear Session Cart
     $_SESSION['cart'] = [];
 
-    // 6. Notify offline merchants via Telephony (SMS / automated voice call)
+    // 7. Notify offline merchants via Telephony (SMS / automated voice call)
     try {
-        $sellerIds = array_unique(array_map(fn($it) => (int) $it['seller_id'], $orderItemsData));
         foreach ($sellerIds as $sid) {
             Telephony::notifyOfflineSellerOnNewOrder($sid, $orderCode, $grandTotal, $town);
         }
@@ -307,8 +347,13 @@ try {
         error_log('Telephony dispatch error: ' . $e->getMessage());
     }
 
-    set_flash('success', "Order #{$orderCode} confirmed successfully! Inventory reserved and delivery dispatch initiated.");
-    redirect('pages/buyer/orders.php');
+    if ($stkPromptInitiated) {
+        set_flash('success', "Order #{$orderCode} confirmed! An M-Pesa STK push prompt was sent to {$cleanMpesa}. Enter your PIN to complete payment.");
+        redirect('pages/buyer/orders.php?mpesa_prompt=1&order_id=' . $orderId . '&crid=' . urlencode($crid));
+    } else {
+        set_flash('success', "Order #{$orderCode} confirmed successfully! Inventory reserved and delivery dispatch initiated.");
+        redirect('pages/buyer/orders.php');
+    }
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

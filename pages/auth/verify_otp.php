@@ -108,6 +108,11 @@ try {
 } catch (Throwable $_) {}
 
 $hasSmtp = Security::hasSmtpConfigured();
+$smtpConfig = Security::getSmtpConfig();
+$showDevOtp = $smtpConfig['show_dev_otp'] ?? null;
+if ($showDevOtp === null) {
+    $showDevOtp = !$hasSmtp; // If SMTP is active, hide dev OTP by default
+}
 
 // Mask email for display: e.g. j***n@example.com
 $maskedEmail = $email;
@@ -125,7 +130,7 @@ if (str_contains($email, '@')) {
 $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true)
     || (PHP_SAPI === 'cli-server') || empty($_SERVER['SERVER_NAME']);
 $devOtpCode = null;
-if ($isLocal && $userId > 0) {
+if ($isLocal && $showDevOtp && $userId > 0) {
     try {
         $stmtJob = $pdo->prepare("SELECT payload FROM jobs WHERE job_type IN ('send_email', 'email') ORDER BY id DESC LIMIT 10");
         $stmtJob->execute();
@@ -236,41 +241,43 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
         </div>
 
-        <?php if ($isLocal && !empty($devOtpCode)): ?>
-            <?php if ($hasSmtp): ?>
-                <details style="margin-top: 1.5rem; text-align: center;">
-                    <summary style="font-size: 0.85rem; color: #64748b; cursor: pointer; font-weight: 600;">
-                        <?= icon('help-circle', 'lucide-xs') ?> Trouble receiving the email? Click for local backup code
+        <?php if ($hasSmtp): ?>
+            <div class="alert alert-success" style="margin-top: 1.5rem; text-align: center; font-size: 0.88rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.75rem 1rem; border-radius: 8px;">
+                <?= icon('mail', 'lucide-xs') ?>
+                <span>Verification code dispatched via outbound SMTP to <strong><?= e($maskedEmail) ?></strong>. Check your inbox and spam folder.</span>
+            </div>
+            <?php if ($isLocal && $showDevOtp && !empty($devOtpCode)): ?>
+                <details style="margin-top: 1rem; text-align: center;">
+                    <summary style="font-size: 0.82rem; color: #64748b; cursor: pointer;">
+                        <?= icon('help-circle', 'lucide-xs') ?> Local dev backup code
                     </summary>
-                    <div class="demo-box" style="margin-top: 0.75rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; text-align: center;">
-                        <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
-                            Local dev backup code retrieved from background job queue:
-                        </p>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <code id="devOtpVal" style="font-size: 1.4rem; font-weight: 800; color: #b45309; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #d97706;"><?= e($devOtpCode) ?></code>
-                            <button type="button" class="btn btn-outline btn-xs" id="btnCopyOtp" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
-                                <?= icon('copy', 'lucide-xs') ?> Autofill
-                            </button>
-                        </div>
+                    <div class="demo-box" style="margin-top: 0.5rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <code id="devOtpVal" style="font-size: 1.25rem; font-weight: 800; color: #b45309; letter-spacing: 3px; background: #ffffff; padding: 0.2rem 0.6rem; border-radius: 6px; border: 1px dashed #d97706;"><?= e($devOtpCode) ?></code>
+                        <button type="button" class="btn btn-outline btn-xs" id="btnCopyOtp" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Autofill</button>
                     </div>
                 </details>
-            <?php else: ?>
-                <div class="demo-box" style="margin-top: 1.5rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; text-align: center;">
-                    <div style="font-size: 0.88rem; color: #92400e; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 0.35rem;">
-                        <?= icon('info', 'lucide-xs', 'amber') ?>
-                        <span>Local Development / Simulation Mode</span>
-                    </div>
-                    <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
-                        Outbound SMTP is not configured in <code>config/db.local.php</code>. Your generated verification code is:
-                    </p>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="demo-box" style="margin-top: 1.5rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="font-size: 0.88rem; color: #92400e; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                    <?= icon('info', 'lucide-xs', 'amber') ?>
+                    <span>Outbound Email (SMTP) Not Configured</span>
+                </div>
+                <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
+                    Configure <code>config/mail.local.php</code> (e.g. Gmail App Password) to send real verification codes directly to user inboxes.
+                </p>
+                <?php if ($showDevOtp && !empty($devOtpCode)): ?>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.6rem;">
                         <code id="devOtpVal" style="font-size: 1.4rem; font-weight: 800; color: #b45309; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #d97706;"><?= e($devOtpCode) ?></code>
                         <button type="button" class="btn btn-outline btn-xs" id="btnCopyOtp" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
                             <?= icon('copy', 'lucide-xs') ?> Autofill
                         </button>
                     </div>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($isLocal && $showDevOtp && !empty($devOtpCode)): ?>
             <script>
             document.getElementById('btnCopyOtp')?.addEventListener('click', function () {
                 const code = <?= json_encode((string) $devOtpCode) ?>;

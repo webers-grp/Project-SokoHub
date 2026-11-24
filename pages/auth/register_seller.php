@@ -3,6 +3,8 @@
  * SokoHub Seller Registration (Upgraded from Main/sellers.page.html)
  */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/orders.php';
+require_once __DIR__ . '/../../includes/mpesa.php';
 init_session();
 
 if (is_logged_in()) {
@@ -14,6 +16,8 @@ $errors = [];
 $old = [
     'full_name'         => '',
     'business_name'     => '',
+    'till_number'       => '',
+    'payout_type'       => 'till',
     'business_type'     => '',
     'town'              => 'Kutus',
     'stall_location'    => '',
@@ -30,6 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $old['full_name'] = trim((string) ($_POST['full_name'] ?? ''));
         $old['business_name'] = trim((string) ($_POST['business_name'] ?? ''));
+        $old['till_number'] = trim((string) ($_POST['till_number'] ?? ''));
+        $old['payout_type'] = (string) ($_POST['payout_type'] ?? 'till');
+        if (!in_array($old['payout_type'], ['till', 'pochi'], true)) {
+            $old['payout_type'] = 'till';
+        }
         $old['business_type'] = (string) ($_POST['business_type'] ?? '');
         $old['town'] = trim((string) ($_POST['town'] ?? 'Kutus'));
         $old['stall_location'] = trim((string) ($_POST['stall_location'] ?? ''));
@@ -44,6 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (mb_strlen($old['business_name']) < 3) {
             $errors[] = 'Business name must be at least 3 characters long.';
         }
+        if ($old['payout_type'] === 'till') {
+            if (empty($old['till_number']) || !preg_match('/^[0-9]{5,8}$/', $old['till_number'])) {
+                $errors[] = 'M-Pesa Buy Goods Till Number must be between 5 and 8 digits.';
+            }
+        } else {
+            $cleanPhone = mpesa_format_phone($old['till_number']);
+            if (!preg_match('/^254[17][0-9]{8}$/', $cleanPhone)) {
+                $errors[] = 'Valid Safaricom phone number required for Pochi/Phone payout (e.g. 0712 345 678).';
+            }
+        }
         if (!array_key_exists($old['business_type'], $businessTypes)) {
             $errors[] = 'Please choose a valid business category.';
         }
@@ -53,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $pdo = get_db_connection();
+            ensure_order_schema_tables($pdo);
             $exists = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
             $exists->execute([':email' => $old['email']]);
 
@@ -76,16 +96,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $sStmt = $pdo->prepare(
                         'INSERT INTO seller_profiles (
-                            user_id, business_name, business_type, town,
+                            user_id, business_name, till_number, payout_type, business_type, town,
                             stall_location, operating_hours, whatsapp_phone, description
                          ) VALUES (
-                            :user_id, :business_name, :business_type, :town,
+                            :user_id, :business_name, :till_number, :payout_type, :business_type, :town,
                             :stall_location, :operating_hours, :whatsapp_phone, :description
                          )'
                     );
                     $sStmt->execute([
                         ':user_id'           => $userId,
                         ':business_name'     => $old['business_name'],
+                        ':till_number'       => $old['till_number'],
+                        ':payout_type'       => $old['payout_type'],
                         ':business_type'     => $old['business_type'],
                         ':town'              => $old['town'] !== '' ? $old['town'] : 'Kutus',
                         ':stall_location'    => $old['stall_location'] !== '' ? $old['stall_location'] : null,
@@ -225,6 +247,22 @@ require_once __DIR__ . '/../../includes/header.php';
 
                     <div class="form-grid-2">
                         <div class="form-group">
+                            <label for="payout_type">Payout Destination *</label>
+                            <select id="payout_type" name="payout_type" class="form-control" onchange="togglePayoutField(this.value)">
+                                <option value="till" <?= ($old['payout_type'] ?? '') === 'till' ? 'selected' : '' ?>>M-Pesa Buy Goods Till (Recommended)</option>
+                                <option value="pochi" <?= ($old['payout_type'] ?? '') === 'pochi' ? 'selected' : '' ?>>Pochi la Biashara / Personal Phone</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label id="payout_account_label" for="till_number">M-Pesa Till Number *</label>
+                            <input type="text" id="till_number" name="till_number" class="form-control" value="<?= e($old['till_number']) ?>" required placeholder="e.g. 1648753 or 882910">
+                            <span class="small muted" style="display:block; margin-top:0.25rem;">Used for your 98% sales payout (2% SokoHub platform fee deducted).</span>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
                             <label for="town">Primary Town / Market *</label>
                             <input type="text" id="town" name="town" class="form-control" value="<?= e($old['town']) ?>" required placeholder="e.g. Kutus, Kerugoya, Kagio">
                         </div>
@@ -340,6 +378,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     confirm.addEventListener('input', validateMatch);
 });
+
+function togglePayoutField(type) {
+    const lbl = document.getElementById('payout_account_label');
+    const inp = document.getElementById('till_number');
+    if (!lbl || !inp) return;
+    if (type === 'pochi') {
+        lbl.textContent = 'M-Pesa Phone Number *';
+        inp.placeholder = 'e.g. 0712 345 678';
+    } else {
+        lbl.textContent = 'M-Pesa Till Number *';
+        inp.placeholder = 'e.g. 1648753 or 882910';
+    }
+}
 </script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

@@ -108,10 +108,17 @@ if (str_contains($adminEmail, '@')) {
 }
 
 // In local development, retrieve generated 2FA code
+$hasSmtp = Security::hasSmtpConfigured();
+$smtpConfig = Security::getSmtpConfig();
+$showDevOtp = $smtpConfig['show_dev_otp'] ?? null;
+if ($showDevOtp === null) {
+    $showDevOtp = !$hasSmtp;
+}
+
 $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true)
     || (PHP_SAPI === 'cli-server') || empty($_SERVER['SERVER_NAME']);
 $dev2faCode = null;
-if ($isLocal && $adminId > 0) {
+if ($isLocal && $showDevOtp && $adminId > 0) {
     try {
         $stmtJob = $pdo->prepare("SELECT payload FROM jobs WHERE job_type IN ('send_email', 'email') ORDER BY id DESC LIMIT 10");
         $stmtJob->execute();
@@ -217,22 +224,43 @@ require_once __DIR__ . '/../../includes/header.php';
             </form>
         </div>
 
-        <?php if ($isLocal && !empty($dev2faCode)): ?>
+        <?php if ($hasSmtp): ?>
+            <div class="alert alert-success" style="margin-top: 1.5rem; text-align: center; font-size: 0.88rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.75rem 1rem; border-radius: 8px;">
+                <?= icon('mail', 'lucide-xs') ?>
+                <span>2FA security code dispatched via outbound SMTP to <strong><?= e($maskedEmail) ?></strong>. Check your inbox and spam folder.</span>
+            </div>
+            <?php if ($isLocal && $showDevOtp && !empty($dev2faCode)): ?>
+                <details style="margin-top: 1rem; text-align: center;">
+                    <summary style="font-size: 0.82rem; color: #64748b; cursor: pointer;">
+                        <?= icon('help-circle', 'lucide-xs') ?> Local dev backup code
+                    </summary>
+                    <div class="demo-box" style="margin-top: 0.5rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <code style="font-size: 1.25rem; font-weight: 800; color: #7c3aed; letter-spacing: 3px; background: #ffffff; padding: 0.2rem 0.6rem; border-radius: 6px; border: 1px dashed #7c3aed;"><?= e($dev2faCode) ?></code>
+                        <button type="button" class="btn btn-outline btn-xs" id="btnCopy2fa" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem; border-color: #7c3aed; color: #7c3aed;">Autofill</button>
+                    </div>
+                </details>
+            <?php endif; ?>
+        <?php else: ?>
             <div class="demo-box" style="margin-top: 1.5rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 1rem; text-align: center;">
                 <div style="font-size: 0.88rem; color: #6b21a8; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 0.35rem;">
                     <?= icon('shield-check', 'lucide-xs') ?>
-                    <span>Local Development 2FA Code</span>
+                    <span>Outbound Email (SMTP) Not Configured</span>
                 </div>
                 <p class="small muted" style="margin: 0 0 0.5rem; line-height: 1.4;">
-                    Your generated 2FA challenge code is:
+                    Configure <code>config/mail.local.php</code> to dispatch real two-factor authentication codes to admin inboxes.
                 </p>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <code style="font-size: 1.4rem; font-weight: 800; color: #7c3aed; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #7c3aed;"><?= e($dev2faCode) ?></code>
-                    <button type="button" class="btn btn-outline btn-xs" id="btnCopy2fa" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; border-color: #7c3aed; color: #7c3aed;">
-                        <?= icon('copy', 'lucide-xs') ?> Autofill
-                    </button>
-                </div>
+                <?php if ($showDevOtp && !empty($dev2faCode)): ?>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.6rem;">
+                        <code style="font-size: 1.4rem; font-weight: 800; color: #7c3aed; letter-spacing: 3px; background: #ffffff; padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px dashed #7c3aed;"><?= e($dev2faCode) ?></code>
+                        <button type="button" class="btn btn-outline btn-xs" id="btnCopy2fa" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; border-color: #7c3aed; color: #7c3aed;">
+                            <?= icon('copy', 'lucide-xs') ?> Autofill
+                        </button>
+                    </div>
+                <?php endif; ?>
             </div>
+        <?php endif; ?>
+
+        <?php if ($isLocal && $showDevOtp && !empty($dev2faCode)): ?>
             <script>
             document.getElementById('btnCopy2fa')?.addEventListener('click', function () {
                 const code = <?= json_encode((string) $dev2faCode) ?>;

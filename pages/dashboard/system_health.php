@@ -10,6 +10,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../includes/audit.php';
+require_once __DIR__ . '/../../includes/mpesa.php';
 
 init_session();
 $adminUser = require_role(['admin']);
@@ -77,6 +78,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], $adminId, 'admin');
                 set_flash('error', "SMTP ping failed: " . ($smtpError ?: 'Unknown socket error. Check SMTP host/port credentials.'));
             }
+        }
+    } elseif ($opAction === 'ping_daraja') {
+        $pingResult = mpesa_ping_gateway();
+        Audit::record('DARAJA_DIAGNOSTIC_PING', 'payments', 0, [
+            'ok'          => $pingResult['ok'],
+            'latency_ms'  => $pingResult['latency_ms'] ?? 0,
+            'http_code'   => $pingResult['http_code'] ?? 0,
+            'environment' => $pingResult['environment'] ?? 'sandbox',
+        ], $adminId, 'admin');
+
+        if ($pingResult['ok']) {
+            set_flash('success', "Daraja M-Pesa Gateway online! Latency: {$pingResult['latency_ms']}ms [HTTP {$pingResult['http_code']}] ({$pingResult['environment']} environment).");
+        } else {
+            set_flash('error', "Daraja M-Pesa Gateway check failed: {$pingResult['message']} (Latency: {$pingResult['latency_ms']}ms).");
         }
     } elseif ($opAction === 'unlock_all') {
         $stmt = $pdo->prepare("UPDATE users SET locked_until = NULL, failed_login_count = 0 WHERE locked_until IS NOT NULL AND locked_until > NOW()");
@@ -163,6 +178,11 @@ $hasLiveSmtp = Security::hasSmtpConfigured();
 
 $totalNotificationsLogged = (int) $pdo->query("SELECT COUNT(*) FROM notification_logs")->fetchColumn();
 $recentNotificationsLogged = (int) $pdo->query("SELECT COUNT(*) FROM notification_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn();
+
+// 3b. M-Pesa Daraja Payment Telemetry
+$mpesaCfg = mpesa_config();
+$mpesaCallbacksCount = (int) $pdo->query("SELECT COUNT(*) FROM mpesa_callbacks")->fetchColumn();
+$mpesaRecentPaid = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE payment_status = 'paid' AND payment_method LIKE '%M-Pesa%'")->fetchColumn();
 
 // 4. Security & Threat Landscape
 $activeLockedUsersStmt = $pdo->query("
@@ -408,6 +428,55 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="small muted" style="margin-top: 0.85rem; line-height: 1.4;">
                 <?= icon('info', 'lucide-xs') ?>
                 Note: In production or local XAMPP without live credentials, SokoHub writes outgoing emails safely to <code>logs/outgoing_emails.log</code>. Free Gmail App Password setup is documented in <code>config/db.local.php.example</code>.
+            </div>
+        </div>
+
+        <!-- Safaricom Daraja M-Pesa Gateway Diagnostics Card -->
+        <div class="card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 1rem;">
+                <h3 style="margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <?= icon('smartphone', 'lucide-xs', 'emerald') ?>
+                    <span>Safaricom Daraja M-Pesa Gateway</span>
+                </h3>
+                <p class="small muted" style="margin: 0;">Validate OAuth tokens, STK Push endpoints, and live gateway ping latency.</p>
+            </div>
+
+            <!-- Daraja Config Review -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.84rem; line-height: 1.6;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Gateway Mode:</span>
+                    <strong><span class="badge <?= $mpesaCfg['env'] === 'live' ? 'badge-success' : 'badge-amber' ?>" style="font-size: 0.72rem;"><?= strtoupper(e($mpesaCfg['env'])) ?></span></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Shortcode / Till:</span>
+                    <strong><?= e($mpesaCfg['shortcode']) ?> &bull; Till: <?= e($mpesaCfg['till_number']) ?></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Platform Fee / Split:</span>
+                    <strong><?= e((string) $mpesaCfg['platform_fee_percent']) ?>% Platform &bull; 98% Merchant</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Callback Telemetry:</span>
+                    <strong><?= $mpesaCallbacksCount ?> Webhook(s) &bull; <?= $mpesaRecentPaid ?> Paid Orders</strong>
+                </div>
+            </div>
+
+            <!-- Ping Daraja Gateway Form -->
+            <form method="POST" action="<?= e(url('pages/dashboard/system_health.php')) ?>" style="margin-bottom: 0.85rem;">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="ping_daraja">
+
+                <button type="submit" class="btn btn-outline btn-block" style="border-color: #15803d; color: #15803d; padding: 0.65rem;">
+                    <?= icon('activity', 'lucide-xs') ?>
+                    <span>Test Safaricom Daraja Gateway</span>
+                </button>
+            </form>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                <a href="<?= e(url('pages/dashboard/payments_admin.php')) ?>" class="btn btn-sm btn-outline" style="font-size: 0.8rem; width: 100%; text-align: center; border-color: #0284c7; color: #0284c7;">
+                    <?= icon('credit-card', 'lucide-xs') ?>
+                    <span>Open Payments &amp; Reconciliation Screen &rarr;</span>
+                </a>
             </div>
         </div>
     </div>

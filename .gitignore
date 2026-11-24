@@ -1,6 +1,8 @@
 # Local configuration & secrets (keep InfinityFree/XAMPP passwords out of GitHub!)
 .env
 config/db.local.php
+config/mail.local.php
+config/mpesa.local.php
 
 # Runtime / uploads / temporary files
 assets/img/uploads/*

@@ -552,14 +552,37 @@ class Security
     public static function getSmtpConfig(): array
     {
         $cfg = [
-            'host' => getenv('SMTP_HOST') ?: '',
-            'port' => (int) (getenv('SMTP_PORT') ?: 587),
-            'user' => getenv('SMTP_USER') ?: '',
-            'pass' => getenv('SMTP_PASS') ?: '',
-            'from' => getenv('SMTP_FROM') ?: 'no-reply@sokohub.co.ke',
-            'name' => getenv('SMTP_NAME') ?: 'SokoHub',
+            'host'         => getenv('SMTP_HOST') ?: '',
+            'port'         => (int) (getenv('SMTP_PORT') ?: 587),
+            'user'         => getenv('SMTP_USER') ?: '',
+            'pass'         => getenv('SMTP_PASS') ?: '',
+            'from'         => getenv('SMTP_FROM') ?: 'no-reply@sokohub.co.ke',
+            'name'         => getenv('SMTP_NAME') ?: 'SokoHub',
+            'encryption'   => getenv('SMTP_ENCRYPTION') ?: 'tls',
+            'show_dev_otp' => getenv('SHOW_DEV_OTP') !== false ? filter_var(getenv('SHOW_DEV_OTP'), FILTER_VALIDATE_BOOLEAN) : null,
         ];
 
+        // 1. Check dedicated config/mail.local.php
+        $mailLocal = __DIR__ . '/../config/mail.local.php';
+        if (file_exists($mailLocal)) {
+            $m = require $mailLocal;
+            if (is_array($m)) {
+                $cfg['host'] = $m['host'] ?? $cfg['host'];
+                $cfg['port'] = (int) ($m['port'] ?? $cfg['port']);
+                $cfg['user'] = $m['user'] ?? $cfg['user'];
+                $cfg['pass'] = $m['pass'] ?? $cfg['pass'];
+                $cfg['from'] = $m['from'] ?? $cfg['from'];
+                $cfg['name'] = $m['name'] ?? $cfg['name'];
+                if (isset($m['encryption'])) {
+                    $cfg['encryption'] = $m['encryption'];
+                }
+                if (isset($m['show_dev_otp'])) {
+                    $cfg['show_dev_otp'] = (bool) $m['show_dev_otp'];
+                }
+            }
+        }
+
+        // 2. Check config/db.local.php for nested smtp array
         $localConfig = __DIR__ . '/../config/db.local.php';
         if (file_exists($localConfig)) {
             $local = require $localConfig;
@@ -570,8 +593,22 @@ class Security
                 $cfg['pass'] = $local['smtp']['pass'] ?? $cfg['pass'];
                 $cfg['from'] = $local['smtp']['from'] ?? $cfg['from'];
                 $cfg['name'] = $local['smtp']['name'] ?? $cfg['name'];
+                if (isset($local['smtp']['encryption'])) {
+                    $cfg['encryption'] = $local['smtp']['encryption'];
+                }
+                if (isset($local['smtp']['show_dev_otp'])) {
+                    $cfg['show_dev_otp'] = (bool) $local['smtp']['show_dev_otp'];
+                }
             }
         }
+
+        $port = (int) ($cfg['port'] ?: 587);
+        $cfg['port'] = $port;
+        if (empty($cfg['encryption'])) {
+            $cfg['encryption'] = ($port === 465) ? 'ssl' : 'tls';
+        }
+        $cfg['from_name'] = $cfg['name'] ?: 'SokoHub';
+        $cfg['from_email'] = $cfg['from'] ?: 'no-reply@sokohub.co.ke';
 
         return $cfg;
     }
@@ -657,6 +694,7 @@ class Security
         $pass = $cfg['pass'];
         $from = $cfg['from'];
         $name = $cfg['name'] ?: 'SokoHub';
+        $encryption = strtolower((string) ($cfg['encryption'] ?? 'tls'));
 
         if (empty($host) || empty($user) || empty($pass)) {
             $errorOutput = 'SMTP host, username, or password not configured.';
@@ -665,7 +703,7 @@ class Security
 
         try {
             $timeout = 10;
-            $isSsl = ($port === 465);
+            $isSsl = ($port === 465 || $encryption === 'ssl');
             $remote = ($isSsl ? 'ssl://' : '') . $host;
             $socket = @fsockopen($remote, $port, $errno, $errstr, $timeout);
             if (!$socket) {
@@ -689,7 +727,7 @@ class Security
             $write("EHLO localhost");
             $ehlo = $read();
 
-            if ($port === 587) {
+            if ($port === 587 || $encryption === 'tls') {
                 $write("STARTTLS");
                 $starttls = $read();
                 if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
@@ -705,7 +743,8 @@ class Security
             $authReq = $read();
             $write(base64_encode($user));
             $userReq = $read();
-            $write(base64_encode(str_replace(' ', '', $pass)));
+            $cleanPass = str_replace([' ', "\t", "\r", "\n"], '', $pass);
+            $write(base64_encode($cleanPass));
             $passRes = $read();
 
             if (!str_starts_with(trim($passRes), '235')) {
@@ -789,7 +828,25 @@ class Security
         $smtpErr = '';
         if (self::hasSmtpConfigured()) {
             $sentSmtp = self::sendSmtpMail($to, $subject, $body, $isHtml, $smtpErr);
+            if (!$sentSmtp && !empty($smtpErr)) {
+                error_log("SokoHub SMTP Error for recipient '{$to}': " . $smtpErr);
+            }
         }
+
+        $logDir = dirname(__DIR__) . '/logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        $logLine = sprintf(
+            "[%s] TO: %s | TEMPLATE: %s | CODE: %s | STATUS: %s%s\n",
+            date('Y-m-d H:i:s'),
+            $to,
+            $template,
+            $code ?: '-',
+            $sentSmtp ? 'SENT_VIA_SMTP' : 'LOCAL_SIMULATED',
+            (!empty($smtpErr) ? " (Error: {$smtpErr})" : "")
+        );
+        @file_put_contents($logDir . '/outgoing_emails.log', $logLine, FILE_APPEND);
 
         if ($sentSmtp) {
             $log("Dispatched live SMTP email to '{$to}' (template: {$template}) ");

@@ -200,6 +200,24 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
 
                         <div class="form-group">
+                            <label for="campus_landmark">Campus Drop-Off Landmark (Kirinyaga University)</label>
+                            <select id="campus_landmark" name="campus_landmark" class="form-control" onchange="applyLandmark(this.value)">
+                                <option value="">-- Choose a popular drop-off landmark (optional) --</option>
+                                <option value="Kirinyaga University Gate A">Kirinyaga University - Main Gate A</option>
+                                <option value="Kirinyaga University Gate B">Kirinyaga University - Gate B</option>
+                                <option value="Hostel 1 Complex">Hostel 1 Complex</option>
+                                <option value="Hostel 2 Complex">Hostel 2 Complex</option>
+                                <option value="Hostel 3 Complex">Hostel 3 Complex</option>
+                                <option value="Hostel 4 Complex">Hostel 4 Complex</option>
+                                <option value="University Student Center / Mess">University Student Center &amp; Mess</option>
+                                <option value="Tuition Block Complex">Tuition Block Complex</option>
+                                <option value="Kutus Stage / Market Road">Kutus Stage / Market Road</option>
+                                <option value="Kerugoya Town Stage">Kerugoya Town - Stage</option>
+                                <option value="Kagio Junction">Kagio Junction</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="street_address">Specific Street Address / Landmark / Hostel *</label>
                             <input type="text"
                                    id="street_address"
@@ -283,6 +301,17 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </p>
                             </div>
                         </label>
+                    </div>
+
+                    <div id="mpesaPhoneSection" style="margin-top: 1rem; background: rgba(16, 185, 129, 0.05); border: 1.5px solid #10b981; border-radius: 8px; padding: 1rem;">
+                        <label for="mpesa_phone" style="font-weight: 700; color: #065f46;">
+                            <?= icon('smartphone', 'lucide-xs', 'emerald') ?>
+                            M-Pesa Phone Number to Prompt *
+                        </label>
+                        <input type="tel" id="mpesa_phone" name="mpesa_phone" class="form-control" value="<?= e($user['phone'] ?? '') ?>" placeholder="e.g. 0712 345 678 or 254712345678">
+                        <span class="small muted" style="display:block; margin-top:0.25rem;">
+                            The Safaricom STK PIN prompt will be sent to this phone upon order placement.
+                        </span>
                     </div>
 
                     <div class="form-group" style="margin-top: 1.25rem;">
@@ -395,5 +424,18 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 </main>
+
+<script>
+function applyLandmark(val) {
+    if (!val) return;
+    const streetInput = document.getElementById('street_address');
+    if (!streetInput) return;
+    if (!streetInput.value.trim()) {
+        streetInput.value = val;
+    } else if (!streetInput.value.includes(val)) {
+        streetInput.value = val + ', ' + streetInput.value;
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

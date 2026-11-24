@@ -6,14 +6,33 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/kyc.php';
 require_once __DIR__ . '/../../includes/inventory.php';
 require_once __DIR__ . '/../../includes/notifications.php';
+require_once __DIR__ . '/../../includes/orders.php';
 init_session();
 $user = require_login();
 $pdo = get_db_connection();
+ensure_order_schema_tables($pdo);
 
 $role = $user['role'];
 $userId = (int) $user['id'];
 $kpis = [];
 $recentRows = [];
+
+// Seller Vacation Mode Toggle Action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($role, ['seller', 'admin'], true) && post('action') === 'toggle_store_status') {
+    verify_csrf();
+    $targetSellerId = ($role === 'admin' && post('seller_id')) ? (int) post('seller_id') : $userId;
+    $stmt = $pdo->prepare('SELECT is_open FROM seller_profiles WHERE user_id = :id LIMIT 1');
+    $stmt->execute([':id' => $targetSellerId]);
+    $currentStatus = (int) $stmt->fetchColumn();
+    $newStatus = $currentStatus ? 0 : 1;
+    $upd = $pdo->prepare('UPDATE seller_profiles SET is_open = :st WHERE user_id = :id');
+    $upd->execute([':st' => $newStatus, ':id' => $targetSellerId]);
+    set_flash_message('success', $newStatus ? 'Your store is now OPEN and accepting customer orders.' : 'Your store is now in VACATION mode. Checkout orders for your items are temporarily paused.');
+    redirect('pages/dashboard/dashboard.php');
+}
+
+$sellerProfile = null;
+$storeIsOpen = true;
 
 if ($role === 'buyer') {
     $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount), 0) AS spent FROM orders WHERE buyer_id = :id AND order_status <> "cancelled"');
@@ -47,6 +66,17 @@ if ($role === 'buyer') {
     $recStmt->execute([':id' => $userId]);
     $recentRows = $recStmt->fetchAll();
 } elseif ($role === 'seller') {
+    $spStmt = $pdo->prepare('SELECT business_name, till_number, payout_type, is_open, town FROM seller_profiles WHERE user_id = :id LIMIT 1');
+    $spStmt->execute([':id' => $userId]);
+    $sellerProfile = $spStmt->fetch() ?: [
+        'business_name' => 'My Business',
+        'till_number'   => '1648753',
+        'payout_type'   => 'till',
+        'is_open'       => 1,
+        'town'          => 'Kutus'
+    ];
+    $storeIsOpen = (bool) ($sellerProfile['is_open'] ?? 1);
+
     $prodCount = $pdo->prepare("SELECT COUNT(*) FROM products WHERE seller_id = :id AND status = 'active'");
     $prodCount->execute([':id' => $userId]);
 
@@ -54,7 +84,10 @@ if ($role === 'buyer') {
     $myLowStockItems = Inventory::getLowStockProducts($userId);
 
     $revStmt = $pdo->prepare(
-        "SELECT COALESCE(SUM(oi.line_total), 0) AS rev, COALESCE(SUM(oi.quantity), 0) AS units
+        "SELECT COALESCE(SUM(oi.line_total), 0) AS gross_rev,
+                COALESCE(SUM(oi.quantity), 0) AS units,
+                COALESCE(SUM(oi.platform_fee), 0) AS total_fee,
+                COALESCE(SUM(oi.seller_earnings), 0) AS net_earn
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
          WHERE oi.seller_id = :id AND o.order_status <> 'cancelled'"
@@ -62,15 +95,29 @@ if ($role === 'buyer') {
     $revStmt->execute([':id' => $userId]);
     $rev = $revStmt->fetch();
 
+    $gross = (float) $rev['gross_rev'];
+    $platformFee = (float) $rev['total_fee'];
+    $netPayout = (float) $rev['net_earn'];
+    if ($platformFee <= 0 && $gross > 0) {
+        $platformFee = round($gross * 0.02, 2);
+        $netPayout = round($gross - $platformFee, 2);
+    }
+
+    $payoutLabel = ($sellerProfile['payout_type'] ?? 'till') === 'till'
+        ? 'Till: ' . e($sellerProfile['till_number'])
+        : 'Pochi: ' . e($sellerProfile['till_number']);
+
     $kpis = [
         ['label' => 'Active Products', 'value' => (int) $prodCount->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
-        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount, 'icon' => 'alert-triangle', 'color' => 'rose'],
-        ['label' => 'Units Sold', 'value' => (int) $rev['units'], 'icon' => 'shopping-bag', 'color' => 'purple'],
-        ['label' => 'Gross Revenue', 'value' => format_ksh($rev['rev']), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'Gross Sales', 'value' => format_ksh($gross), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'SokoHub Fee (2%)', 'value' => '-' . format_ksh($platformFee), 'icon' => 'receipt', 'color' => 'rose'],
+        ['label' => 'Net Payout (98%)', 'value' => format_ksh($netPayout), 'icon' => 'wallet', 'color' => 'teal'],
+        ['label' => 'Disbursement Destination', 'value' => $payoutLabel, 'icon' => 'smartphone', 'color' => 'cyan'],
+        ['label' => 'Low Stock Alerts', 'value' => $lowStockCount, 'icon' => 'alert-triangle', 'color' => 'amber'],
     ];
 
     $recStmt = $pdo->prepare(
-        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, o.order_status, o.created_at
+        "SELECT o.order_code, p.name AS product_name, oi.quantity, oi.line_total, oi.platform_fee, oi.seller_earnings, o.order_status, o.created_at
          FROM order_items oi
          INNER JOIN orders o ON o.id = oi.order_id
          INNER JOIN products p ON p.id = oi.product_id
@@ -108,10 +155,18 @@ if ($role === 'buyer') {
     $recStmt->execute([':id' => $userId]);
     $recentRows = $recStmt->fetchAll();
 } else { // admin
+    $totalVolume = (float) $pdo->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn();
+    $platformCommission = (float) $pdo->query("SELECT COALESCE(SUM(platform_fee), 0) FROM order_items oi INNER JOIN orders o ON o.id = oi.order_id WHERE o.order_status <> 'cancelled'")->fetchColumn();
+    if ($platformCommission <= 0 && $totalVolume > 0) {
+        $platformCommission = round($totalVolume * 0.02, 2);
+    }
+
     $kpis = [
         ['label' => 'Registered Users', 'value' => (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'icon' => 'users', 'color' => 'cyan'],
         ['label' => 'Active Products', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn(), 'icon' => 'package', 'color' => 'blue'],
-        ['label' => 'Total Order Volume', 'value' => format_ksh($pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE order_status <> 'cancelled'")->fetchColumn()), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'Total Marketplace Volume', 'value' => format_ksh($totalVolume), 'icon' => 'trending-up', 'color' => 'emerald'],
+        ['label' => 'SokoHub Commission (2%)', 'value' => format_ksh($platformCommission), 'icon' => 'wallet', 'color' => 'teal'],
+        ['label' => 'Master Till Account', 'value' => 'Till: 1648753', 'icon' => 'smartphone', 'color' => 'purple'],
         ['label' => 'Unread Inquiries', 'value' => (int) $pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'")->fetchColumn(), 'icon' => 'mail', 'color' => 'pink'],
     ];
 
@@ -145,9 +200,37 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="container section-space">
     <div class="page-head">
         <div>
-            <span class="badge badge-primary"><?= icon('shield-check', 'lucide-sm') ?> <?= e($roleLabels[$role] ?? ucfirst($role)) ?></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-primary"><?= icon('shield-check', 'lucide-sm') ?> <?= e($roleLabels[$role] ?? ucfirst($role)) ?></span>
+                <?php if ($role === 'seller'): ?>
+                    <?php if ($storeIsOpen): ?>
+                        <span class="badge badge-success" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <?= icon('check-circle', 'lucide-xs', '#ffffff') ?>
+                            <span>Store Open &amp; Accepting Orders</span>
+                        </span>
+                    <?php else: ?>
+                        <span class="badge badge-danger" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <?= icon('moon', 'lucide-xs', '#ffffff') ?>
+                            <span>Store on Vacation (Paused)</span>
+                        </span>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+
             <h1 style="margin-top: 0.4rem;">Welcome, <?= e($user['full_name']) ?></h1>
             <p class="muted">Signed in as <strong><?= e($user['email']) ?></strong></p>
+
+            <?php if ($role === 'seller'): ?>
+                <div style="margin-top: 0.6rem;">
+                    <form action="<?= e(url('pages/dashboard/dashboard.php')) ?>" method="POST" style="margin: 0; display: inline-block;">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="toggle_store_status">
+                        <button type="submit" class="btn btn-sm <?= $storeIsOpen ? 'btn-outline' : 'btn-primary' ?>" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">
+                            <?= $storeIsOpen ? icon('pause-circle', 'lucide-xs') . ' <span>Pause Store (Vacation Mode)</span>' : icon('play-circle', 'lucide-xs', '#ffffff') . ' <span>Reopen Store for Orders</span>' ?>
+                        </button>
+                    </form>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="hero-cta">
@@ -207,6 +290,10 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('users', 'lucide-xs') ?>
                     <span>User Management</span>
                 </a>
+                <a href="<?= e(url('pages/dashboard/payments_admin.php')) ?>" class="btn btn-outline" style="border-color: #0284c7; color: #0284c7;">
+                    <?= icon('credit-card', 'lucide-xs') ?>
+                    <span>Daraja Payments</span>
+                </a>
                 <a href="<?= e(url('pages/dashboard/system_health.php')) ?>" class="btn btn-outline" style="border-color: #22c55e; color: #16a34a;">
                     <?= icon('activity', 'lucide-xs') ?>
                     <span>System Health</span>
@@ -263,7 +350,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($myLowStockItems)): ?>
+    <?php if ($role === 'seller' && !empty($myLowStockItems)): ?>
         <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
                 <div>
@@ -362,7 +449,9 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Order Code</th>
                             <th>Product</th>
                             <th>Qty</th>
-                            <th>Revenue</th>
+                            <th>Gross</th>
+                            <th>2% Fee</th>
+                            <th>Net Earned</th>
                             <th>Status</th>
                             <th>Date</th>
                         </tr>
@@ -383,34 +472,6 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th>Date</th>
                         </tr>
                     <?php endif; ?>
-
-    <?php if (!empty($myLowStockItems)): ?>
-        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <strong style="color: #991b1b; font-size: 1.05rem;">
-                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
-                    </strong>
-                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
-                        The following items have reached automated alert levels and risk customer order fulfillment:
-                    </p>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
-                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
-                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
-                            </span>
-                        <?php endforeach; ?>
-                        <?php if (count($myLowStockItems) > 5): ?>
-                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
-                    Restock Inventory &rarr;
-                </a>
-            </div>
-        </div>
-    <?php endif; ?>
                     </thead>
                     <tbody>
                     <?php foreach ($recentRows as $row): ?>
@@ -425,12 +486,19 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td><?= e(date('d M Y, H:i', strtotime($row['created_at']))) ?></td>
                             </tr>
                         <?php elseif ($role === 'seller'): ?>
-                            <?php $oBadge = get_status_badge($row['order_status']); ?>
+                            <?php
+                            $oBadge = get_status_badge($row['order_status']);
+                            $itemGross = (float) $row['line_total'];
+                            $itemFee = isset($row['platform_fee']) && $row['platform_fee'] > 0 ? (float) $row['platform_fee'] : round($itemGross * 0.02, 2);
+                            $itemEarn = isset($row['seller_earnings']) && $row['seller_earnings'] > 0 ? (float) $row['seller_earnings'] : round($itemGross - $itemFee, 2);
+                            ?>
                             <tr>
                                 <td><strong><?= e($row['order_code']) ?></strong></td>
                                 <td><?= e($row['product_name']) ?></td>
                                 <td><?= (int) $row['quantity'] ?></td>
-                                <td><?= format_ksh($row['line_total']) ?></td>
+                                <td><?= format_ksh($itemGross) ?></td>
+                                <td style="color: #dc2626; font-size: 0.85rem;">-<?= format_ksh($itemFee) ?></td>
+                                <td style="color: #15803d; font-weight: 700;"><?= format_ksh($itemEarn) ?></td>
                                 <td><span class="badge <?= e($oBadge['class']) ?>"><?= e($oBadge['label']) ?></span></td>
                                 <td><?= e(date('d M Y', strtotime($row['created_at']))) ?></td>
                             </tr>
@@ -453,67 +521,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td><?= e(date('d M Y, H:i', strtotime($row['created_at']))) ?></td>
                             </tr>
                         <?php endif; ?>
-
-    <?php if (!empty($myLowStockItems)): ?>
-        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <strong style="color: #991b1b; font-size: 1.05rem;">
-                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
-                    </strong>
-                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
-                        The following items have reached automated alert levels and risk customer order fulfillment:
-                    </p>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
-                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
-                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
-                            </span>
-                        <?php endforeach; ?>
-                        <?php if (count($myLowStockItems) > 5): ?>
-                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
-                    Restock Inventory &rarr;
-                </a>
-            </div>
-        </div>
-    <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         <?php endif; ?>
-
-    <?php if (!empty($myLowStockItems)): ?>
-        <div class="card" style="margin-bottom: 2rem; border-left: 6px solid #ef4444; background: #fff5f5;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <strong style="color: #991b1b; font-size: 1.05rem;">
-                        ⚠️ Immediate Restock Attention: <?= count($myLowStockItems) ?> product(s) at or below critical inventory threshold!
-                    </strong>
-                    <p style="margin: 0.35rem 0 0.75rem 0; color: #7f1d1d; font-size: 0.9rem;">
-                        The following items have reached automated alert levels and risk customer order fulfillment:
-                    </p>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        <?php foreach (array_slice($myLowStockItems, 0, 5) as $lsi): ?>
-                            <span class="badge <?= $lsi['stock_qty'] <= 0 ? 'badge-danger' : 'badge-amber' ?>" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
-                                <?= e($lsi['name']) ?>: <strong><?= (int) $lsi['stock_qty'] ?> left</strong> (Alert &le; <?= (int) $lsi['low_stock_threshold'] ?>)
-                            </span>
-                        <?php endforeach; ?>
-                        <?php if (count($myLowStockItems) > 5): ?>
-                            <span class="muted" style="font-size: 0.8rem; align-self: center;">+<?= count($myLowStockItems) - 5 ?> more</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <a href="<?= e(url('pages/dashboard/manage_products.php?filter=low_stock')) ?>" class="btn btn-primary btn-sm" style="background: #dc2626; border-color: #dc2626; align-self: center;">
-                    Restock Inventory &rarr;
-                </a>
-            </div>
-        </div>
-    <?php endif; ?>
     </div>
 </main>
 
