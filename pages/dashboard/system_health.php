@@ -397,7 +397,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span class="muted">Port &amp; Security:</span>
-                    <strong>Port <?= e((string) $smtpConfig['port']) ?> &bull; <?= strtoupper($smtpConfig['encryption']) ?></strong>
+                    <strong>Port <?= e((string) ($smtpConfig['port'] ?? 587)) ?> &bull; <?= strtoupper($smtpConfig['encryption'] ?? 'TLS') ?></strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span class="muted">SMTP Account:</span>
@@ -405,7 +405,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span class="muted">Sender Identity:</span>
-                    <strong><?= e($smtpConfig['from_name']) ?> &lt;<?= e($smtpConfig['from_email']) ?>&gt;</strong>
+                    <strong><?= e($smtpConfig['from_name'] ?? 'SokoHub') ?> &lt;<?= e($smtpConfig['from_email'] ?? 'no-reply@sokohub.co.ke') ?>&gt;</strong>
                 </div>
             </div>
 

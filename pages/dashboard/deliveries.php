@@ -473,11 +473,12 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td>
                                 <?php if ($hasRider): ?>
                                     <div>
-                                        <strong><?= e($del['rider_name']) ?></strong>
-                                        <?php if (!empty($del['rider_phone'])): ?>
+                                        <strong><?= e($del['rider_name'] ?? ($role === 'delivery' ? $user['full_name'] : 'Assigned Rider')) ?></strong>
+                                        <?php $riderPhone = $del['rider_phone'] ?? ($role === 'delivery' ? ($user['phone'] ?? '') : ''); ?>
+                                        <?php if (!empty($riderPhone)): ?>
                                             <div class="small muted">
                                                 <?= icon('phone', 'lucide-xs') ?>
-                                                <a href="tel:<?= e($del['rider_phone']) ?>"><?= e($del['rider_phone']) ?></a>
+                                                <a href="tel:<?= e($riderPhone) ?>"><?= e($riderPhone) ?></a>
                                             </div>
                                         <?php endif; ?>
                                         <?php if (!empty($del['vehicle_plate_number'])): ?>

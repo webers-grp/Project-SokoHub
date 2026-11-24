@@ -164,7 +164,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?= e($p['checkout_request_id']) ?>
                             </td>
                             <td class="small muted" style="max-width: 140px;">
-                                <?= e($p['result_desc'] ?: '&mdash;') ?>
+                                <?= e(($p['result_desc'] ?? '') ?: '&mdash;') ?>
                             </td>
                             <td>
                                 <?php if ($p['status'] === 'pending' && !empty($p['checkout_request_id'])): ?>
