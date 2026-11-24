@@ -195,7 +195,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </table>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #e2e8f0;">
                 <form action="<?= e(url('cart_actions.php')) ?>" method="POST">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="clear">
@@ -209,7 +209,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <p class="muted">Items Subtotal: <strong id="cartSubtotal"><?= format_ksh($subtotal) ?></strong></p>
                     <p class="muted">Standard Local Delivery Fee: <strong id="cartDeliveryFee"><?= format_ksh($deliveryFee) ?></strong></p>
                     <p style="font-size:1.3rem; margin:0.45rem 0 0.9rem;">
-                        Estimated Total: <strong style="color:var(--green-dark);" id="cartGrandTotal"><?= format_ksh($subtotal + $deliveryFee) ?></strong>
+                        Estimated Total: <strong style="color:#15803d;" id="cartGrandTotal"><?= format_ksh($subtotal + $deliveryFee) ?></strong>
                     </p>
                     <a href="<?= e(url('pages/buyer/checkout.php')) ?>" class="btn btn-amber">
                         <span>Proceed to Checkout</span>

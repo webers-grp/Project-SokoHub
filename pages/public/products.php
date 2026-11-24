@@ -213,7 +213,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php if ((int) $product['stock_qty'] > 0): ?>
                                         <span><?= (int) $product['stock_qty'] ?> in stock</span>
                                     <?php else: ?>
-                                        <span style="color: var(--danger); font-weight:700;">Out of stock</span>
+                                        <span style="color: #ef4444; font-weight:700;">Out of stock</span>
                                     <?php endif; ?>
                                 </p>
                                 <div class="product-price-row">

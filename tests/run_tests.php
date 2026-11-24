@@ -355,6 +355,7 @@ Payouts::ensureSchema();
 
 // Reset test billing cycle for seller 2 to ensure idempotent test runs
 $pdo->exec("DELETE FROM seller_payouts WHERE seller_user_id = 2 AND period_start = '2026-10-01'");
+$pdo->exec("UPDATE orders SET created_at = '2026-10-15 10:00:00' WHERE id = 1");
 
 // 12a. Schema check
 $payoutTable = $pdo->query("SHOW TABLES LIKE 'seller_payouts'")->fetch();

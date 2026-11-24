@@ -19,7 +19,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="split-grid">
             <div>
                 <span class="badge badge-primary">Our Mission</span>
-                <h1 style="margin-top: 0.6rem; color: var(--green-dark);">Empowering Local Commerce Across Kirinyaga &amp; Beyond</h1>
+                <h1 style="margin-top: 0.6rem; color: #15803d;">Empowering Local Commerce Across Kirinyaga &amp; Beyond</h1>
                 <p style="margin-top: 0.9rem;">
                     SokoHub is a modern online marketplace created to uplift small and medium-sized local businesses. We provide a simple, accessible, and reliable platform where vendors showcase their products, reach new customers, and grow beyond the physical boundaries of traditional retail stalls.
                 </p>

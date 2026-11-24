@@ -197,7 +197,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         $lineItems = $itemsByOrder[(int) $ord['id']] ?? [];
                         $isActive = !in_array($ord['order_status'], ['delivered', 'cancelled'], true) && ($ord['delivery_status'] ?? '') !== 'delivered';
                         ?>
-                        <tr style="border-bottom: <?= $isActive ? 'none' : '1px solid var(--border-color)' ?>;">
+                        <tr style="border-bottom: <?= $isActive ? 'none' : '1px solid #e2e8f0' ?>;">
                             <td>
                                 <strong><?= e($ord['order_code']) ?></strong>
                                 <div class="small muted"><?= e(date('d M Y', strtotime($ord['created_at']))) ?></div>
@@ -318,7 +318,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
                         <div>
                             <span class="muted small" style="display: block;">Total &amp; Payment:</span>
-                            <strong style="color: var(--green-primary);"><?= format_ksh($ord['total_amount']) ?></strong>
+                            <strong style="color: #16a34a;"><?= format_ksh($ord['total_amount']) ?></strong>
                             <div style="margin-top: 0.2rem;">
                                 <span class="badge <?= e($pBadge['class']) ?>" style="font-size: 0.75rem;"><?= e($pBadge['label']) ?></span>
                             </div>
@@ -326,7 +326,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
 
                     <?php if (!empty($ord['rider_name'])): ?>
-                        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
+                        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
                             <div>
                                 <span style="color: #0284c7; font-weight: 600;"><?= icon('user-check', 'lucide-xs') ?> Rider: <?= e($ord['rider_name']) ?></span>
                                 <?php if (!empty($ord['vehicle_plate_number'])): ?>

@@ -101,7 +101,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Seller-specific Extra Fields -->
-                <div id="sellerExtraFields" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1.25rem; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px;">
+                <div id="sellerExtraFields" class="auth-card-section" style="display: <?= $selectedRole === 'seller' ? 'block' : 'none' ?>; margin-top: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #d97706; margin-bottom: 0.85rem;">
                         <?= icon('store', 'lucide-xs') ?>
                         <span>Store Identity &amp; Campus Location</span>
@@ -164,7 +164,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Delivery-specific Extra Fields -->
-                <div id="deliveryExtraFields" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem; padding: 1rem; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px;">
+                <div id="deliveryExtraFields" class="auth-card-section" style="display: <?= $selectedRole === 'delivery' ? 'block' : 'none' ?>; margin-top: 0.75rem;">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="reg_transport">Transport Method</label>

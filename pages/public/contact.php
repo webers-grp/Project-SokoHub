@@ -61,7 +61,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <main class="container section-space">
     <div class="split-grid" style="align-items: start;">
         <div class="card">
-            <h1 style="color: var(--green-dark);">Contact SokoHub Support</h1>
+            <h1 style="color: #15803d;">Contact SokoHub Support</h1>
             <p class="muted" style="margin-bottom: 1.25rem;">We are here to help! Send a question about orders, seller onboarding, or delivery partnerships.</p>
 
             <?php if (!empty($errors)): ?>
@@ -106,7 +106,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div>
             <div class="card">
-                <h2 style="color: var(--amber-primary); margin-bottom: 0.75rem;">Direct Contact Desk</h2>
+                <h2 style="color: #d97706; margin-bottom: 0.75rem;">Direct Contact Desk</h2>
                 <p style="margin-top: 0.5rem;"><?= icon('mail', 'lucide-xs', 'blue') ?> <strong>Email:</strong> support@sokohub.co.ke</p>
                 <p style="margin-top: 0.4rem;"><?= icon('phone', 'lucide-xs', 'emerald') ?> <strong>Phone:</strong> +254 700 123 456</p>
                 <p style="margin-top: 0.4rem;"><?= icon('map-pin', 'lucide-xs', 'rose') ?> <strong>Office:</strong> 123 Market Street, Kutus, Kirinyaga County, Kenya</p>

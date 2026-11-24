@@ -97,7 +97,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php endif; ?>
 
             <?php if ($successMessage !== ''): ?>
-                <div class="alert alert-success" style="background: #e8f5e9; border: 1px solid #c8e6c9; color: #1b5e20; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.25rem;">
+                <div class="alert alert-success" style="background: #e8f5e9; border: 1px solid #c8e6c9; color: #1b5e20; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
                     <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
                         <?= icon('check-circle', 'lucide-md') ?>
                         <div>

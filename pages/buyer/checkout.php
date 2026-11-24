@@ -310,7 +310,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </h2>
 
                     <div class="card" style="background:#f8fafc; margin-bottom:1.25rem;">
-                        <h3 style="font-size:1.05rem; margin-bottom:0.4rem; color:var(--text-dark);">
+                        <h3 style="font-size:1.05rem; margin-bottom:0.4rem; color:#0f172a;">
                             <?= icon('map-pin', 'lucide-xs', 'rose') ?> Delivery Destination
                         </h3>
                         <p id="reviewAddressSummary" class="small muted" style="line-height:1.5;">
@@ -319,7 +319,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
 
                     <div class="card" style="background:#f8fafc; margin-bottom:1.25rem;">
-                        <h3 style="font-size:1.05rem; margin-bottom:0.4rem; color:var(--text-dark);">
+                        <h3 style="font-size:1.05rem; margin-bottom:0.4rem; color:#0f172a;">
                             <?= icon('credit-card', 'lucide-xs', 'blue') ?> Payment Preference
                         </h3>
                         <p id="reviewPaymentSummary" class="small muted">
@@ -361,7 +361,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </h2>
             <ul style="list-style:none;">
                 <?php foreach ($items as $it): ?>
-                    <li style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0; border-bottom:1px solid var(--border-color);">
+                    <li style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0; border-bottom:1px solid #e2e8f0;">
                         <div style="display:flex; align-items:center; gap:0.6rem;">
                             <img src="<?= e(url($it['image_path'])) ?>" alt="" class="table-thumb" style="width:38px; height:38px;">
                             <div>
@@ -382,12 +382,12 @@ require_once __DIR__ . '/../../includes/header.php';
                     <span>Delivery Fee (Kirinyaga Local Dispatch)</span>
                     <strong id="summaryDeliveryFee"><?= format_ksh($deliveryFee) ?></strong>
                 </p>
-                <hr style="border:0; border-top:1px solid var(--border-color); margin:0.75rem 0;">
-                <p style="display:flex; justify-content:space-between; font-size:1.3rem; font-weight:800; color:var(--green-dark);">
+                <hr style="border:0; border-top:1px solid #e2e8f0; margin:0.75rem 0;">
+                <p style="display:flex; justify-content:space-between; font-size:1.3rem; font-weight:800; color:#15803d;">
                     <span>Total Payable on Delivery</span>
                     <strong id="summaryGrandTotal"><?= format_ksh($itemsSubtotal + $deliveryFee) ?></strong>
                 </p>
-                <div class="small muted" style="margin-top: 0.75rem; text-align: center; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
+                <div class="small muted" style="margin-top: 0.75rem; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem;">
                     <?= icon('shield-check', 'lucide-xs', 'emerald') ?> No payment is deducted now. STK push will be initiated upon rider arrival.
                 </div>
             </div>

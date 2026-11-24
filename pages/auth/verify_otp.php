@@ -144,12 +144,12 @@ require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <main class="container section-space" style="max-width: 580px; margin: 0 auto;">
-    <div class="card" style="padding: 2.25rem; border-radius: var(--radius); box-shadow: var(--shadow-md); background: var(--bg-surface);">
+    <div class="card" style="padding: 2.25rem; border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1); background: #ffffff;">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-            <div style="width: 64px; height: 64px; border-radius: 50%; background: #e8f5e9; color: var(--green-dark); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #e8f5e9; color: #15803d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
                 <?= icon('shield-check', 'lucide-lg') ?>
             </div>
-            <h1 style="font-size: 1.65rem; color: var(--green-dark); margin-bottom: 0.35rem;">Enter Verification Code</h1>
+            <h1 style="font-size: 1.65rem; color: #15803d; margin-bottom: 0.35rem;">Enter Verification Code</h1>
             <p class="muted" style="font-size: 0.95rem;">
                 We sent a 6-digit confirmation code to <strong><?= e($maskedEmail) ?></strong>.
                 Enter the code below to verify your account.
@@ -182,7 +182,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <input type="hidden" name="code" id="fullOtpCode" value="">
 
             <div style="margin: 1.75rem 0;">
-                <label style="display: block; text-align: center; font-weight: 600; margin-bottom: 0.75rem; color: var(--text);">
+                <label style="display: block; text-align: center; font-weight: 600; margin-bottom: 0.75rem; color: #1e293b;">
                     Security PIN
                 </label>
                 <div class="otp-container" style="display: flex; gap: 0.6rem; justify-content: center;">
@@ -196,14 +196,14 @@ require_once __DIR__ . '/../../includes/header.php';
                                autocomplete="off"
                                required
                                data-index="<?= $i ?>"
-                               style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #cbd5e1; border-radius: 10px; background: #f8fafc; transition: all 0.2s ease;">
+                               style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border-radius: 10px; transition: all 0.2s ease;">
                     <?php endfor; ?>
                 </div>
             </div>
 
             <!-- Countdown Timer Display (10:00) -->
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div id="countdownBox" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; border-radius: 20px; background: #f1f5f9; color: var(--text); font-size: 0.9rem; font-weight: 600;">
+                <div id="countdownBox" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; border-radius: 20px; background: #f1f5f9; color: #334155; font-size: 0.9rem; font-weight: 600;">
                     <?= icon('clock', 'lucide-sm', 'amber') ?>
                     <span>Code expires in <span id="timerText">10:00</span></span>
                 </div>
@@ -303,15 +303,6 @@ document.addEventListener('DOMContentLoaded', function () {
     digits.forEach((digit, index) => {
         digit.addEventListener('focus', function () {
             this.select();
-            this.style.borderColor = 'var(--green-main, #1b871b)';
-            this.style.background = '#ffffff';
-            this.style.boxShadow = '0 0 0 3px rgba(27, 135, 27, 0.15)';
-        });
-
-        digit.addEventListener('blur', function () {
-            this.style.borderColor = '#cbd5e1';
-            this.style.background = '#f8fafc';
-            this.style.boxShadow = 'none';
         });
 
         digit.addEventListener('input', function (e) {

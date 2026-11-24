@@ -318,7 +318,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php if (!$isVerifiedRider): 
             $riderStatus = $riderProfile['verification_status'] ?? 'pending';
         ?>
-            <div class="card" style="margin-bottom: 1.5rem; border-left: 6px solid #f59e0b; background: var(--bg-surface, #fffbeb);">
+            <div class="card" style="margin-bottom: 1.5rem; border-left: 6px solid #f59e0b; background: #fffbeb;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <strong style="color: #b45309; font-size: 1rem;">

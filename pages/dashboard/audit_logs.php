@@ -130,7 +130,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="table-responsive">
                 <table class="table" style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0); text-align: left;">
+                        <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
                             <th style="padding: 0.75rem;">Time</th>
                             <th style="padding: 0.75rem;">Actor</th>
                             <th style="padding: 0.75rem;">Action</th>
@@ -147,7 +147,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             elseif (str_starts_with($row['action'], 'payout.')) $badgeClass = 'badge-primary';
                             elseif (str_contains($row['action'], 'delete') || str_contains($row['action'], 'reject') || str_contains($row['action'], 'fail')) $badgeClass = 'badge-danger';
                         ?>
-                            <tr style="border-bottom: 1px solid var(--border-color, #edf2f7);">
+                            <tr style="border-bottom: 1px solid #edf2f7;">
                                 <td style="padding: 0.75rem; white-space: nowrap; font-size: 0.85rem;" class="muted">
                                     <?= e(date('M d, Y H:i:s', strtotime($row['created_at']))) ?>
                                 </td>

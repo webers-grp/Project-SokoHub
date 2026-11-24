@@ -303,7 +303,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php else: ?>
                 <div class="reviews-list">
                     <?php foreach ($publishedReviews as $rev): ?>
-                        <div class="review-item" style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <div class="review-item" style="padding: 1rem 0; border-bottom: 1px solid #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                                 <div>
                                     <strong><?= e($rev['buyer_name']) ?></strong>

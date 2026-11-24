@@ -92,7 +92,6 @@ CREATE TABLE products (
     image_path VARCHAR(255) NOT NULL DEFAULT 'assets/img/cart-icon.jpg',
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
     status ENUM('active', 'archived') NOT NULL DEFAULT 'active',
-    low_stock_threshold INT UNSIGNED NOT NULL DEFAULT 5,
     rating_avg DECIMAL(3, 2) NOT NULL DEFAULT 0.00,
     rating_count INT UNSIGNED NOT NULL DEFAULT 0,
     version INT UNSIGNED NOT NULL DEFAULT 0,

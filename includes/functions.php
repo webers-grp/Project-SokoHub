@@ -220,11 +220,11 @@ function render_order_progress_timeline(array $order): string
 
     if ($isCancelled) {
         $cancelHtml = '
-        <div class="order-timeline-wrap" style="border-left: 5px solid var(--danger); background: var(--danger-bg);">
+        <div class="order-timeline-wrap" style="border-left: 5px solid #ef4444; background: #fef2f2;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span style="color: var(--danger);">' . icon('x-circle', 'lucide-sm') . '</span>
+                <span style="color: #ef4444;">' . icon('x-circle', 'lucide-sm') . '</span>
                 <div>
-                    <strong style="color: var(--danger); font-size: 0.95rem;">Order Cancelled</strong>
+                    <strong style="color: #ef4444; font-size: 0.95rem;">Order Cancelled</strong>
                     <p class="small muted" style="margin: 0.2rem 0 0 0;">This order was cancelled. Reserved items were returned to merchant inventory.</p>
                 </div>
             </div>

@@ -333,7 +333,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <?php endif; ?>
 
     <div class="card">
-        <h2 style="margin-bottom: 1rem; color: var(--green-dark);">
+        <h2 style="margin-bottom: 1rem; color: #15803d;">
             <?= $editingProduct ? 'Update Product Details' : 'Add New Product' ?>
         </h2>
 
@@ -387,10 +387,10 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <!-- Dynamic Live Price Calculation Preview -->
-            <div id="priceCalculationPreview" style="margin-top: -0.5rem; margin-bottom: 1.25rem; padding: 0.75rem 1rem; border-radius: 8px; background: var(--green-light); border: 1px solid rgba(39, 179, 39, 0.25); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.88rem;">
+            <div id="priceCalculationPreview" style="margin-top: -0.5rem; margin-bottom: 1.25rem; padding: 0.75rem 1rem; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.88rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <?= icon('tag', 'lucide-xs', 'emerald') ?>
-                    <span id="priceCalcSummary" style="font-weight: 600; color: var(--text-main);">
+                    <span id="priceCalcSummary" style="font-weight: 600; color: #0f172a;">
                         Enter regular price above to view final sale price.
                     </span>
                 </div>
@@ -617,8 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
             summaryEl.innerHTML = 'Enter regular price above to calculate final sale price.';
             savingsEl.style.display = 'none';
             if (previewBox) {
-                previewBox.style.background = 'var(--bg-surface)';
-                previewBox.style.borderColor = 'var(--border-color)';
+                previewBox.style.background = '#f8fafc';
+                previewBox.style.borderColor = '#e2e8f0';
             }
             return;
         }
@@ -626,19 +626,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (discount > 0) {
             const finalPrice = Math.round((regular * (1 - discount / 100)) * 100) / 100;
             const savedAmount = Math.round((regular - finalPrice) * 100) / 100;
-            summaryEl.innerHTML = `Final Selling Price: <strong style="color: var(--green-dark); font-size: 1.05rem;">KSh ${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> <span style="color: var(--text-muted); text-decoration: line-through; margin-left: 6px; font-size: 0.9rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+            summaryEl.innerHTML = `Final Selling Price: <strong style="color: #15803d; font-size: 1.05rem;">KSh ${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> <span style="color: #64748b; text-decoration: line-through; margin-left: 6px; font-size: 0.9rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
             savingsEl.textContent = `${Math.round(discount)}% OFF (Save KSh ${savedAmount.toLocaleString('en-US')})`;
             savingsEl.style.display = 'inline-block';
             if (previewBox) {
-                previewBox.style.background = 'var(--green-light)';
-                previewBox.style.borderColor = 'rgba(39, 179, 39, 0.35)';
+                previewBox.style.background = '#f0fdf4';
+                previewBox.style.borderColor = '#bbf7d0';
             }
         } else {
-            summaryEl.innerHTML = `Standard Selling Price: <strong style="color: var(--text-main); font-size: 1.05rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> (No discount applied)`;
+            summaryEl.innerHTML = `Standard Selling Price: <strong style="color: #0f172a; font-size: 1.05rem;">KSh ${regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> (No discount applied)`;
             savingsEl.style.display = 'none';
             if (previewBox) {
-                previewBox.style.background = 'var(--bg-surface)';
-                previewBox.style.borderColor = 'var(--border-color)';
+                previewBox.style.background = '#f8fafc';
+                previewBox.style.borderColor = '#e2e8f0';
             }
         }
     }

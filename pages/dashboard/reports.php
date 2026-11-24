@@ -413,7 +413,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="stat-card"><span class="stat-label">Active SKUs</span><strong class="stat-value"><?= $invSummary['skus'] ?></strong></div>
             <div class="stat-card"><span class="stat-label">Total Stock Units</span><strong class="stat-value"><?= $invSummary['total_units'] ?></strong></div>
             <div class="stat-card"><span class="stat-label">Inventory Valuation</span><strong class="stat-value"><?= format_ksh($invSummary['valuation']) ?></strong></div>
-            <div class="stat-card"><span class="stat-label">Low Stock Alerts (&le; Threshold)</span><strong class="stat-value" style="color:var(--danger);"><?= $invSummary['low_stock'] ?></strong></div>
+            <div class="stat-card"><span class="stat-label">Low Stock Alerts (&le; Threshold)</span><strong class="stat-value" style="color:#ef4444;"><?= $invSummary['low_stock'] ?></strong></div>
         </div>
 
         <div class="card">

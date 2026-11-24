@@ -130,7 +130,7 @@ require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <main class="container section-space" style="max-width: 540px; margin: 0 auto;">
-    <div class="card" style="padding: 2.25rem; border-radius: var(--radius); box-shadow: var(--shadow-lg); background: var(--bg-surface); border-top: 4px solid #7c3aed;">
+    <div class="card" style="padding: 2.25rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12); background: #ffffff; border-top: 4px solid #7c3aed;">
         <div style="text-align: center; margin-bottom: 1.5rem;">
             <div style="width: 68px; height: 68px; border-radius: 50%; background: #f3e8ff; color: #7c3aed; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
                 <?= icon('shield-check', 'lucide-lg') ?>
@@ -140,7 +140,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= icon('lock', 'lucide-xs') ?> Administrator Security Challenge
                 </span>
             </div>
-            <h1 style="font-size: 1.6rem; color: var(--green-dark); margin: 0.5rem 0 0.35rem;">Two-Factor Authentication</h1>
+            <h1 style="font-size: 1.6rem; color: #15803d; margin: 0.5rem 0 0.35rem;">Two-Factor Authentication</h1>
             <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">
                 Privileged access requires second-factor authorization. A 6-digit security code has been dispatched to <strong><?= e($maskedEmail) ?></strong>.
             </p>
@@ -163,7 +163,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <input type="hidden" name="code" id="adminFullCode" value="">
 
             <div style="margin: 1.5rem 0;">
-                <label style="display: block; text-align: center; font-weight: 600; margin-bottom: 0.75rem; color: var(--text);">
+                <label style="display: block; text-align: center; font-weight: 600; margin-bottom: 0.75rem; color: #1e293b;">
                     Enter 6-Digit Challenge Code
                 </label>
                 <div class="otp-container" style="display: flex; gap: 0.6rem; justify-content: center;">
@@ -177,7 +177,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                autocomplete="one-time-code"
                                required
                                data-index="<?= $i ?>"
-                               style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #cbd5e1; border-radius: 10px; background: #faf5ff; transition: all 0.2s ease;">
+                               style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border-radius: 10px; transition: all 0.2s ease;">
                     <?php endfor; ?>
                 </div>
             </div>
@@ -261,15 +261,6 @@ document.addEventListener('DOMContentLoaded', function () {
     digits.forEach((digit, index) => {
         digit.addEventListener('focus', function () {
             this.select();
-            this.style.borderColor = '#7c3aed';
-            this.style.background = '#ffffff';
-            this.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.2)';
-        });
-
-        digit.addEventListener('blur', function () {
-            this.style.borderColor = '#cbd5e1';
-            this.style.background = '#faf5ff';
-            this.style.boxShadow = 'none';
         });
 
         digit.addEventListener('input', function () {

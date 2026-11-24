@@ -161,7 +161,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         ?>
                             <tr style="border-bottom: 1px solid #edf2f7;">
                                 <td style="padding: 0.75rem;">
-                                    <strong style="display: block; font-size: 1rem; color: var(--color-primary);">
+                                    <strong style="display: block; font-size: 1rem; color: #15803d;">
                                         <?= e($acc['business_name']) ?>
                                     </strong>
                                     <div style="font-size: 0.85rem; color: #475569;">
@@ -198,13 +198,13 @@ require_once __DIR__ . '/../../includes/header.php';
                                         Email: <?= e($acc['email']) ?>
                                     </div>
                                     <?php if ($role === 'delivery'): ?>
-                                        <div style="margin-top: 0.35rem; padding: 0.25rem 0.5rem; background: var(--info-bg); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 6px; font-size: 0.78rem;">
-                                            <span style="color: var(--info); font-weight: 700;">Vehicle:</span> 
+                                        <div style="margin-top: 0.35rem; padding: 0.25rem 0.5rem; background: #e0f2fe; border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 6px; font-size: 0.78rem;">
+                                            <span style="color: #0284c7; font-weight: 700;">Vehicle:</span> 
                                             <strong><?= e(ucfirst(str_replace('_', ' ', $acc['business_type'] ?? 'motorbike'))) ?></strong>
                                             <?php if (!empty($acc['vehicle_plate_number'])): ?>
-                                                &bull; Plate: <strong style="font-family: monospace; color: var(--color-primary);"><?= e($acc['vehicle_plate_number']) ?></strong>
+                                                &bull; Plate: <strong style="font-family: monospace; color: #0284c7;"><?= e($acc['vehicle_plate_number']) ?></strong>
                                             <?php else: ?>
-                                                &bull; <span style="color: var(--danger); font-weight: 700;">No Plate Registered</span>
+                                                &bull; <span style="color: #ef4444; font-weight: 700;">No Plate Registered</span>
                                             <?php endif; ?>
                                             <?php if (!empty($acc['vehicle_model'])): ?>
                                                 <span class="muted">(<?= e($acc['vehicle_model']) ?>)</span>

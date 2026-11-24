@@ -149,7 +149,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
                 <!-- Section 1: Store Owner & Login Credentials -->
-                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div class="auth-card-section">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: #15803d; font-weight: 700; font-size: 1.05rem;">
                         <?= icon('user-check', 'lucide-sm') ?>
                         <span>1. Store Owner &amp; Login Security</span>
@@ -198,7 +198,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Section 2: Store Identity & Campus Location Details -->
-                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div class="auth-card-section">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: #15803d; font-weight: 700; font-size: 1.05rem;">
                         <?= icon('store', 'lucide-sm') ?>
                         <span>2. Store Identity &amp; Campus Location</span>

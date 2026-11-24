@@ -62,7 +62,7 @@ require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <main class="container section-space" style="max-width: 580px; margin: 0 auto;">
-    <div class="card" style="padding: 2.25rem; border-radius: var(--radius); box-shadow: var(--shadow-md); background: var(--bg-surface);">
+    <div class="card" style="padding: 2.25rem; border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1); background: #ffffff;">
 
         <?php if (!$tokenRow && $_SERVER['REQUEST_METHOD'] !== 'POST'): ?>
             <!-- Invalid / Expired Token State -->
@@ -88,10 +88,10 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php else: ?>
             <!-- Password Reset Form -->
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="width: 64px; height: 64px; border-radius: 50%; background: #e8f5e9; color: var(--green-dark); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: #e8f5e9; color: #15803d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
                     <?= icon('lock', 'lucide-lg') ?>
                 </div>
-                <h1 style="font-size: 1.65rem; color: var(--green-dark); margin-bottom: 0.35rem;">Create New Password</h1>
+                <h1 style="font-size: 1.65rem; color: #15803d; margin-bottom: 0.35rem;">Create New Password</h1>
                 <p class="muted" style="font-size: 0.95rem;">
                     Resetting password for <strong><?= e($tokenRow['email'] ?? '') ?></strong>
                 </p>
