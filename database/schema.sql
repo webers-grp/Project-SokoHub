@@ -43,6 +43,11 @@ CREATE TABLE seller_profiles (
     business_name VARCHAR(150) NOT NULL,
     business_type ENUM('retail', 'food_beverage', 'crafts', 'services', 'other') NOT NULL DEFAULT 'retail',
     town VARCHAR(100) NOT NULL DEFAULT 'Kutus',
+    stall_location VARCHAR(180) NULL,
+    student_reg_no VARCHAR(50) NULL,
+    is_student_vendor TINYINT(1) NOT NULL DEFAULT 0,
+    operating_hours VARCHAR(100) NULL DEFAULT '8:00 AM - 8:00 PM',
+    whatsapp_phone VARCHAR(30) NULL,
     description TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_seller_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

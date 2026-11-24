@@ -153,17 +153,34 @@ if ($role === 'seller') {
     $businessType = trim((string) ($_POST['business_type'] ?? 'retail'));
     $town = trim((string) ($_POST['town'] ?? 'Kutus'));
     $desc = trim((string) ($_POST['description'] ?? ''));
+    $stall = trim((string) ($_POST['stall_location'] ?? ''));
+    $isStudent = !empty($_POST['is_student_vendor']) ? 1 : 0;
+    $studentReg = trim((string) ($_POST['student_reg_no'] ?? ''));
+    $opHours = trim((string) ($_POST['operating_hours'] ?? '8:00 AM - 8:00 PM'));
+    $waPhone = trim((string) ($_POST['whatsapp_phone'] ?? ''));
 
     $stmtSeller = $pdo->prepare("
-        INSERT INTO seller_profiles (user_id, business_name, business_type, town, description, created_at)
-        VALUES (:uid, :bname, :btype, :town, :desc, NOW())
+        INSERT INTO seller_profiles (
+            user_id, business_name, business_type, town,
+            stall_location, is_student_vendor, student_reg_no,
+            operating_hours, whatsapp_phone, description, created_at
+        ) VALUES (
+            :uid, :bname, :btype, :town,
+            :stall, :is_std, :std_reg,
+            :op_hrs, :wa, :desc, NOW()
+        )
     ");
     $stmtSeller->execute([
-        ':uid'   => $userId,
-        ':bname' => $businessName,
-        ':btype' => $businessType,
-        ':town'  => $town,
-        ':desc'  => $desc,
+        ':uid'     => $userId,
+        ':bname'   => $businessName,
+        ':btype'   => $businessType,
+        ':town'    => $town,
+        ':stall'   => $stall !== '' ? $stall : null,
+        ':is_std'  => $isStudent,
+        ':std_reg' => $isStudent && $studentReg !== '' ? $studentReg : null,
+        ':op_hrs'  => $opHours !== '' ? $opHours : '8:00 AM - 8:00 PM',
+        ':wa'      => $waPhone !== '' ? $waPhone : null,
+        ':desc'    => $desc,
     ]);
 } elseif ($role === 'delivery') {
     $transportMethod = trim((string) ($_POST['transport_method'] ?? 'motorbike'));

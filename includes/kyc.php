@@ -57,6 +57,26 @@ class Kyc
                 if (!$mpCheck) {
                     $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN mpesa_phone VARCHAR(20) NULL");
                 }
+                $stallCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'stall_location'")->fetch();
+                if (!$stallCheck) {
+                    $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN stall_location VARCHAR(180) NULL");
+                }
+                $stdCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'student_reg_no'")->fetch();
+                if (!$stdCheck) {
+                    $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN student_reg_no VARCHAR(50) NULL");
+                }
+                $isStdCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'is_student_vendor'")->fetch();
+                if (!$isStdCheck) {
+                    $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN is_student_vendor TINYINT(1) NOT NULL DEFAULT 0");
+                }
+                $hrsCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'operating_hours'")->fetch();
+                if (!$hrsCheck) {
+                    $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN operating_hours VARCHAR(100) NULL DEFAULT '8:00 AM - 8:00 PM'");
+                }
+                $waCheck = $pdo->query("SHOW COLUMNS FROM seller_profiles LIKE 'whatsapp_phone'")->fetch();
+                if (!$waCheck) {
+                    $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN whatsapp_phone VARCHAR(30) NULL");
+                }
             }
 
             // 2. Ensure delivery_profiles has KYC columns
