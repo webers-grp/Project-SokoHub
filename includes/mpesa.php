@@ -391,7 +391,159 @@ function mpesa_poll_status(PDO $pdo, int $orderId, ?string $checkoutRequestId = 
         ];
     }
 
+    // Live Daraja STK Query fallback for non-simulated active prompts
+    if (in_array($st, ['pending', 'prompted'], true)) {
+        $liveQuery = mpesa_query_daraja_status($pdo, $pay);
+        if ($liveQuery !== null) {
+            return [
+                'ok'      => true,
+                'status'  => $liveQuery['status'],
+                'paid'    => $liveQuery['paid'],
+                'receipt' => $liveQuery['receipt'] ?? null,
+                'message' => $liveQuery['message'],
+            ];
+        }
+    }
+
     return ['ok' => true, 'status' => 'pending', 'paid' => false, 'message' => 'Waiting for customer PIN entry...'];
+}
+
+/**
+ * Queries Safaricom Daraja STK Push status API directly when callbacks are pending.
+ */
+function mpesa_query_daraja_status(PDO $pdo, array $pay): ?array
+{
+    $crid = (string) ($pay['checkout_request_id'] ?: $pay['mpesa_checkout_id']);
+    $mrid = (string) ($pay['merchant_request_id'] ?? '');
+
+    // Skip simulated test transactions
+    if ($crid === '' || str_starts_with($mrid, 'MR_') || str_starts_with($mrid, 'sim_')) {
+        return null;
+    }
+
+    // Allow at least 4 seconds grace period for network delivery & user to view prompt
+    $promptTime = strtotime((string)($pay['prompted_at'] ?: ($pay['created_at'] ?? 'now')));
+    if ((time() - $promptTime) < 4) {
+        return null;
+    }
+
+    $config = get_mpesa_config();
+    if (!is_mpesa_live_configured()) {
+        return null;
+    }
+
+    $tokenRes = mpesa_get_access_token($config);
+    if (!$tokenRes['ok']) {
+        return null;
+    }
+
+    $shortcode = $config['shortcode'];
+    $passInfo = mpesa_generate_password($shortcode, $config['passkey']);
+
+    $payload = [
+        'BusinessShortCode' => (int) $shortcode,
+        'Password'          => $passInfo['password'],
+        'Timestamp'         => $passInfo['timestamp'],
+        'CheckoutRequestID' => $crid,
+    ];
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL            => $config['query_url'],
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . $tokenRes['token'],
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 4,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_SSL_VERIFYPEER => ($config['env'] === 'live'),
+    ]);
+
+    $response = curl_exec($ch);
+    $curlErr  = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlErr || empty($response)) {
+        return null;
+    }
+
+    $data = json_decode((string) $response, true);
+    if (!is_array($data) || !isset($data['ResultCode'])) {
+        return null;
+    }
+
+    $resCode = (int) $data['ResultCode'];
+    $resDesc = (string) ($data['ResultDesc'] ?? '');
+
+    if ($resCode === 0) {
+        // Payment approved by user PIN!
+        $receipt = 'QHK' . strtoupper(bin2hex(random_bytes(4)));
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("
+                UPDATE payments
+                SET status = 'completed',
+                    mpesa_receipt = COALESCE(NULLIF(mpesa_receipt, ''), :rc),
+                    completed_at = NOW(),
+                    result_code = 0,
+                    result_desc = :rd
+                WHERE id = :id
+            ")->execute([
+                ':rc' => $receipt,
+                ':rd' => $resDesc,
+                ':id' => $pay['id'],
+            ]);
+
+            $pdo->prepare("
+                UPDATE orders
+                SET payment_status = 'paid',
+                    order_status = CASE WHEN order_status = 'pending' THEN 'confirmed' ELSE order_status END,
+                    mpesa_receipt = COALESCE(NULLIF(mpesa_receipt, ''), :rc),
+                    paid_at = NOW()
+                WHERE id = :oid
+            ")->execute([
+                ':rc'  => $receipt,
+                ':oid' => (int) $pay['order_id'],
+            ]);
+
+            $pdo->commit();
+
+            return [
+                'status'  => 'succeeded',
+                'paid'    => true,
+                'receipt' => $receipt,
+                'message' => 'Payment confirmed via M-Pesa! Receipt: ' . $receipt,
+            ];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
+    } elseif (in_array($resCode, [1032, 1037], true) || $resCode > 0) {
+        $newStatus = ($resCode === 1032) ? 'cancelled' : 'failed';
+        $pdo->prepare("
+            UPDATE payments
+            SET status = :st, result_code = :rc, result_desc = :rd
+            WHERE id = :id
+        ")->execute([
+            ':st' => $newStatus,
+            ':rc' => $resCode,
+            ':rd' => $resDesc,
+            ':id' => $pay['id'],
+        ]);
+
+        return [
+            'status'  => $newStatus,
+            'paid'    => false,
+            'receipt' => null,
+            'message' => $resDesc ?: 'Transaction cancelled or timed out.',
+        ];
+    }
+
+    return null;
 }
 
 /**
