@@ -282,3 +282,39 @@ code { font-family: var(--font-mono); background: #090d16; padding: 0.1rem 0.35r
 .alert-error { background: #7f1d1d; border: 1px solid #dc2626; color: #fca5a5; }
 .alert-warning { background: #78350f; border: 1px solid #d97706; color: #fcd34d; }
 .alert-info { background: #1e3a8a; border: 1px solid #2563eb; color: #93c5fd; }
+
+/* Lucide Vector Icons */
+.lucide, [data-lucide] {
+    display: inline-block;
+    vertical-align: -2px;
+    stroke-width: 1.85;
+    fill: none;
+    flex-shrink: 0;
+}
+svg.lucide, .lucide, [data-lucide] {
+    width: 16px;
+    height: 16px;
+}
+.lucide-xs, svg.lucide-xs, [data-lucide].lucide-xs {
+    width: 13px;
+    height: 13px;
+}
+.lucide-sm, svg.lucide-sm, [data-lucide].lucide-sm {
+    width: 16px;
+    height: 16px;
+}
+.lucide-md, svg.lucide-md, [data-lucide].lucide-md {
+    width: 19px;
+    height: 19px;
+}
+.lucide-lg, svg.lucide-lg, [data-lucide].lucide-lg {
+    width: 22px;
+    height: 22px;
+}
+.lucide-xl, svg.lucide-xl, [data-lucide].lucide-xl {
+    width: 26px;
+    height: 26px;
+}
+.btn .lucide, .btn svg.lucide {
+    margin-right: 0.35rem;
+}

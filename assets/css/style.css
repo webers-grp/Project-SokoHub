@@ -1982,99 +1982,120 @@ table.data-table {
 }
 
 svg.lucide, .lucide, [data-lucide] {
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+}
+
+.lucide-xs, svg.lucide-xs, [data-lucide].lucide-xs {
   width: 13px !important;
   height: 13px !important;
   max-width: 13px !important;
   max-height: 13px !important;
-}
-
-.lucide-xs, svg.lucide-xs, [data-lucide].lucide-xs {
-  width: 10px !important;
-  height: 10px !important;
-  max-width: 10px !important;
-  max-height: 10px !important;
   stroke-width: 1.9;
   vertical-align: -1px;
 }
 
 .lucide-sm, svg.lucide-sm, [data-lucide].lucide-sm {
-  width: 12px !important;
-  height: 12px !important;
-  max-width: 12px !important;
-  max-height: 12px !important;
+  width: 15px !important;
+  height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
   stroke-width: 1.85;
   vertical-align: -1.5px;
 }
 
 .lucide-md, svg.lucide-md, [data-lucide].lucide-md {
-  width: 13px !important;
-  height: 13px !important;
-  max-width: 13px !important;
-  max-height: 13px !important;
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
   stroke-width: 1.85;
-  vertical-align: -1.5px;
+  vertical-align: -2px;
 }
 
 .lucide-lg, svg.lucide-lg, [data-lucide].lucide-lg {
-  width: 14px !important;
-  height: 14px !important;
-  max-width: 14px !important;
-  max-height: 14px !important;
+  width: 21px !important;
+  height: 21px !important;
+  max-width: 21px !important;
+  max-height: 21px !important;
   stroke-width: 1.8;
+  vertical-align: -2px;
 }
 
 .lucide-xl, svg.lucide-xl, [data-lucide].lucide-xl {
-  width: 16px !important;
-  height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
+  width: 24px !important;
+  height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
   stroke-width: 1.75;
+  vertical-align: -3px;
 }
 
-h1 > .lucide, h1 > svg.lucide { width: 15px !important; height: 15px !important; max-width: 15px !important; max-height: 15px !important; vertical-align: -2px; }
-h2 > .lucide, h2 > svg.lucide { width: 13px !important; height: 13px !important; max-width: 13px !important; max-height: 13px !important; vertical-align: -1.5px; }
-h3 > .lucide, h3 > svg.lucide { width: 12px !important; height: 12px !important; max-width: 12px !important; max-height: 12px !important; vertical-align: -1px; }
+h1 > .lucide, h1 > svg.lucide { width: 22px !important; height: 22px !important; max-width: 22px !important; max-height: 22px !important; vertical-align: -2px; }
+h2 > .lucide, h2 > svg.lucide { width: 18px !important; height: 18px !important; max-width: 18px !important; max-height: 18px !important; vertical-align: -1.5px; }
+h3 > .lucide, h3 > svg.lucide { width: 16px !important; height: 16px !important; max-width: 16px !important; max-height: 16px !important; vertical-align: -1px; }
 
 .btn .lucide, .btn svg.lucide {
-  width: 12px !important;
-  height: 12px !important;
-  max-width: 12px !important;
-  max-height: 12px !important;
-  margin-right: 0.22rem;
+  width: 15px !important;
+  height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
+  margin-right: 0.32rem;
   vertical-align: -1.5px;
 }
 
 .btn-sm .lucide, .btn-sm svg.lucide {
-  width: 11px !important;
-  height: 11px !important;
-  max-width: 11px !important;
-  max-height: 11px !important;
-  margin-right: 0.18rem;
+  width: 13px !important;
+  height: 13px !important;
+  max-width: 13px !important;
+  max-height: 13px !important;
+  margin-right: 0.22rem;
   vertical-align: -1px;
 }
 
 .badge .lucide, .badge svg.lucide {
-  width: 10px !important;
-  height: 10px !important;
-  max-width: 10px !important;
-  max-height: 10px !important;
-  margin-right: 0.15rem;
-  vertical-align: -1px;
-}
-
-table .lucide, table svg.lucide {
-  width: 11px !important;
-  height: 11px !important;
-  max-width: 11px !important;
-  max-height: 11px !important;
-}
-
-.category-nav-links .lucide, .category-nav-links svg.lucide {
   width: 12px !important;
   height: 12px !important;
   max-width: 12px !important;
   max-height: 12px !important;
-  margin-right: 0.22rem;
+  margin-right: 0.2rem;
+  vertical-align: -1px;
+}
+
+table .lucide, table svg.lucide {
+  width: 14px !important;
+  height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  vertical-align: -1px;
+}
+
+.category-nav-links .lucide, .category-nav-links svg.lucide {
+  width: 15px !important;
+  height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
+  margin-right: 0.28rem;
+  vertical-align: -1.5px;
+}
+
+.header-action-item .action-icon .lucide,
+.header-action-item .action-icon svg.lucide {
+  width: 19px !important;
+  height: 19px !important;
+  max-width: 19px !important;
+  max-height: 19px !important;
+  vertical-align: middle;
+}
+
+.mobile-nav-icon .lucide,
+.mobile-nav-icon svg.lucide {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
 }
 
 /* ============================================================
@@ -2177,19 +2198,19 @@ table .lucide, table svg.lucide {
 
 /* Stat icon wraps */
 .stat-icon-wrap {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 .stat-icon-wrap .lucide, .stat-icon-wrap svg.lucide {
-  width: 13px !important;
-  height: 13px !important;
-  max-width: 13px !important;
-  max-height: 13px !important;
+  width: 17px !important;
+  height: 17px !important;
+  max-width: 17px !important;
+  max-height: 17px !important;
 }
 .stat-icon-emerald { background: #ecfdf5; }
 .stat-icon-emerald .lucide { stroke: #059669 !important; }
