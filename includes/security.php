@@ -40,13 +40,14 @@ class Security
         // Restrict intrusive browser APIs
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
-        // Content Security Policy (allows local assets, fonts, inline scripts needed for charts/interactions)
+        // Content Security Policy (allows local assets, fonts, inline scripts, and Google Maps embeds)
         $csp = "default-src 'self'; "
             . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
             . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             . "font-src 'self' https://fonts.gstatic.com data:; "
             . "img-src 'self' data: blob: https:; "
             . "connect-src 'self'; "
+            . "frame-src 'self' https://www.google.com https://maps.google.com; "
             . "frame-ancestors 'self';";
         header('Content-Security-Policy: ' . $csp);
 

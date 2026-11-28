@@ -9,6 +9,7 @@
  */
 
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/maps.php';
 Security::sendHeaders();
 
 if (!isset($pageTitle)) {

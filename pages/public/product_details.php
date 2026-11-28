@@ -586,28 +586,39 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <!-- Seller Info -->
         <div id="tab-seller" class="tab-panel">
-            <div style="max-width:520px;">
-                <h3 style="font-size:1rem; font-weight:800; color:var(--text-main); margin:0 0 0.75rem; display:flex; align-items:center; gap:0.4rem;"><?= icon('store', 'lucide-sm') ?> <span><?= e($product['business_name'] ?: $product['owner_name']) ?></span></h3>
-                <table style="border-collapse:collapse; width:100%; font-size:0.85rem;">
-                    <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); white-space:nowrap; display:flex; align-items:center; gap:0.3rem;"><?= icon('user', 'lucide-xs') ?> Seller Name</td>
-                        <td style="padding:0.4rem 0; font-weight:600; color:var(--text-main);"><?= e($product['owner_name']) ?></td>
-                    </tr>
-                    <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('map-pin', 'lucide-xs') ?> Location</span></td>
-                        <td style="padding:0.4rem 0; color:var(--text-main);"><?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?></td>
-                    </tr>
-                    <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('truck', 'lucide-xs') ?> Dispatch</span></td>
-                        <td style="padding:0.4rem 0; color:var(--text-main);">30&ndash;60 min for local Kirinyaga orders</td>
-                    </tr>
-                    <?php if (!empty($product['seller_bio'])): ?>
-                    <tr>
-                        <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); vertical-align:top;"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('info', 'lucide-xs') ?> About</span></td>
-                        <td style="padding:0.4rem 0; color:var(--text-main); line-height:1.5;"><?= e($product['seller_bio']) ?></td>
-                    </tr>
-                    <?php endif; ?>
-                </table>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem; align-items:start;">
+                <div>
+                    <h3 style="font-size:1rem; font-weight:800; color:var(--text-main); margin:0 0 0.75rem; display:flex; align-items:center; gap:0.4rem;"><?= icon('store', 'lucide-sm') ?> <span><?= e($product['business_name'] ?: $product['owner_name']) ?></span></h3>
+                    <table style="border-collapse:collapse; width:100%; font-size:0.85rem;">
+                        <tr>
+                            <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); white-space:nowrap; display:flex; align-items:center; gap:0.3rem;"><?= icon('user', 'lucide-xs') ?> Seller Name</td>
+                            <td style="padding:0.4rem 0; font-weight:600; color:var(--text-main);"><?= e($product['owner_name']) ?></td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('map-pin', 'lucide-xs') ?> Shop Location</span></td>
+                            <td style="padding:0.4rem 0; color:var(--text-main); font-weight:600;"><?= e($product['seller_town'] ?: 'Kutus, Kirinyaga') ?></td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted);"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('truck', 'lucide-xs') ?> Dispatch Speed</span></td>
+                            <td style="padding:0.4rem 0; color:var(--text-main);">30&ndash;60 min local delivery via SokoHub dispatch</td>
+                        </tr>
+                        <?php if (!empty($product['seller_bio'])): ?>
+                        <tr>
+                            <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--text-muted); vertical-align:top;"><span style="display:inline-flex; align-items:center; gap:0.3rem;"><?= icon('info', 'lucide-xs') ?> About Store</span></td>
+                            <td style="padding:0.4rem 0; color:var(--text-main); line-height:1.5;"><?= e($product['seller_bio']) ?></td>
+                        </tr>
+                        <?php endif; ?>
+                    </table>
+                </div>
+
+                <!-- Google Map on Shop Location -->
+                <div>
+                    <?= render_shop_map_card(
+                        (string) ($product['business_name'] ?: $product['owner_name']),
+                        (string) ($product['seller_town'] ?: 'Kutus, Kirinyaga'),
+                        ['height' => 260]
+                    ) ?>
+                </div>
             </div>
         </div>
     </div>

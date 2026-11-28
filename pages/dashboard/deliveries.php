@@ -227,6 +227,16 @@ require_once __DIR__ . '/../../includes/header.php';
                             <td>
                                 <div class="small"><strong>From:</strong> <?= e($del['pickup_town']) ?></div>
                                 <div class="small"><strong>To:</strong> <?= e($del['dropoff_address']) ?></div>
+                                <div style="margin-top: 0.4rem; display: flex; gap: 0.3rem; align-items: center;">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="toggleDeliveryMap(<?= (int) $del['id'] ?>)" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                        <?= icon('map', 'lucide-xs', 'emerald') ?>
+                                        <span id="del-map-btn-<?= (int) $del['id'] ?>">Track Map</span>
+                                    </button>
+                                    <a href="<?= e(google_map_directions_url($del['pickup_town'], $del['dropoff_address'])) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.2rem;" title="Open GPS Route in Google Maps">
+                                        <?= icon('navigation', 'lucide-xs', 'blue') ?>
+                                        <span>GPS</span>
+                                    </a>
+                                </div>
                             </td>
                             <td>
                                 <div><strong><?= e($del['payment_method']) ?></strong></div>
@@ -329,6 +339,13 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?php endif; ?>
                             </td>
                         </tr>
+
+                        <!-- Expandable Google Map Delivery Route Tracking Row -->
+                        <tr id="del-map-row-<?= (int) $del['id'] ?>" style="display: none; background: #f8fafc;">
+                            <td colspan="7" style="padding: 1rem 1.25rem;">
+                                <?= render_delivery_tracking_map_card($del, ['height' => 280]) ?>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -336,5 +353,20 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 </main>
+
+<script>
+function toggleDeliveryMap(id) {
+    var row = document.getElementById('del-map-row-' + id);
+    var btn = document.getElementById('del-map-btn-' + id);
+    if (!row) return;
+    if (row.style.display === 'none' || row.style.display === '') {
+        row.style.display = 'table-row';
+        if (btn) btn.textContent = 'Hide Map';
+    } else {
+        row.style.display = 'none';
+        if (btn) btn.textContent = 'Track Map';
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

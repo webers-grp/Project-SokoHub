@@ -167,6 +167,8 @@ $baseOrderSql = '
            d.tracking_notes, 
            d.cash_collected,
            d.delivery_person_id,
+           d.pickup_town,
+           d.dropoff_address,
            ra.full_name AS rider_name,
            ra.phone AS rider_phone,
            dp.transport_method AS rider_transport,
@@ -437,6 +439,24 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </div>
                             <?php endif; ?>
 
+                            <!-- Google Maps Delivery Track Toggle -->
+                            <?php
+                            $delData = [
+                                'pickup_town'     => $ord['pickup_town'] ?: 'Kutus Market',
+                                'dropoff_address' => $ord['dropoff_address'] ?: ($ord['delivery_address'] . ', ' . $ord['delivery_town']),
+                                'delivery_status' => $ord['delivery_status'] ?: $ord['status'],
+                                'order_code'      => $ord['order_code'],
+                                'rider_name'      => $ord['rider_name'] ?? '',
+                                'rider_phone'     => $ord['rider_phone'] ?? '',
+                            ];
+                            ?>
+                            <div style="margin-top: 0.75rem;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="toggleOrderMap(<?= $oid ?>)" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <?= icon('map-pin', 'lucide-xs', 'emerald') ?>
+                                    <span id="map-btn-text-<?= $oid ?>">View Live Google Map Route</span>
+                                </button>
+                            </div>
+
                             <!-- Refund Info if requested -->
                             <?php if (!empty($ord['refund_status'])): ?>
                                 <div style="margin-top: 1rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.75rem; font-size: 0.8rem;">
@@ -531,6 +551,11 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
                     </div>
 
+                    <!-- Interactive Google Map Delivery Tracking Section -->
+                    <div id="order-map-container-<?= $oid ?>" style="display: none; padding: 0 1.5rem 1.5rem; background: #ffffff;">
+                        <?= render_delivery_tracking_map_card($delData, ['height' => 280]) ?>
+                    </div>
+
                     <!-- Expandable Status History Timeline -->
                     <?php if (!empty($history)): ?>
                         <details style="border-top: 1px solid #f1f5f9; background: #fafafa; padding: 0.75rem 1.5rem;">
@@ -556,5 +581,20 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 </main>
+
+<script>
+function toggleOrderMap(oid) {
+    var el = document.getElementById('order-map-container-' + oid);
+    var txt = document.getElementById('map-btn-text-' + oid);
+    if (!el) return;
+    if (el.style.display === 'none' || el.style.display === '') {
+        el.style.display = 'block';
+        if (txt) txt.textContent = 'Hide Google Map Route';
+    } else {
+        el.style.display = 'none';
+        if (txt) txt.textContent = 'View Live Google Map Route';
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
